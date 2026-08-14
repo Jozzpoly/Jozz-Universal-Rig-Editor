@@ -23,6 +23,14 @@ function loadLayout(): WorkspaceLayoutState {
   }
 }
 
+function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d={direction === 'left' ? 'M10 3.5 5.5 8 10 12.5' : 'M6 3.5 10.5 8 6 12.5'} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export interface WorkspaceShellProps {
   topbar: ReactNode;
   rigPane: ReactNode;
@@ -78,9 +86,9 @@ export function WorkspaceShell({ topbar, rigPane, sourcePane, viewport, inspecto
     event.currentTarget.setPointerCapture(event.pointerId);
     const startX = event.clientX;
     const startWidth = side === 'left' ? effectiveLayout.leftWidth : effectiveLayout.rightWidth;
-
     const captureTarget = event.currentTarget;
     const pointerId = event.pointerId;
+
     installPointerDrag((moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX;
       const requestedWidth = side === 'left' ? startWidth + delta : startWidth - delta;
@@ -94,9 +102,9 @@ export function WorkspaceShell({ topbar, rigPane, sourcePane, viewport, inspecto
     if (effectiveLayout.leftCollapsed || !leftRef.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const rect = leftRef.current.getBoundingClientRect();
-
     const captureTarget = event.currentTarget;
     const pointerId = event.pointerId;
+
     installPointerDrag((moveEvent: PointerEvent) => {
       const ratio = clampWorkspaceValue(
         (moveEvent.clientY - rect.top) / Math.max(rect.height, 1),
@@ -121,16 +129,21 @@ export function WorkspaceShell({ topbar, rigPane, sourcePane, viewport, inspecto
 
       <aside ref={leftRef} className={`workspace-side left-panel ${layout.leftCollapsed ? 'collapsed' : ''}`}>
         {layout.leftCollapsed ? (
-          <button className="panel-reopen left" title="Show navigator" onClick={() => setLayout((current) => ({ ...current, leftCollapsed: false }))}>›</button>
+          <button className="collapsed-rail left" title="Show navigator" aria-label="Show navigator" onClick={() => setLayout((current) => ({ ...current, leftCollapsed: false }))}>
+            <ChevronIcon direction="right" />
+            <span>Navigator</span>
+          </button>
         ) : (
           <>
             <div className="workspace-left-stack">
               <div className="workspace-pane rig-pane">{rigPane}</div>
-              <div className="workspace-splitter horizontal" role="separator" aria-orientation="horizontal" onPointerDown={beginVerticalResize} />
+              <div className="workspace-splitter horizontal" role="separator" aria-orientation="horizontal" aria-label="Resize Rig and Source panes" onPointerDown={beginVerticalResize}><span /></div>
               <div className="workspace-pane source-pane">{sourcePane}</div>
             </div>
-            <button className="panel-collapse left" title="Hide navigator" onClick={() => setLayout((current) => ({ ...current, leftCollapsed: true }))}>‹</button>
-            <div className="workspace-splitter vertical left" role="separator" aria-orientation="vertical" onPointerDown={(event) => beginHorizontalResize('left', event)} />
+            <button className="panel-dock-toggle left" title="Hide navigator" aria-label="Hide navigator" onClick={() => setLayout((current) => ({ ...current, leftCollapsed: true }))}>
+              <ChevronIcon direction="left" />
+            </button>
+            <div className="workspace-splitter vertical left" role="separator" aria-orientation="vertical" aria-label="Resize navigator" onPointerDown={(event) => beginHorizontalResize('left', event)} />
           </>
         )}
       </aside>
@@ -139,11 +152,16 @@ export function WorkspaceShell({ topbar, rigPane, sourcePane, viewport, inspecto
 
       <aside className={`workspace-side right-panel ${layout.rightCollapsed ? 'collapsed' : ''}`}>
         {layout.rightCollapsed ? (
-          <button className="panel-reopen right" title="Show inspector" onClick={() => setLayout((current) => ({ ...current, rightCollapsed: false }))}>‹</button>
+          <button className="collapsed-rail right" title="Show inspector" aria-label="Show inspector" onClick={() => setLayout((current) => ({ ...current, rightCollapsed: false }))}>
+            <ChevronIcon direction="left" />
+            <span>Inspector</span>
+          </button>
         ) : (
           <>
-            <div className="workspace-splitter vertical right" role="separator" aria-orientation="vertical" onPointerDown={(event) => beginHorizontalResize('right', event)} />
-            <button className="panel-collapse right" title="Hide inspector" onClick={() => setLayout((current) => ({ ...current, rightCollapsed: true }))}>›</button>
+            <div className="workspace-splitter vertical right" role="separator" aria-orientation="vertical" aria-label="Resize inspector" onPointerDown={(event) => beginHorizontalResize('right', event)} />
+            <button className="panel-dock-toggle right" title="Hide inspector" aria-label="Hide inspector" onClick={() => setLayout((current) => ({ ...current, rightCollapsed: true }))}>
+              <ChevronIcon direction="right" />
+            </button>
             {inspector}
           </>
         )}

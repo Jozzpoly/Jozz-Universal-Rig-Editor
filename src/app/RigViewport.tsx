@@ -12,7 +12,8 @@ interface RigViewportProps {
   transformMode: 'translate' | 'rotate';
   transformSpace: 'world' | 'local';
   sourceAssetUrl: string | null;
-  sourceVisible: boolean;
+  sourceGeometryVisible: boolean;
+  sourceDatumVisible: boolean;
   sourceSelectionPose: RigidPose | null;
   viewRequest: { id: number; target: ViewFitTarget } | null;
   onSelect(target: TransformTarget | null): void;
@@ -39,7 +40,8 @@ export function RigViewport(props: RigViewportProps) {
   useEffect(() => { controllerRef.current?.setCameraPreset(props.cameraPreset); }, [props.cameraPreset]);
   useEffect(() => { controllerRef.current?.setTransformMode(props.transformMode); }, [props.transformMode]);
   useEffect(() => { controllerRef.current?.setTransformSpace(props.transformSpace); }, [props.transformSpace]);
-  useEffect(() => { controllerRef.current?.setSourceVisible(props.sourceVisible); }, [props.sourceVisible]);
+  useEffect(() => { controllerRef.current?.setSourceGeometryVisible(props.sourceGeometryVisible); }, [props.sourceGeometryVisible]);
+  useEffect(() => { controllerRef.current?.setSourceDatumVisible(props.sourceDatumVisible); }, [props.sourceDatumVisible]);
   useEffect(() => { controllerRef.current?.setSourceSelection(props.sourceSelectionPose); }, [props.sourceSelectionPose]);
   useEffect(() => {
     if (props.viewRequest) controllerRef.current?.fitView(props.viewRequest.target);

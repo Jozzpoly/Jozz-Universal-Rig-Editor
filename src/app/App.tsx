@@ -11,14 +11,17 @@ import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
 import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
-import { RigNavigator } from './workspace/RigNavigator.js';
-import { SourceNavigator } from './workspace/SourceNavigator.js';
+import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
+import { SourceNavigator, type SourceLayerVisibility } from './workspace/SourceNavigator.js';
 import { TopBar } from './workspace/TopBar.js';
 import { ViewportChrome } from './workspace/ViewportChrome.js';
 import { WorkspaceShell } from './workspace/WorkspaceShell.js';
 import './styles.css';
 
 interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
+
+const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true };
+const DEFAULT_SOURCE_LAYERS: SourceLayerVisibility = { geometry: true, datum: true };
 
 function initialTransformTarget(document: RigDocument): TransformTarget | null {
   const frame = document.frames[0];
@@ -37,7 +40,9 @@ export function App() {
   const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
   const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
   const [rigVisible, setRigVisible] = useState(true);
+  const [rigLayers, setRigLayers] = useState<RigLayerVisibility>(DEFAULT_RIG_LAYERS);
   const [sourceVisible, setSourceVisible] = useState(true);
+  const [sourceLayers, setSourceLayers] = useState<SourceLayerVisibility>(DEFAULT_SOURCE_LAYERS);
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic fixture · unsaved');
   const sourceUrlRef = useRef<string | null>(null);
@@ -49,6 +54,14 @@ export function App() {
   const document = visibleDocument(session);
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
   const displayModel = useMemo(() => buildRigDisplayModel(document, resolved, selectedTarget), [document, resolved, selectedTarget]);
+  const visibleDisplayModel = useMemo(() => ({
+    items: displayModel.items.filter((item) => {
+      if (item.kind === 'element') return rigLayers.elements;
+      if (item.kind === 'frame') return rigLayers.frames;
+      return rigLayers.relations;
+    }),
+  }), [displayModel, rigLayers]);
+
   const selectedElement = selectedTarget?.kind === 'element'
     ? document.elements.find((element) => element.id === selectedTarget.id) ?? null
     : null;
@@ -57,6 +70,8 @@ export function App() {
     : null;
   const selectedSourceNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
   const sourceSelectionPose = selectedSourceNode?.worldRigidPose ?? null;
+  const sourceGeometryVisible = sourceVisible && sourceLayers.geometry;
+  const sourceDatumVisible = sourceVisible && sourceLayers.datum;
 
   const requestView = useCallback((target: ViewFitTarget) => {
     setViewRequest((current) => ({ id: (current?.id ?? 0) + 1, target }));
@@ -85,10 +100,8 @@ export function App() {
     setStatus(`${target.kind === 'element' ? 'Element' : 'Frame'} transform cancelled`);
   }, []);
 
-  const commitNumericPosition = useCallback((target: TransformTarget, pose: RigidPose, axis: 'x' | 'y' | 'z', value: number) => {
-    if (!Number.isFinite(value)) return;
-    const nextPose = { ...pose, position: { ...pose.position, [axis]: value } };
-    setSession((current) => applyCommand(current, setTransformTargetPose(target, nextPose)));
+  const commitPose = useCallback((target: TransformTarget, pose: RigidPose) => {
+    setSession((current) => applyCommand(current, setTransformTargetPose(target, pose)));
     setStatus(`Authored ${target.kind} committed · unsaved`);
   }, []);
 
@@ -156,7 +169,9 @@ export function App() {
           document={document}
           selectedTarget={selectedTarget}
           visible={rigVisible}
+          layers={rigLayers}
           onVisibleChange={setRigVisible}
+          onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
           onSelect={setSelectedTarget}
         />
       )}
@@ -165,21 +180,24 @@ export function App() {
           sourceAsset={sourceAsset}
           selectedSourceLocator={selectedSourceLocator}
           visible={sourceVisible}
+          layers={sourceLayers}
           onVisibleChange={setSourceVisible}
+          onLayerChange={(layer, visible) => setSourceLayers((current) => ({ ...current, [layer]: visible }))}
           onSelect={setSelectedSourceLocator}
         />
       )}
       viewport={(
         <>
           <RigViewport
-            model={displayModel}
+            model={visibleDisplayModel}
             rigVisible={rigVisible}
             selectedTarget={selectedTarget}
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
             sourceAssetUrl={sourceAsset?.objectUrl ?? null}
-            sourceVisible={sourceVisible}
+            sourceGeometryVisible={sourceGeometryVisible}
+            sourceDatumVisible={sourceDatumVisible}
             sourceSelectionPose={sourceSelectionPose}
             viewRequest={viewRequest}
             onSelect={setSelectedTarget}
@@ -192,9 +210,9 @@ export function App() {
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
-            hasRig={rigVisible && displayModel.items.length > 0}
-            hasSource={sourceVisible && Boolean(sourceAsset)}
-            hasSourceSelection={sourceVisible && Boolean(sourceSelectionPose)}
+            hasRig={rigVisible && visibleDisplayModel.items.length > 0}
+            hasSource={sourceGeometryVisible && Boolean(sourceAsset)}
+            hasSourceSelection={sourceDatumVisible && Boolean(sourceSelectionPose)}
             onCameraPreset={setCameraPreset}
             onTransformMode={setTransformMode}
             onToggleTransformSpace={() => setTransformSpace((value) => value === 'world' ? 'local' : 'world')}
@@ -208,7 +226,7 @@ export function App() {
           selectedFrame={selectedFrame}
           selectedPose={selectedPose}
           selectedSourceNode={selectedSourceNode}
-          onCommitNumericPosition={commitNumericPosition}
+          onCommitPose={commitPose}
           onFocusSource={() => requestView('source-selection')}
         />
       )}

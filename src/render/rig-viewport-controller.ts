@@ -45,7 +45,8 @@ export class RigViewportController {
   private transformCancelRequested = false;
   private sourceSelectionPose: RigidPose | null = null;
   private rigVisible = true;
-  private sourceVisible = true;
+  private sourceGeometryVisible = true;
+  private sourceDatumVisible = true;
   private sourceLoadGeneration = 0;
   private orthographicHalfHeight = 1.05;
 
@@ -131,16 +132,20 @@ export class RigViewportController {
     this.syncTransformProxy();
   }
 
-  setSourceVisible(visible: boolean): void {
-    this.sourceVisible = visible;
+  setSourceGeometryVisible(visible: boolean): void {
+    this.sourceGeometryVisible = visible;
     this.sourceRoot.visible = visible;
+  }
+
+  setSourceDatumVisible(visible: boolean): void {
+    this.sourceDatumVisible = visible;
     this.sourceSelectionRoot.visible = visible;
   }
 
   setSourceSelection(pose: RigidPose | null): void {
     this.sourceSelectionPose = pose;
     this.disposeChildren(this.sourceSelectionRoot);
-    this.sourceSelectionRoot.visible = this.sourceVisible;
+    this.sourceSelectionRoot.visible = this.sourceDatumVisible;
     if (!pose) return;
 
     this.applyPose(this.sourceSelectionRoot, pose);
@@ -160,13 +165,13 @@ export class RigViewportController {
 
   fitView(target: ViewFitTarget): void {
     if (target === 'source-selection') {
-      if (this.sourceVisible && this.sourceSelectionPose) this.focusPoint(this.sourceSelectionPose.position);
+      if (this.sourceDatumVisible && this.sourceSelectionPose) this.focusPoint(this.sourceSelectionPose.position);
       return;
     }
 
     const box = new THREE.Box3();
     if ((target === 'rig' || target === 'all') && this.rigVisible) box.expandByObject(this.root);
-    if ((target === 'source' || target === 'all') && this.sourceVisible) box.expandByObject(this.sourceRoot);
+    if ((target === 'source' || target === 'all') && this.sourceGeometryVisible) box.expandByObject(this.sourceRoot);
     if (box.isEmpty()) return;
 
     const sphere = box.getBoundingSphere(new THREE.Sphere());
