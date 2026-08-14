@@ -1,6 +1,6 @@
 # Status
 
-Current: **element/frame interaction foundation OWNER ACCEPTED; SOURCE foundation in progress**.
+Current: **element/frame interaction and read-only SOURCE spatial inspection OWNER ACCEPTED; foundation still open for UX, binding and motion semantics**.
 
 Implemented:
 - dependency-free RigDocument kernel with globally unique stable IDs;
@@ -10,16 +10,20 @@ Implemented:
 - preview/cancel + undo/redo;
 - Move/Rotate, world/local and element/frame inspectors;
 - guarded local RigDocument save/open;
-- local glTF/GLB SOURCE reference with SHA-256 + deterministic read-only node inspection/locators, not authored adoption.
+- local glTF/GLB SOURCE reference with SHA-256 + deterministic read-only node inspection/locators;
+- independent authored/SOURCE selection, SOURCE datum marker/axes, Focus Source and Fit Source/Rig/All.
 
-Owner gate accepted 2026-08-14: element selection/move/rotate, owned-frame propagation, independent frame editing, world/local, undo/redo, Esc cancellation and free camera inspection all passed in the real browser build.
+Owner gates accepted 2026-08-14:
+- element selection/move/rotate, owned-frame propagation, independent frame editing, world/local, undo/redo, Esc cancellation and free camera inspection;
+- real `OneSided_Steering_Suspension_Rig.gltf` SOURCE inspection, including spatial `Socket_WheelCenter` verification and independent read-only SOURCE selection.
 
 Not yet claimed:
 - foundation accepted;
-- source adapter/locator/provenance/rebind contract frozen;
+- source registration/adoption/rebind contract frozen;
+- representation binding from source geometry to authored `RigElement`;
 - representation stretch/deformation;
+- kinematic Author/Test evaluation path;
 - JV lower mating solved;
-- motion/runtime validation;
 - native JV or VAW adapters.
 
-Current SOURCE slice is bounded to read-only inspection and exact locator/provenance semantics. Explicit source registration/adoption/rebind and representation stretch remain separate later slices.
+Next foundation work: UX/workspace structure first, then explicit source/adoption + representation binding, then a minimal kinematic evaluated-motion proof. No physics solver is part of this foundation.
