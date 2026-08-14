@@ -1,0 +1,31 @@
+{
+  "name": "jozz-universal-rig-editor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b --pretty false && vite build",
+    "build:app": "vite build",
+    "typecheck": "tsc -b --pretty false",
+    "test": "npm run test:core",
+    "test:core": "node scripts/test-core.mjs",
+    "check": "npm run typecheck && npm run test:core && npm run build:app"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "0.185.1",
+    "@vitejs/plugin-react": "6.0.4",
+    "typescript": "7.0.2",
+    "vite": "8.1.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
