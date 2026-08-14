@@ -44,6 +44,9 @@ export class RigViewportController {
   private transformDragActive = false;
   private transformCancelRequested = false;
   private sourceSelectionPose: RigidPose | null = null;
+  private rigVisible = true;
+  private sourceVisible = true;
+  private sourceLoadGeneration = 0;
   private orthographicHalfHeight = 1.05;
 
   constructor(private readonly host: HTMLElement, callbacks: ViewportCallbacks) {
@@ -121,9 +124,23 @@ export class RigViewportController {
   setTransformSpace(space: 'world' | 'local'): void { this.transform.setSpace(space); }
   setTransformMode(mode: 'translate' | 'rotate'): void { this.transform.setMode(mode); }
 
+  setRigVisible(visible: boolean): void {
+    if (!visible && this.transformDragActive) this.cancelActiveTransform();
+    this.rigVisible = visible;
+    this.root.visible = visible;
+    this.syncTransformProxy();
+  }
+
+  setSourceVisible(visible: boolean): void {
+    this.sourceVisible = visible;
+    this.sourceRoot.visible = visible;
+    this.sourceSelectionRoot.visible = visible;
+  }
+
   setSourceSelection(pose: RigidPose | null): void {
     this.sourceSelectionPose = pose;
     this.disposeChildren(this.sourceSelectionRoot);
+    this.sourceSelectionRoot.visible = this.sourceVisible;
     if (!pose) return;
 
     this.applyPose(this.sourceSelectionRoot, pose);
@@ -143,13 +160,13 @@ export class RigViewportController {
 
   fitView(target: ViewFitTarget): void {
     if (target === 'source-selection') {
-      if (this.sourceSelectionPose) this.focusPoint(this.sourceSelectionPose.position);
+      if (this.sourceVisible && this.sourceSelectionPose) this.focusPoint(this.sourceSelectionPose.position);
       return;
     }
 
     const box = new THREE.Box3();
-    if (target === 'rig' || target === 'all') box.expandByObject(this.root);
-    if (target === 'source' || target === 'all') box.expandByObject(this.sourceRoot);
+    if ((target === 'rig' || target === 'all') && this.rigVisible) box.expandByObject(this.root);
+    if ((target === 'source' || target === 'all') && this.sourceVisible) box.expandByObject(this.sourceRoot);
     if (box.isEmpty()) return;
 
     const sphere = box.getBoundingSphere(new THREE.Sphere());
@@ -245,9 +262,20 @@ export class RigViewportController {
   }
 
   async showSourceAsset(objectUrl: string): Promise<void> {
+    const generation = ++this.sourceLoadGeneration;
     this.disposeChildren(this.sourceRoot);
     const loader = new GLTFLoader();
-    const gltf = await loader.loadAsync(objectUrl);
+    const gltf = await loader.loadAsync(objectUrl).catch((error: unknown) => {
+      if (generation !== this.sourceLoadGeneration) return null;
+      throw error;
+    });
+    if (!gltf) return;
+
+    if (generation !== this.sourceLoadGeneration) {
+      this.disposeObjectTree(gltf.scene);
+      return;
+    }
+
     gltf.scene.traverse((object) => {
       if (object instanceof THREE.Mesh) {
         const material = new THREE.MeshStandardMaterial({ color: 0x728191, transparent: true, opacity: 0.34, depthWrite: false, roughness: 0.7 });
@@ -257,9 +285,13 @@ export class RigViewportController {
     this.sourceRoot.add(gltf.scene);
   }
 
-  clearSourceAsset(): void { this.disposeChildren(this.sourceRoot); }
+  clearSourceAsset(): void {
+    this.sourceLoadGeneration += 1;
+    this.disposeChildren(this.sourceRoot);
+  }
 
   dispose(): void {
+    this.sourceLoadGeneration += 1;
     if (this.transformDragActive) {
       this.transformCancelRequested = true;
       this.transform.reset();
@@ -290,7 +322,7 @@ export class RigViewportController {
   }
 
   private syncTransformProxy(): void {
-    if (!this.selectedTarget) { this.transform.detach(); return; }
+    if (!this.rigVisible || !this.selectedTarget) { this.transform.detach(); return; }
     const pose = this.targetWorldPoses.get(this.selectedTarget.id);
     if (!pose) { this.transform.detach(); return; }
     this.applyPose(this.selectedProxy, pose);
@@ -325,7 +357,7 @@ export class RigViewportController {
   }
 
   private onPointerDown = (event: PointerEvent): void => {
-    if (this.transform.dragging || this.transform.axis !== null) return;
+    if (!this.rigVisible || this.transform.dragging || this.transform.axis !== null) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -361,16 +393,20 @@ export class RigViewportController {
     this.renderer.render(this.scene, this.camera);
   };
 
+  private disposeObjectTree(root: THREE.Object3D): void {
+    root.traverse((object) => {
+      const maybe = object as THREE.Mesh;
+      maybe.geometry?.dispose?.();
+      const material = maybe.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
+      else material?.dispose?.();
+    });
+  }
+
   private disposeChildren(root: THREE.Object3D): void {
     while (root.children.length > 0) {
       const child = root.children.pop()!;
-      child.traverse((object) => {
-        const maybe = object as THREE.Mesh;
-        maybe.geometry?.dispose?.();
-        const material = maybe.material as THREE.Material | THREE.Material[] | undefined;
-        if (Array.isArray(material)) material.forEach((entry) => entry.dispose());
-        else material?.dispose?.();
-      });
+      this.disposeObjectTree(child);
     }
   }
 }
