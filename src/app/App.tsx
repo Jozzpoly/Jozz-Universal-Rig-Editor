@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
+import type { RigDisplayModel } from '../display/types.js';
 import { applyCommand, beginPreview, cancelPreview, commitPreview, createEditorSession, redo, undo, updatePreview, visibleDocument, type EditorSession } from '../editor/session.js';
 import { worldPoseToAuthoredPose, type TransformTarget } from '../editor/transform-target.js';
 import { setTransformTargetPose } from '../features/rig-transform/command.js';
@@ -10,9 +11,17 @@ import { openRigFile, saveRigFile, saveRigFileAs } from '../io/rig-file.js';
 import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
 import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
+import { InspectorPanel } from './workspace/InspectorPanel.js';
+import { RigNavigator } from './workspace/RigNavigator.js';
+import { SourceNavigator } from './workspace/SourceNavigator.js';
+import { TopBar } from './workspace/TopBar.js';
+import { ViewportChrome } from './workspace/ViewportChrome.js';
+import { WorkspaceShell } from './workspace/WorkspaceShell.js';
 import './styles.css';
 
 interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
+
+const EMPTY_DISPLAY_MODEL: RigDisplayModel = { items: [] };
 
 function initialTransformTarget(document: RigDocument): TransformTarget | null {
   const frame = document.frames[0];
@@ -30,6 +39,8 @@ export function App() {
   const [fileState, setFileState] = useState<FileState | null>(null);
   const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
   const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
+  const [rigVisible, setRigVisible] = useState(true);
+  const [sourceVisible, setSourceVisible] = useState(true);
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic fixture · unsaved');
   const sourceUrlRef = useRef<string | null>(null);
@@ -113,6 +124,7 @@ export function App() {
       const opened = await openSourceAsset();
       sourceUrlRef.current = opened.objectUrl;
       setSourceAsset(opened);
+      setSourceVisible(true);
       setSelectedSourceLocator(null);
       setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
@@ -122,174 +134,87 @@ export function App() {
   const selectedPose = selectedElement?.pose ?? selectedFrame?.pose ?? null;
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">Jozz Universal Rig Editor <span>F0</span></div>
-        <div className="toolbar-group">
-          <button onClick={handleOpenRig}>Open Rig</button>
-          <button onClick={() => void handleSave()}>Save</button>
-          <button onClick={() => void handleSaveAs()}>Save As</button>
-          <button onClick={handleOpenSource}>Open Source</button>
-        </div>
-        <div className="toolbar-group">
-          <button className={transformMode === 'translate' ? 'active' : ''} onClick={() => setTransformMode('translate')}>Move</button>
-          <button className={transformMode === 'rotate' ? 'active' : ''} onClick={() => setTransformMode('rotate')}>Rotate</button>
-          <button onClick={() => setTransformSpace((value) => value === 'world' ? 'local' : 'world')}>{transformSpace}</button>
-        </div>
-        <div className="toolbar-group views">
-          {(['perspective', 'front', 'top', 'side'] as CameraPreset[]).map((preset) => <button key={preset} className={cameraPreset === preset ? 'active' : ''} onClick={() => setCameraPreset(preset)}>{preset}</button>)}
-        </div>
-        <div className="toolbar-group push-right">
-          <button disabled={session.past.length === 0 || !!session.preview} onClick={() => setSession((current) => undo(current))}>Undo</button>
-          <button disabled={session.future.length === 0 || !!session.preview} onClick={() => setSession((current) => redo(current))}>Redo</button>
-        </div>
-      </header>
-
-      <aside className="left-panel">
-        <div className="panel-title">Rig</div>
-        <section>
-          <h3>Elements</h3>
-          {document.elements.map((element) => <button className={`tree-row ${selectedTarget?.kind === 'element' && selectedTarget.id === element.id ? 'selected' : ''}`} key={element.id} onClick={() => setSelectedTarget({ kind: 'element', id: element.id })}><span className="dot element-dot" />{element.name}</button>)}
-        </section>
-        <section>
-          <h3>Frames</h3>
-          {document.frames.map((frame) => <button className={`tree-row ${selectedTarget?.kind === 'frame' && selectedTarget.id === frame.id ? 'selected' : ''}`} key={frame.id} onClick={() => setSelectedTarget({ kind: 'frame', id: frame.id })}><span className="dot frame-dot" />{frame.name}<small>{frame.role ?? 'frame'}</small></button>)}
-        </section>
-        <section>
-          <h3>Relations</h3>
-          {document.relations.map((relation) => <div className="tree-row readonly" key={relation.id}><span className="dot relation-dot" />{relation.id}</div>)}
-        </section>
-        <section>
-          <h3>Source layer</h3>
-          {sourceAsset ? (
-            <div className="source-card">
-              <strong>{sourceAsset.name}</strong>
-              <code>{sourceAsset.sha256}</code>
-              <span>REFERENCE / NOT AUTHORED</span>
-              <div className="source-summary">
-                {sourceAsset.inspection.adapter.id} v{sourceAsset.inspection.adapter.version} · {sourceAsset.inspection.nodeCount} nodes · {sourceAsset.inspection.jointCount} joints · {sourceAsset.inspection.meshCount} meshes
-              </div>
-              <div className="source-node-list">
-                {sourceAsset.inspection.nodes.slice(0, 24).map((node) => (
-                  <button
-                    type="button"
-                    className={`source-node-row ${selectedSourceLocator === node.locator ? 'selected' : ''}`}
-                    key={node.locator}
-                    onClick={() => setSelectedSourceLocator(node.locator)}
-                    title={node.worldRigidPose ? 'Select read-only SOURCE datum' : `Inspect only: ${node.rigidCompatibility}`}
-                  >
-                    <span>{node.name ?? `Node ${node.index}`}</span>
-                    <code>{node.locator}</code>
-                    <small>{node.isSkinJoint ? 'joint' : node.hasMesh ? 'mesh' : 'node'}{node.worldRigidPose ? '' : ` · ${node.rigidCompatibility}`}</small>
-                  </button>
-                ))}
-                {sourceAsset.inspection.nodeCount > 24 ? <div className="source-node-more">+{sourceAsset.inspection.nodeCount - 24} more nodes</div> : null}
-              </div>
-            </div>
-          ) : <div className="empty-copy">Open a local glTF/GLB. It stays transient until a future explicit adoption flow.</div>}
-        </section>
-      </aside>
-
-      <main className="canvas-region">
-        <RigViewport
-          model={displayModel}
-          selectedTarget={selectedTarget}
-          cameraPreset={cameraPreset}
-          transformMode={transformMode}
-          transformSpace={transformSpace}
-          sourceAssetUrl={sourceAsset?.objectUrl ?? null}
-          sourceSelectionPose={sourceSelectionPose}
-          viewRequest={viewRequest}
-          onSelect={setSelectedTarget}
-          onTransformStart={handleTransformStart}
-          onTransformPreview={handleTransformPreview}
-          onTransformCommit={handleTransformCommit}
-          onTransformCancel={handleTransformCancel}
+    <WorkspaceShell
+      topbar={(
+        <TopBar
+          documentId={document.documentId}
+          revision={session.committed.revision}
+          canUndo={session.past.length > 0 && !session.preview}
+          canRedo={session.future.length > 0 && !session.preview}
+          onOpenRig={handleOpenRig}
+          onSave={() => void handleSave()}
+          onSaveAs={() => void handleSaveAs()}
+          onOpenSource={handleOpenSource}
+          onUndo={() => setSession((current) => undo(current))}
+          onRedo={() => setSession((current) => redo(current))}
         />
-        <div className="viewport-tools" aria-label="Viewport framing">
-          <button disabled={!sourceSelectionPose} onClick={() => requestView('source-selection')}>Focus Source</button>
-          <button disabled={!sourceAsset} onClick={() => requestView('source')}>Fit Source</button>
-          <button onClick={() => requestView('rig')}>Fit Rig</button>
-          <button disabled={!sourceAsset} onClick={() => requestView('all')}>Fit All</button>
-        </div>
-        <div className="viewport-hint">Authored selection and SOURCE selection are independent. SOURCE markers are read-only.</div>
-      </main>
-
-      <aside className="right-panel">
-        <div className="panel-title">Inspector</div>
-        {selectedElement && selectedPose ? (
-          <>
-            <div className="inspector-name">{selectedElement.name}</div>
-            <dl className="meta-list">
-              <dt>ID</dt><dd>{selectedElement.id}</dd>
-              <dt>Kind</dt><dd>RigElement</dd>
-              <dt>Source</dt><dd>{selectedElement.source?.locator ?? '—'}</dd>
-              <dt>Truth</dt><dd>authored rigid element</dd>
-            </dl>
-            <h3>Rig-root position · m</h3>
-            <div className="vector-grid">
-              {(['x', 'y', 'z'] as const).map((axis) => (
-                <label key={axis}><span>{axis.toUpperCase()}</span><input type="number" step="0.001" defaultValue={selectedPose.position[axis]} key={`${selectedElement.id}-${axis}-${selectedPose.position[axis]}`} onBlur={(event) => commitNumericPosition({ kind: 'element', id: selectedElement.id }, selectedPose, axis, Number(event.target.value))} /></label>
-              ))}
-            </div>
-            <h3>Rig-root rotation · quaternion</h3>
-            <div className="quat-readout">{Object.entries(selectedPose.rotation).map(([key, value]) => <div key={key}><span>{key.toUpperCase()}</span><code>{value.toFixed(6)}</code></div>)}</div>
-            <div className="truth-note">The gizmo edits the whole element pose. Owned frames keep their local authored poses and follow the element in resolved world space.</div>
-          </>
-        ) : selectedFrame && selectedPose ? (
-          <>
-            <div className="inspector-name">{selectedFrame.name}</div>
-            <dl className="meta-list">
-              <dt>ID</dt><dd>{selectedFrame.id}</dd>
-              <dt>Owner</dt><dd>{selectedFrame.ownerElementId ?? 'rig-root'}</dd>
-              <dt>Role</dt><dd>{selectedFrame.role ?? '—'}</dd>
-              <dt>Truth</dt><dd>{selectedFrame.provenance.kind}</dd>
-            </dl>
-            <h3>Local position · m</h3>
-            <div className="vector-grid">
-              {(['x', 'y', 'z'] as const).map((axis) => (
-                <label key={axis}><span>{axis.toUpperCase()}</span><input type="number" step="0.001" defaultValue={selectedPose.position[axis]} key={`${selectedFrame.id}-${axis}-${selectedPose.position[axis]}`} onBlur={(event) => commitNumericPosition({ kind: 'frame', id: selectedFrame.id }, selectedPose, axis, Number(event.target.value))} /></label>
-              ))}
-            </div>
-            <h3>Local rotation · quaternion</h3>
-            <div className="quat-readout">{Object.entries(selectedPose.rotation).map(([key, value]) => <div key={key}><span>{key.toUpperCase()}</span><code>{value.toFixed(6)}</code></div>)}</div>
-            <div className="truth-note">The gizmo edits this frame in its owner element's local authored space. View/camera/runtime state is not serialized.</div>
-          </>
-        ) : <div className="empty-copy">Select a RigElement or RigFrame to author its rigid pose.</div>}
-
-        {selectedSourceNode ? (
-          <div className="source-inspector">
-            <div className="source-inspector-label">SOURCE DATUM · REFERENCE / NOT AUTHORED</div>
-            <div className="inspector-name">{selectedSourceNode.name ?? `Node ${selectedSourceNode.index}`}</div>
-            <dl className="meta-list">
-              <dt>Locator</dt><dd>{selectedSourceNode.locator}</dd>
-              <dt>Kind</dt><dd>{selectedSourceNode.isSkinJoint ? 'joint' : selectedSourceNode.hasMesh ? 'mesh' : 'node'}</dd>
-              <dt>Rigid</dt><dd>{selectedSourceNode.rigidCompatibility}</dd>
-              <dt>Authored</dt><dd>no</dd>
-            </dl>
-            {selectedSourceNode.worldRigidPose ? (
-              <>
-                <h3>Resolved SOURCE world position · m</h3>
-                <div className="source-pose-readout">
-                  {(['x', 'y', 'z'] as const).map((axis) => (
-                    <div key={axis}><span>{axis.toUpperCase()}</span><code>{selectedSourceNode.worldRigidPose!.position[axis].toFixed(6)}</code></div>
-                  ))}
-                </div>
-                <button className="source-focus-button" onClick={() => requestView('source-selection')}>Focus this SOURCE datum</button>
-              </>
-            ) : (
-              <div className="truth-note source-warning">No rigid world pose is exposed for this node. JURE will not invent one from scaled/matrix/non-rigid ancestry.</div>
-            )}
-          </div>
-        ) : null}
-      </aside>
-
-      <footer className="statusbar">
-        <span>doc <strong>{document.documentId}</strong></span>
-        <span>rev <strong>{session.committed.revision}</strong>{session.preview ? ' · PREVIEW' : ''}</span>
-        <span className={warningCount ? 'warn' : 'ok'}>{warningCount} relation warning{warningCount === 1 ? '' : 's'}</span>
-        <span className="status-message">{status}</span>
-      </footer>
-    </div>
+      )}
+      rigPane={(
+        <RigNavigator
+          document={document}
+          selectedTarget={selectedTarget}
+          visible={rigVisible}
+          onVisibleChange={setRigVisible}
+          onSelect={setSelectedTarget}
+        />
+      )}
+      sourcePane={(
+        <SourceNavigator
+          sourceAsset={sourceAsset}
+          selectedSourceLocator={selectedSourceLocator}
+          visible={sourceVisible}
+          onVisibleChange={setSourceVisible}
+          onSelect={setSelectedSourceLocator}
+        />
+      )}
+      viewport={(
+        <>
+          <RigViewport
+            model={rigVisible ? displayModel : EMPTY_DISPLAY_MODEL}
+            selectedTarget={selectedTarget}
+            cameraPreset={cameraPreset}
+            transformMode={transformMode}
+            transformSpace={transformSpace}
+            sourceAssetUrl={sourceVisible ? sourceAsset?.objectUrl ?? null : null}
+            sourceSelectionPose={sourceVisible ? sourceSelectionPose : null}
+            viewRequest={viewRequest}
+            onSelect={setSelectedTarget}
+            onTransformStart={handleTransformStart}
+            onTransformPreview={handleTransformPreview}
+            onTransformCommit={handleTransformCommit}
+            onTransformCancel={handleTransformCancel}
+          />
+          <ViewportChrome
+            cameraPreset={cameraPreset}
+            transformMode={transformMode}
+            transformSpace={transformSpace}
+            hasSource={Boolean(sourceAsset)}
+            hasSourceSelection={Boolean(sourceSelectionPose)}
+            onCameraPreset={setCameraPreset}
+            onTransformMode={setTransformMode}
+            onToggleTransformSpace={() => setTransformSpace((value) => value === 'world' ? 'local' : 'world')}
+            onFit={requestView}
+          />
+        </>
+      )}
+      inspector={(
+        <InspectorPanel
+          selectedElement={selectedElement}
+          selectedFrame={selectedFrame}
+          selectedPose={selectedPose}
+          selectedSourceNode={selectedSourceNode}
+          onCommitNumericPosition={commitNumericPosition}
+          onFocusSource={() => requestView('source-selection')}
+        />
+      )}
+      statusbar={(
+        <>
+          <span>doc <strong>{document.documentId}</strong></span>
+          <span>rev <strong>{session.committed.revision}</strong>{session.preview ? ' · PREVIEW' : ''}</span>
+          <span className={warningCount ? 'warn' : 'ok'}>{warningCount} relation warning{warningCount === 1 ? '' : 's'}</span>
+          <span className="status-message">{status}</span>
+        </>
+      )}
+    />
   );
 }
