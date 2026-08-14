@@ -8,7 +8,7 @@ import { resolveRigDocument } from '../kernel/resolve.js';
 import type { RigidPose, RigDocument } from '../kernel/types.js';
 import { openRigFile, saveRigFile, saveRigFileAs } from '../io/rig-file.js';
 import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
-import type { CameraPreset } from '../render/rig-viewport-controller.js';
+import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
 import './styles.css';
 
@@ -29,6 +29,8 @@ export function App() {
   const [transformSpace, setTransformSpace] = useState<'world' | 'local'>('world');
   const [fileState, setFileState] = useState<FileState | null>(null);
   const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
+  const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
+  const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic fixture · unsaved');
   const sourceUrlRef = useRef<string | null>(null);
 
@@ -41,6 +43,12 @@ export function App() {
   const selectedFrame = selectedTarget?.kind === 'frame'
     ? document.frames.find((frame) => frame.id === selectedTarget.id) ?? null
     : null;
+  const selectedSourceNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
+  const sourceSelectionPose = selectedSourceNode?.worldRigidPose ?? null;
+
+  const requestView = useCallback((target: ViewFitTarget) => {
+    setViewRequest((current) => ({ id: (current?.id ?? 0) + 1, target }));
+  }, []);
 
   const handleTransformStart = useCallback((target: TransformTarget) => {
     setSession((current) => beginPreview(current, `Transform ${target.kind} ${target.id}`));
@@ -105,6 +113,7 @@ export function App() {
       const opened = await openSourceAsset();
       sourceUrlRef.current = opened.objectUrl;
       setSourceAsset(opened);
+      setSelectedSourceLocator(null);
       setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
@@ -162,11 +171,17 @@ export function App() {
               </div>
               <div className="source-node-list">
                 {sourceAsset.inspection.nodes.slice(0, 24).map((node) => (
-                  <div className="source-node-row" key={node.locator}>
+                  <button
+                    type="button"
+                    className={`source-node-row ${selectedSourceLocator === node.locator ? 'selected' : ''}`}
+                    key={node.locator}
+                    onClick={() => setSelectedSourceLocator(node.locator)}
+                    title={node.worldRigidPose ? 'Select read-only SOURCE datum' : `Inspect only: ${node.rigidCompatibility}`}
+                  >
                     <span>{node.name ?? `Node ${node.index}`}</span>
                     <code>{node.locator}</code>
                     <small>{node.isSkinJoint ? 'joint' : node.hasMesh ? 'mesh' : 'node'}{node.worldRigidPose ? '' : ` · ${node.rigidCompatibility}`}</small>
-                  </div>
+                  </button>
                 ))}
                 {sourceAsset.inspection.nodeCount > 24 ? <div className="source-node-more">+{sourceAsset.inspection.nodeCount - 24} more nodes</div> : null}
               </div>
@@ -183,13 +198,21 @@ export function App() {
           transformMode={transformMode}
           transformSpace={transformSpace}
           sourceAssetUrl={sourceAsset?.objectUrl ?? null}
+          sourceSelectionPose={sourceSelectionPose}
+          viewRequest={viewRequest}
           onSelect={setSelectedTarget}
           onTransformStart={handleTransformStart}
           onTransformPreview={handleTransformPreview}
           onTransformCommit={handleTransformCommit}
           onTransformCancel={handleTransformCancel}
         />
-        <div className="viewport-hint">Drag an element or frame gizmo. Esc cancels an active drag. SOURCE geometry is reference-only.</div>
+        <div className="viewport-tools" aria-label="Viewport framing">
+          <button disabled={!sourceSelectionPose} onClick={() => requestView('source-selection')}>Focus Source</button>
+          <button disabled={!sourceAsset} onClick={() => requestView('source')}>Fit Source</button>
+          <button onClick={() => requestView('rig')}>Fit Rig</button>
+          <button disabled={!sourceAsset} onClick={() => requestView('all')}>Fit All</button>
+        </div>
+        <div className="viewport-hint">Authored selection and SOURCE selection are independent. SOURCE markers are read-only.</div>
       </main>
 
       <aside className="right-panel">
@@ -233,6 +256,32 @@ export function App() {
             <div className="truth-note">The gizmo edits this frame in its owner element's local authored space. View/camera/runtime state is not serialized.</div>
           </>
         ) : <div className="empty-copy">Select a RigElement or RigFrame to author its rigid pose.</div>}
+
+        {selectedSourceNode ? (
+          <div className="source-inspector">
+            <div className="source-inspector-label">SOURCE DATUM · REFERENCE / NOT AUTHORED</div>
+            <div className="inspector-name">{selectedSourceNode.name ?? `Node ${selectedSourceNode.index}`}</div>
+            <dl className="meta-list">
+              <dt>Locator</dt><dd>{selectedSourceNode.locator}</dd>
+              <dt>Kind</dt><dd>{selectedSourceNode.isSkinJoint ? 'joint' : selectedSourceNode.hasMesh ? 'mesh' : 'node'}</dd>
+              <dt>Rigid</dt><dd>{selectedSourceNode.rigidCompatibility}</dd>
+              <dt>Authored</dt><dd>no</dd>
+            </dl>
+            {selectedSourceNode.worldRigidPose ? (
+              <>
+                <h3>Resolved SOURCE world position · m</h3>
+                <div className="source-pose-readout">
+                  {(['x', 'y', 'z'] as const).map((axis) => (
+                    <div key={axis}><span>{axis.toUpperCase()}</span><code>{selectedSourceNode.worldRigidPose!.position[axis].toFixed(6)}</code></div>
+                  ))}
+                </div>
+                <button className="source-focus-button" onClick={() => requestView('source-selection')}>Focus this SOURCE datum</button>
+              </>
+            ) : (
+              <div className="truth-note source-warning">No rigid world pose is exposed for this node. JURE will not invent one from scaled/matrix/non-rigid ancestry.</div>
+            )}
+          </div>
+        ) : null}
       </aside>
 
       <footer className="statusbar">

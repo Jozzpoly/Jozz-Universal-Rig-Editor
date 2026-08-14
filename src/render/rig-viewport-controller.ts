@@ -7,6 +7,7 @@ import type { TransformTarget } from '../editor/transform-target.js';
 import type { RigidPose, RigId } from '../kernel/types.js';
 
 export type CameraPreset = 'perspective' | 'front' | 'top' | 'side';
+export type ViewFitTarget = 'source-selection' | 'source' | 'rig' | 'all';
 
 export interface ViewportCallbacks {
   onSelect(target: TransformTarget | null): void;
@@ -30,6 +31,7 @@ export class RigViewportController {
   private readonly transform: TransformControls;
   private readonly root = new THREE.Group();
   private readonly sourceRoot = new THREE.Group();
+  private readonly sourceSelectionRoot = new THREE.Group();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly selectable = new Map<THREE.Object3D, TransformTarget>();
@@ -41,6 +43,8 @@ export class RigViewportController {
   private callbacks: ViewportCallbacks;
   private transformDragActive = false;
   private transformCancelRequested = false;
+  private sourceSelectionPose: RigidPose | null = null;
+  private orthographicHalfHeight = 1.05;
 
   constructor(private readonly host: HTMLElement, callbacks: ViewportCallbacks) {
     this.callbacks = callbacks;
@@ -63,7 +67,7 @@ export class RigViewportController {
     this.transform.setSpace('world');
     this.transform.setSize(0.85);
     this.scene.add(this.transform.getHelper());
-    this.scene.add(this.selectedProxy, this.root, this.sourceRoot);
+    this.scene.add(this.selectedProxy, this.root, this.sourceRoot, this.sourceSelectionRoot);
 
     const grid = new THREE.GridHelper(6, 60, 0x3f4852, 0x262d34);
     grid.position.y = -0.35;
@@ -116,6 +120,63 @@ export class RigViewportController {
 
   setTransformSpace(space: 'world' | 'local'): void { this.transform.setSpace(space); }
   setTransformMode(mode: 'translate' | 'rotate'): void { this.transform.setMode(mode); }
+
+  setSourceSelection(pose: RigidPose | null): void {
+    this.sourceSelectionPose = pose;
+    this.disposeChildren(this.sourceSelectionRoot);
+    if (!pose) return;
+
+    this.applyPose(this.sourceSelectionRoot, pose);
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 18, 14),
+      new THREE.MeshBasicMaterial({ color: 0xff6bd6, depthTest: false, transparent: true, opacity: 0.95 }),
+    );
+    marker.renderOrder = 20;
+    this.sourceSelectionRoot.add(marker);
+    const axes = new THREE.AxesHelper(0.24);
+    const axesMaterial = axes.material;
+    if (Array.isArray(axesMaterial)) axesMaterial.forEach((material) => { material.depthTest = false; });
+    else axesMaterial.depthTest = false;
+    axes.renderOrder = 19;
+    this.sourceSelectionRoot.add(axes);
+  }
+
+  fitView(target: ViewFitTarget): void {
+    if (target === 'source-selection') {
+      if (this.sourceSelectionPose) this.focusPoint(this.sourceSelectionPose.position);
+      return;
+    }
+
+    const box = new THREE.Box3();
+    if (target === 'rig' || target === 'all') box.expandByObject(this.root);
+    if (target === 'source' || target === 'all') box.expandByObject(this.sourceRoot);
+    if (box.isEmpty()) return;
+
+    const sphere = box.getBoundingSphere(new THREE.Sphere());
+    const radius = Math.max(sphere.radius, 0.05);
+    const center = sphere.center;
+    const direction = this.camera.position.clone().sub(this.orbit.target);
+    if (direction.lengthSq() < 1e-12) direction.set(1, 0.75, 1);
+    direction.normalize();
+
+    if (this.camera === this.perspective) {
+      const verticalFov = THREE.MathUtils.degToRad(this.perspective.fov);
+      const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(this.perspective.aspect, 1e-6));
+      const limitingFov = Math.min(verticalFov, horizontalFov);
+      const distance = Math.max(radius / Math.sin(limitingFov / 2) * 1.15, 0.25);
+      this.camera.position.copy(center).addScaledVector(direction, distance);
+    } else {
+      const aspect = Math.max(this.host.clientWidth / Math.max(this.host.clientHeight, 1), 1e-6);
+      this.orthographicHalfHeight = Math.max(radius * 1.2, radius * 1.2 / aspect, 0.1);
+      const currentDistance = Math.max(this.camera.position.distanceTo(this.orbit.target), radius * 4, 1);
+      this.camera.position.copy(center).addScaledVector(direction, currentDistance);
+      this.resize();
+    }
+
+    this.orbit.target.copy(center);
+    this.camera.lookAt(center);
+    this.orbit.update();
+  }
 
   setCameraPreset(preset: CameraPreset): void {
     const target = this.orbit.target.clone();
@@ -214,8 +275,18 @@ export class RigViewportController {
     this.transform.dispose();
     this.disposeChildren(this.root);
     this.disposeChildren(this.sourceRoot);
+    this.disposeChildren(this.sourceSelectionRoot);
     this.renderer.dispose();
     this.renderer.domElement.remove();
+  }
+
+  private focusPoint(point: { x: number; y: number; z: number }): void {
+    const nextTarget = new THREE.Vector3(point.x, point.y, point.z);
+    const delta = nextTarget.clone().sub(this.orbit.target);
+    this.camera.position.add(delta);
+    this.orbit.target.copy(nextTarget);
+    this.camera.lookAt(nextTarget);
+    this.orbit.update();
   }
 
   private syncTransformProxy(): void {
@@ -276,7 +347,7 @@ export class RigViewportController {
     this.renderer.setSize(width, height, false);
     this.perspective.aspect = width / height;
     this.perspective.updateProjectionMatrix();
-    const scale = 1.05;
+    const scale = this.orthographicHalfHeight;
     this.orthographic.left = -scale * (width / height);
     this.orthographic.right = scale * (width / height);
     this.orthographic.top = scale;
