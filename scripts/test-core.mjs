@@ -23,4 +23,4 @@ function runNode(args) {
 }
 
 runNode([tscCli, '-p', 'tests/core/tsconfig.json', '--pretty', 'false']);
-runNode(['--test', 'tests/core/core.test.mjs']);
+runNode(['--test', 'tests/core/core.test.mjs', 'tests/core/representation-binding.test.mjs']);

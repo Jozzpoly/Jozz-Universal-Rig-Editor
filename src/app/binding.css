@@ -1,0 +1,66 @@
+.binding-preview-card {
+  margin-top: 9px;
+  border: 1px solid #315064;
+  background: #0f1a21;
+  border-radius: 5px;
+  padding: 9px;
+}
+.binding-preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.binding-preview-head strong {
+  color: #9ed7fa;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.binding-preview-head span {
+  color: #70818d;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.binding-preview-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #aebcc6;
+  font-size: 9px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.binding-preview-pair > :not(.selection-mark):not(.binding-arrow) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.binding-arrow { color: #6f8290; }
+.binding-preview-button {
+  width: 100%;
+  min-height: 27px;
+  border-color: #3c6d8b;
+  background: #153044;
+  color: #dff4ff;
+}
+.binding-preview-button:hover:not(:disabled) {
+  background: #1a3a51;
+  border-color: #5c8eaa;
+}
+.binding-preview-button.active {
+  border-color: #5c7a8b;
+  background: #18252d;
+  color: #b6c6cf;
+}
+.binding-preview-note {
+  color: #758692;
+  font-size: 8.5px;
+  line-height: 1.45;
+}
+.binding-status {
+  color: #7fc5ed;
+  white-space: nowrap;
+}

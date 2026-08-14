@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
+import { createRepresentationBindingDraft, evaluateRepresentationBindingPose, representationBindingMatchesSource, type RepresentationBindingDraft } from '../editor/representation-binding-draft.js';
 import { applyCommand, beginPreview, cancelPreview, commitPreview, createEditorSession, redo, undo, updatePreview, visibleDocument, type EditorSession } from '../editor/session.js';
 import { worldPoseToAuthoredPose, type TransformTarget } from '../editor/transform-target.js';
 import { setTransformTargetPose } from '../features/rig-transform/command.js';
@@ -17,10 +18,11 @@ import { TopBar } from './workspace/TopBar.js';
 import { ViewportChrome } from './workspace/ViewportChrome.js';
 import { WorkspaceShell } from './workspace/WorkspaceShell.js';
 import './styles.css';
+import './binding.css';
 
 interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
 
-const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true };
+const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true, bound: true };
 const DEFAULT_SOURCE_LAYERS: SourceLayerVisibility = { geometry: true, datum: true };
 
 function initialTransformTarget(document: RigDocument): TransformTarget | null {
@@ -39,6 +41,7 @@ export function App() {
   const [fileState, setFileState] = useState<FileState | null>(null);
   const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
   const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
+  const [representationBinding, setRepresentationBinding] = useState<RepresentationBindingDraft | null>(null);
   const [rigVisible, setRigVisible] = useState(true);
   const [rigLayers, setRigLayers] = useState<RigLayerVisibility>(DEFAULT_RIG_LAYERS);
   const [sourceVisible, setSourceVisible] = useState(true);
@@ -60,7 +63,7 @@ export function App() {
       if (item.kind === 'frame') return rigLayers.frames;
       return rigLayers.relations;
     }),
-  }), [displayModel, rigLayers]);
+  }), [displayModel, rigLayers.elements, rigLayers.frames, rigLayers.relations]);
 
   const selectedElement = selectedTarget?.kind === 'element'
     ? document.elements.find((element) => element.id === selectedTarget.id) ?? null
@@ -72,6 +75,18 @@ export function App() {
   const sourceSelectionPose = selectedSourceNode?.worldRigidPose ?? null;
   const sourceGeometryVisible = sourceVisible && sourceLayers.geometry;
   const sourceDatumVisible = sourceVisible && sourceLayers.datum;
+
+  const activeRepresentationBinding = useMemo(() => {
+    if (!representationBinding || !sourceAsset) return null;
+    if (!representationBindingMatchesSource(representationBinding, sourceAsset.sha256)) return null;
+    const elementWorldPose = resolved.elementWorldPoses.get(representationBinding.elementId);
+    if (!elementWorldPose) return null;
+    return {
+      sourceLocator: representationBinding.sourceLocator,
+      sourceNodeIndex: representationBinding.sourceNodeIndex,
+      worldPose: evaluateRepresentationBindingPose(representationBinding, elementWorldPose),
+    };
+  }, [representationBinding, sourceAsset, resolved]);
 
   const requestView = useCallback((target: ViewFitTarget) => {
     setViewRequest((current) => ({ id: (current?.id ?? 0) + 1, target }));
@@ -105,12 +120,34 @@ export function App() {
     setStatus(`Authored ${target.kind} committed · unsaved`);
   }, []);
 
+  const handleBindRepresentation = useCallback(() => {
+    if (!sourceAsset || !selectedElement || !selectedSourceNode?.worldRigidPose || !selectedSourceNode.isSkinJoint) return;
+    const elementWorldPose = resolved.elementWorldPoses.get(selectedElement.id);
+    if (!elementWorldPose) return;
+
+    setRepresentationBinding(createRepresentationBindingDraft({
+      elementId: selectedElement.id,
+      elementWorldPose,
+      sourceSha256: sourceAsset.sha256,
+      sourceLocator: selectedSourceNode.locator,
+      sourceNodeIndex: selectedSourceNode.index,
+      sourceWorldPose: selectedSourceNode.worldRigidPose,
+    }));
+    setStatus(`BIND-00 preview: ${selectedSourceNode.name ?? selectedSourceNode.locator} → ${selectedElement.name} · transient`);
+  }, [sourceAsset, selectedElement, selectedSourceNode, resolved]);
+
+  const handleClearRepresentationBinding = useCallback(() => {
+    setRepresentationBinding(null);
+    setStatus('BIND-00 representation preview cleared');
+  }, []);
+
   const handleOpenRig = async () => {
     try {
       const opened = await openRigFile();
       setSession(createEditorSession(opened.document));
       setFileState({ handle: opened.handle, baselineHash: opened.baselineHash, name: opened.name });
       setSelectedTarget(initialTransformTarget(opened.document));
+      setRepresentationBinding(null);
       setStatus(`Opened ${opened.name}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
@@ -120,7 +157,9 @@ export function App() {
       if (!fileState) { await handleSaveAs(); return; }
       const baselineHash = await saveRigFile(fileState.handle, fileState.baselineHash, session.committed);
       setFileState({ ...fileState, baselineHash });
-      setStatus(`Saved ${fileState.name} · revision ${session.committed.revision}`);
+      setStatus(representationBinding
+        ? `Saved ${fileState.name} · BIND-00 preview remains transient / not saved`
+        : `Saved ${fileState.name} · revision ${session.committed.revision}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
 
@@ -128,7 +167,9 @@ export function App() {
     try {
       const saved = await saveRigFileAs(session.committed);
       setFileState(saved);
-      setStatus(`Saved ${saved.name} · revision ${session.committed.revision}`);
+      setStatus(representationBinding
+        ? `Saved ${saved.name} · BIND-00 preview remains transient / not saved`
+        : `Saved ${saved.name} · revision ${session.committed.revision}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
 
@@ -140,6 +181,7 @@ export function App() {
       setSourceAsset(opened);
       setSourceVisible(true);
       setSelectedSourceLocator(null);
+      setRepresentationBinding(null);
       if (previousUrl) URL.revokeObjectURL(previousUrl);
       setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
@@ -199,6 +241,8 @@ export function App() {
             sourceGeometryVisible={sourceGeometryVisible}
             sourceDatumVisible={sourceDatumVisible}
             sourceSelectionPose={sourceSelectionPose}
+            representationBinding={activeRepresentationBinding}
+            boundRepresentationVisible={rigVisible && rigLayers.bound}
             viewRequest={viewRequest}
             onSelect={setSelectedTarget}
             onTransformStart={handleTransformStart}
@@ -210,7 +254,7 @@ export function App() {
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
-            hasRig={rigVisible && visibleDisplayModel.items.length > 0}
+            hasRig={rigVisible && (visibleDisplayModel.items.length > 0 || Boolean(activeRepresentationBinding && rigLayers.bound))}
             hasSource={sourceGeometryVisible && Boolean(sourceAsset)}
             hasSourceSelection={sourceDatumVisible && Boolean(sourceSelectionPose)}
             onCameraPreset={setCameraPreset}
@@ -226,8 +270,11 @@ export function App() {
           selectedFrame={selectedFrame}
           selectedPose={selectedPose}
           selectedSourceNode={selectedSourceNode}
+          representationBinding={representationBinding}
           onCommitPose={commitPose}
           onFocusSource={() => requestView('source-selection')}
+          onBindRepresentation={handleBindRepresentation}
+          onClearRepresentationBinding={handleClearRepresentationBinding}
         />
       )}
       statusbar={(
@@ -235,6 +282,7 @@ export function App() {
           <span>doc <strong>{document.documentId}</strong></span>
           <span>rev <strong>{session.committed.revision}</strong>{session.preview ? ' · PREVIEW' : ''}</span>
           <span className={warningCount ? 'warn' : 'ok'}>{warningCount} relation warning{warningCount === 1 ? '' : 's'}</span>
+          {representationBinding ? <span className="binding-status">BIND preview · transient</span> : null}
           <span className="status-message">{status}</span>
         </>
       )}
