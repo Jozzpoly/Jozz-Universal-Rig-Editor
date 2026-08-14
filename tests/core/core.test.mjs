@@ -10,6 +10,57 @@ const { composePose, relativePose } = await import('../../.core-dist/kernel/math
 const sessionApi = await import('../../.core-dist/editor/session.js');
 const { worldPoseToAuthoredPose } = await import('../../.core-dist/editor/transform-target.js');
 const { setElementPose, setFramePose, setTransformTargetPose } = await import('../../.core-dist/features/rig-transform/command.js');
+const {
+  DEFAULT_WORKSPACE_LAYOUT,
+  WORKSPACE_MIN_VIEWPORT_WIDTH,
+  normalizeWorkspaceLayoutForViewport,
+  resizeWorkspaceSide,
+  sanitizeWorkspaceLayout,
+} = await import('../../.core-dist/app/workspace/layout-state.js');
+
+test('workspace layout sanitizes corrupt persisted values without inventing new state', () => {
+  const sanitized = sanitizeWorkspaceLayout({
+    leftWidth: Number.POSITIVE_INFINITY,
+    rightWidth: -50,
+    rigPaneRatio: 9,
+    leftCollapsed: true,
+  });
+  assert.equal(sanitized.leftWidth, DEFAULT_WORKSPACE_LAYOUT.leftWidth);
+  assert.equal(sanitized.rightWidth, 220);
+  assert.equal(sanitized.rigPaneRatio, 0.9);
+  assert.equal(sanitized.leftCollapsed, true);
+  assert.equal(sanitized.rightCollapsed, false);
+});
+
+test('workspace layout shrinks persisted sidebars before squeezing the viewport', () => {
+  const normalized = normalizeWorkspaceLayoutForViewport({
+    leftWidth: 560,
+    rightWidth: 620,
+    rigPaneRatio: 0.5,
+    leftCollapsed: false,
+    rightCollapsed: false,
+  }, 1000);
+  assert.ok(normalized.leftWidth + normalized.rightWidth <= 1000 - WORKSPACE_MIN_VIEWPORT_WIDTH + 1e-9);
+  assert.ok(normalized.leftWidth >= 190);
+  assert.ok(normalized.rightWidth >= 220);
+});
+
+test('workspace side resize respects the other panel and keeps a desktop viewport budget', () => {
+  const resized = resizeWorkspaceSide({
+    ...DEFAULT_WORKSPACE_LAYOUT,
+    rightWidth: 420,
+  }, 'left', 900, 1280);
+  assert.ok(resized.leftWidth <= 1280 - resized.rightWidth - WORKSPACE_MIN_VIEWPORT_WIDTH + 1e-9);
+});
+
+test('workspace side resize has no arbitrary half-screen cap on a wide desktop', () => {
+  const resized = resizeWorkspaceSide({
+    ...DEFAULT_WORKSPACE_LAYOUT,
+    rightCollapsed: true,
+  }, 'left', 900, 1920);
+  assert.equal(resized.leftWidth, 900);
+  assert.ok(resized.leftWidth + 28 + WORKSPACE_MIN_VIEWPORT_WIDTH <= 1920);
+});
 
 test('RigDocument deterministic round trip', () => {
   const text = serializeRigDocument(SYNTHETIC_RIG);
