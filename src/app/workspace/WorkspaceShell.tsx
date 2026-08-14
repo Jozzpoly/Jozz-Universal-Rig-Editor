@@ -1,41 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-
-interface WorkspaceLayoutState {
-  leftWidth: number;
-  rightWidth: number;
-  rigPaneRatio: number;
-  leftCollapsed: boolean;
-  rightCollapsed: boolean;
-}
+import {
+  DEFAULT_WORKSPACE_LAYOUT,
+  WORKSPACE_COLLAPSED_WIDTH,
+  WORKSPACE_RIG_PANE_MAX_RATIO,
+  WORKSPACE_RIG_PANE_MIN_RATIO,
+  clampWorkspaceValue,
+  normalizeWorkspaceLayoutForViewport,
+  resizeWorkspaceSide,
+  sanitizeWorkspaceLayout,
+  type WorkspaceLayoutState,
+} from './layout-state.js';
 
 const STORAGE_KEY = 'jure.workspace.v1';
-const MIN_VIEWPORT_WIDTH = 360;
-const DEFAULT_LAYOUT: WorkspaceLayoutState = {
-  leftWidth: 268,
-  rightWidth: 324,
-  rigPaneRatio: 0.48,
-  leftCollapsed: false,
-  rightCollapsed: false,
-};
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 function loadLayout(): WorkspaceLayoutState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_LAYOUT;
-    const parsed = JSON.parse(raw) as Partial<WorkspaceLayoutState>;
-    return {
-      leftWidth: Number.isFinite(parsed.leftWidth) ? clamp(Number(parsed.leftWidth), 190, 560) : DEFAULT_LAYOUT.leftWidth,
-      rightWidth: Number.isFinite(parsed.rightWidth) ? clamp(Number(parsed.rightWidth), 220, 620) : DEFAULT_LAYOUT.rightWidth,
-      rigPaneRatio: Number.isFinite(parsed.rigPaneRatio) ? clamp(Number(parsed.rigPaneRatio), 0.2, 0.8) : DEFAULT_LAYOUT.rigPaneRatio,
-      leftCollapsed: Boolean(parsed.leftCollapsed),
-      rightCollapsed: Boolean(parsed.rightCollapsed),
-    };
+    const parsed = raw ? JSON.parse(raw) as Partial<WorkspaceLayoutState> : DEFAULT_WORKSPACE_LAYOUT;
+    return sanitizeWorkspaceLayout(parsed);
   } catch {
-    return DEFAULT_LAYOUT;
+    return sanitizeWorkspaceLayout(DEFAULT_WORKSPACE_LAYOUT);
   }
 }
 
@@ -50,68 +34,86 @@ export interface WorkspaceShellProps {
 
 export function WorkspaceShell({ topbar, rigPane, sourcePane, viewport, inspector, statusbar }: WorkspaceShellProps) {
   const [layout, setLayout] = useState<WorkspaceLayoutState>(loadLayout);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const leftRef = useRef<HTMLElement>(null);
+  const activeDragCleanupRef = useRef<(() => void) | null>(null);
+  const effectiveLayout = useMemo(
+    () => normalizeWorkspaceLayoutForViewport(layout, viewportWidth),
+    [layout, viewportWidth],
+  );
 
   useEffect(() => {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout)); } catch { /* local preference only */ }
   }, [layout]);
 
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => () => activeDragCleanupRef.current?.(), []);
+
+  const installPointerDrag = useCallback((onMove: (event: PointerEvent) => void, onEnd?: () => void) => {
+    activeDragCleanupRef.current?.();
+
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', cleanup);
+      window.removeEventListener('pointercancel', cleanup);
+      window.removeEventListener('blur', cleanup);
+      if (activeDragCleanupRef.current === cleanup) activeDragCleanupRef.current = null;
+      onEnd?.();
+    };
+
+    activeDragCleanupRef.current = cleanup;
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', cleanup, { once: true });
+    window.addEventListener('pointercancel', cleanup, { once: true });
+    window.addEventListener('blur', cleanup, { once: true });
+  }, []);
 
   const beginHorizontalResize = useCallback((side: 'left' | 'right', event: ReactPointerEvent<HTMLDivElement>) => {
-    if ((side === 'left' && layout.leftCollapsed) || (side === 'right' && layout.rightCollapsed)) return;
+    if ((side === 'left' && effectiveLayout.leftCollapsed) || (side === 'right' && effectiveLayout.rightCollapsed)) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const startX = event.clientX;
-    const startWidth = side === 'left' ? layout.leftWidth : layout.rightWidth;
+    const startWidth = side === 'left' ? effectiveLayout.leftWidth : effectiveLayout.rightWidth;
 
-    const onMove = (moveEvent: PointerEvent) => {
+    const captureTarget = event.currentTarget;
+    const pointerId = event.pointerId;
+    installPointerDrag((moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX;
-      const next = side === 'left' ? startWidth + delta : startWidth - delta;
-      setLayout((current) => {
-        const minWidth = side === 'left' ? 190 : 220;
-        const otherWidth = side === 'left'
-          ? (current.rightCollapsed ? 28 : current.rightWidth)
-          : (current.leftCollapsed ? 28 : current.leftWidth);
-        const viewportSafeMax = Math.max(minWidth, window.innerWidth - otherWidth - MIN_VIEWPORT_WIDTH);
-        const preferredMax = Math.max(minWidth, window.innerWidth * 0.55);
-        return {
-          ...current,
-          [side === 'left' ? 'leftWidth' : 'rightWidth']: clamp(next, minWidth, Math.min(viewportSafeMax, preferredMax)),
-        };
-      });
-    };
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp, { once: true });
-    window.addEventListener('pointercancel', onUp, { once: true });
-  }, [layout.leftCollapsed, layout.leftWidth, layout.rightCollapsed, layout.rightWidth]);
+      const requestedWidth = side === 'left' ? startWidth + delta : startWidth - delta;
+      setLayout((current) => resizeWorkspaceSide(current, side, requestedWidth, window.innerWidth));
+    }, () => {
+      if (captureTarget.hasPointerCapture(pointerId)) captureTarget.releasePointerCapture(pointerId);
+    });
+  }, [effectiveLayout.leftCollapsed, effectiveLayout.leftWidth, effectiveLayout.rightCollapsed, effectiveLayout.rightWidth, installPointerDrag]);
 
   const beginVerticalResize = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (layout.leftCollapsed || !leftRef.current) return;
+    if (effectiveLayout.leftCollapsed || !leftRef.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const rect = leftRef.current.getBoundingClientRect();
-    const onMove = (moveEvent: PointerEvent) => {
-      const ratio = clamp((moveEvent.clientY - rect.top) / Math.max(rect.height, 1), 0.2, 0.8);
+
+    const captureTarget = event.currentTarget;
+    const pointerId = event.pointerId;
+    installPointerDrag((moveEvent: PointerEvent) => {
+      const ratio = clampWorkspaceValue(
+        (moveEvent.clientY - rect.top) / Math.max(rect.height, 1),
+        WORKSPACE_RIG_PANE_MIN_RATIO,
+        WORKSPACE_RIG_PANE_MAX_RATIO,
+      );
       setLayout((current) => ({ ...current, rigPaneRatio: ratio }));
-    };
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp, { once: true });
-    window.addEventListener('pointercancel', onUp, { once: true });
-  }, [layout.leftCollapsed]);
+    }, () => {
+      if (captureTarget.hasPointerCapture(pointerId)) captureTarget.releasePointerCapture(pointerId);
+    });
+  }, [effectiveLayout.leftCollapsed, installPointerDrag]);
 
   const gridStyle = useMemo(() => ({
-    '--jure-left-width': `${layout.leftCollapsed ? 28 : layout.leftWidth}px`,
-    '--jure-right-width': `${layout.rightCollapsed ? 28 : layout.rightWidth}px`,
-    '--jure-rig-pane-ratio': `${layout.rigPaneRatio * 100}%`,
-  }) as CSSProperties, [layout]);
+    '--jure-left-width': `${effectiveLayout.leftCollapsed ? WORKSPACE_COLLAPSED_WIDTH : effectiveLayout.leftWidth}px`,
+    '--jure-right-width': `${effectiveLayout.rightCollapsed ? WORKSPACE_COLLAPSED_WIDTH : effectiveLayout.rightWidth}px`,
+    '--jure-rig-pane-ratio': `${effectiveLayout.rigPaneRatio * 100}%`,
+  }) as CSSProperties, [effectiveLayout]);
 
   return (
     <div className="app-shell workspace-shell" style={gridStyle}>

@@ -1,6 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
-import type { RigDisplayModel } from '../display/types.js';
 import { applyCommand, beginPreview, cancelPreview, commitPreview, createEditorSession, redo, undo, updatePreview, visibleDocument, type EditorSession } from '../editor/session.js';
 import { worldPoseToAuthoredPose, type TransformTarget } from '../editor/transform-target.js';
 import { setTransformTargetPose } from '../features/rig-transform/command.js';
@@ -20,8 +19,6 @@ import { WorkspaceShell } from './workspace/WorkspaceShell.js';
 import './styles.css';
 
 interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
-
-const EMPTY_DISPLAY_MODEL: RigDisplayModel = { items: [] };
 
 function initialTransformTarget(document: RigDocument): TransformTarget | null {
   const frame = document.frames[0];
@@ -44,6 +41,10 @@ export function App() {
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic fixture · unsaved');
   const sourceUrlRef = useRef<string | null>(null);
+
+  useEffect(() => () => {
+    if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+  }, []);
 
   const document = visibleDocument(session);
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
@@ -120,12 +121,13 @@ export function App() {
 
   const handleOpenSource = async () => {
     try {
-      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+      const previousUrl = sourceUrlRef.current;
       const opened = await openSourceAsset();
       sourceUrlRef.current = opened.objectUrl;
       setSourceAsset(opened);
       setSourceVisible(true);
       setSelectedSourceLocator(null);
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
       setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
@@ -170,13 +172,15 @@ export function App() {
       viewport={(
         <>
           <RigViewport
-            model={rigVisible ? displayModel : EMPTY_DISPLAY_MODEL}
+            model={displayModel}
+            rigVisible={rigVisible}
             selectedTarget={selectedTarget}
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
-            sourceAssetUrl={sourceVisible ? sourceAsset?.objectUrl ?? null : null}
-            sourceSelectionPose={sourceVisible ? sourceSelectionPose : null}
+            sourceAssetUrl={sourceAsset?.objectUrl ?? null}
+            sourceVisible={sourceVisible}
+            sourceSelectionPose={sourceSelectionPose}
             viewRequest={viewRequest}
             onSelect={setSelectedTarget}
             onTransformStart={handleTransformStart}
@@ -188,8 +192,9 @@ export function App() {
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
-            hasSource={Boolean(sourceAsset)}
-            hasSourceSelection={Boolean(sourceSelectionPose)}
+            hasRig={rigVisible && displayModel.items.length > 0}
+            hasSource={sourceVisible && Boolean(sourceAsset)}
+            hasSourceSelection={sourceVisible && Boolean(sourceSelectionPose)}
             onCameraPreset={setCameraPreset}
             onTransformMode={setTransformMode}
             onToggleTransformSpace={() => setTransformSpace((value) => value === 'world' ? 'local' : 'world')}

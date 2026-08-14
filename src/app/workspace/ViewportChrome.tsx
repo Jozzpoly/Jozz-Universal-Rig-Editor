@@ -4,6 +4,7 @@ interface ViewportChromeProps {
   cameraPreset: CameraPreset;
   transformMode: 'translate' | 'rotate';
   transformSpace: 'world' | 'local';
+  hasRig: boolean;
   hasSource: boolean;
   hasSourceSelection: boolean;
   onCameraPreset(preset: CameraPreset): void;
@@ -12,7 +13,7 @@ interface ViewportChromeProps {
   onFit(target: ViewFitTarget): void;
 }
 
-export function ViewportChrome({ cameraPreset, transformMode, transformSpace, hasSource, hasSourceSelection, onCameraPreset, onTransformMode, onToggleTransformSpace, onFit }: ViewportChromeProps) {
+export function ViewportChrome({ cameraPreset, transformMode, transformSpace, hasRig, hasSource, hasSourceSelection, onCameraPreset, onTransformMode, onToggleTransformSpace, onFit }: ViewportChromeProps) {
   return (
     <>
       <div className="viewport-toolrail" aria-label="Authored transform tools">
@@ -27,15 +28,15 @@ export function ViewportChrome({ cameraPreset, transformMode, transformSpace, ha
         ))}
         <button disabled={!hasSourceSelection} onClick={() => onFit('source-selection')}>Focus</button>
         <button disabled={!hasSource} onClick={() => onFit('source')}>Fit Source</button>
-        <button onClick={() => onFit('rig')}>Fit Rig</button>
-        <button disabled={!hasSource} onClick={() => onFit('all')}>Fit All</button>
+        <button disabled={!hasRig} onClick={() => onFit('rig')}>Fit Rig</button>
+        <button disabled={!hasRig && !hasSource} onClick={() => onFit('all')}>Fit All</button>
       </div>
 
       <div className="viewport-modehint"><b>AUTHOR</b> · authored and SOURCE selections are independent · Esc cancels drag</div>
       <div className="viewport-orientation" aria-label="Workspace orientation">
         <div className="up">+Y · UP</div>
-        <div className="x">+X · SIDE</div>
-        <div className="z">+Z · FRONT</div>
+        <div className="x">+X</div>
+        <div className="z">+Z</div>
       </div>
     </>
   );

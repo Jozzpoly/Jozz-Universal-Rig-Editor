@@ -6,11 +6,13 @@ import { RigViewportController, type CameraPreset, type ViewFitTarget } from '..
 
 interface RigViewportProps {
   model: RigDisplayModel;
+  rigVisible: boolean;
   selectedTarget: TransformTarget | null;
   cameraPreset: CameraPreset;
   transformMode: 'translate' | 'rotate';
   transformSpace: 'world' | 'local';
   sourceAssetUrl: string | null;
+  sourceVisible: boolean;
   sourceSelectionPose: RigidPose | null;
   viewRequest: { id: number; target: ViewFitTarget } | null;
   onSelect(target: TransformTarget | null): void;
@@ -33,16 +35,25 @@ export function RigViewport(props: RigViewportProps) {
 
   useEffect(() => { controllerRef.current?.setCallbacks(props); }, [props.onSelect, props.onTransformStart, props.onTransformPreview, props.onTransformCommit, props.onTransformCancel]);
   useEffect(() => { controllerRef.current?.setDisplayModel(props.model, props.selectedTarget); }, [props.model, props.selectedTarget]);
+  useEffect(() => { controllerRef.current?.setRigVisible(props.rigVisible); }, [props.rigVisible]);
   useEffect(() => { controllerRef.current?.setCameraPreset(props.cameraPreset); }, [props.cameraPreset]);
   useEffect(() => { controllerRef.current?.setTransformMode(props.transformMode); }, [props.transformMode]);
   useEffect(() => { controllerRef.current?.setTransformSpace(props.transformSpace); }, [props.transformSpace]);
+  useEffect(() => { controllerRef.current?.setSourceVisible(props.sourceVisible); }, [props.sourceVisible]);
   useEffect(() => { controllerRef.current?.setSourceSelection(props.sourceSelectionPose); }, [props.sourceSelectionPose]);
   useEffect(() => {
     if (props.viewRequest) controllerRef.current?.fitView(props.viewRequest.target);
   }, [props.viewRequest?.id]);
   useEffect(() => {
-    if (props.sourceAssetUrl) void controllerRef.current?.showSourceAsset(props.sourceAssetUrl);
-    else controllerRef.current?.clearSourceAsset();
+    const controller = controllerRef.current;
+    if (!controller) return;
+    if (props.sourceAssetUrl) {
+      void controller.showSourceAsset(props.sourceAssetUrl).catch((error: unknown) => {
+        console.error('JURE SOURCE display load failed', error);
+      });
+    } else {
+      controller.clearSourceAsset();
+    }
   }, [props.sourceAssetUrl]);
 
   return <div className="viewport" ref={hostRef} />;
