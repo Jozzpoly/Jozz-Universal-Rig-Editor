@@ -14,6 +14,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ projectId, documentId, revision, canUndo, canRedo, onOpenProject, onImportRig, onSave, onSaveAs, onOpenSource, onUndo, onRedo }: TopBarProps) {
+  const syntheticFixture = projectId === 'project.synthetic';
   return (
     <>
       <div className="brand-block"><strong>JURE</strong><span>Rig Workbench</span></div>
@@ -25,7 +26,8 @@ export function TopBar({ projectId, documentId, revision, canUndo, canRedo, onOp
         <button onClick={onOpenSource}>Open Source</button>
       </div>
       <div className="document-chip" title={`${projectId} · ${documentId} · revision ${revision}`}>
-        <span>{documentId}</span><small>{projectId} · rev {revision}</small>
+        <span>{syntheticFixture ? `DEMO · ${documentId}` : documentId}</span>
+        <small>{syntheticFixture ? 'SYNTHETIC FIXTURE · OPEN/IMPORT A PROJECT' : `${projectId} · rev ${revision}`}</small>
       </div>
       <div className="history-actions">
         <button disabled={!canUndo} onClick={onUndo}>Undo</button>
