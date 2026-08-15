@@ -4,7 +4,7 @@
 
 Accepted product baseline remains `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
 
-Active foundation convergence is isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. The latest implementation checkpoint remains the FC-8 workbench-state line; FC-9 work after that point is design/documentation only. The design-contract checkpoint before this status update is `1040de419e206416f003ea80e740e7015ebe4490`.
+Active foundation convergence is isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. The latest implementation checkpoint remains the FC-8 workbench-state line; FC-9 work after that point is design/documentation only.
 
 The semantic/state foundation required before replacing the engineering UI is closed. Current panel placement, styling and navigation grouping remain disposable. Owner-tested interaction evidence to preserve unless falsified: free/unclamped inspection camera, Focus/Fit, direct Move/Rotate gizmo manipulation, world/local transforms, numeric editing over quaternion storage, preview/commit/cancel, undo/redo, and independent SOURCE/authored selection.
 
@@ -18,6 +18,7 @@ The semantic/state foundation required before replacing the engineering UI is cl
 - Do not add speculative plugin/ECS/physics/editor frameworks.
 - Git tree -> commit -> non-force ref update is the write boundary. A real FC-3 connection failure already proved this recovery model: branch HEAD stayed intact and only the idempotent tree step had to be retried.
 - Visual concept images are review evidence, not repository authority. `docs/WORKBENCH_DESIGN_CONTRACT.md` contains the reproducible brief/contract if a conversation or image-generation session is lost.
+- A concept-generation tool call is not evidence that a concept exists. FC-9B only advances when the generated images are actually delivered and reviewable by the owner.
 
 ## Closed convergence gates
 
@@ -99,7 +100,7 @@ Purpose: design the complete Rig Workspace before replacing the engineering shel
 
 ### FC-9.0 — drift audit / CLOSED
 
-At the start of this gate, draft PR #1 had advanced one commit beyond the previous recovery head. The extra commit was `59d4781958ea9f1ccdbddb71014e5cb08790fc46` (`foundation: open FC-9 workbench design gate`). Exact comparison against `fd2f2da49a5250cff7dec27ee5bc35b626819460` showed one changed file only: `docs/STATUS.md`. No product code or semantic implementation drift was introduced. `main` remained exactly `d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+At the start of this gate, draft PR #1 had advanced one documentation-only commit beyond the previous recovery head. No product code or semantic implementation drift was introduced. `main` remained exactly `d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
 
 Result: **KEEP drift commit / SAFE TO CONTINUE FC-9**.
 
@@ -107,45 +108,36 @@ Result: **KEEP drift commit / SAFE TO CONTINUE FC-9**.
 
 Canonical design contract: `docs/WORKBENCH_DESIGN_CONTRACT.md`.
 
-It defines:
-- JURE as an owner-first spatial engineering workbench, not a Box3D parameter/debug dashboard;
-- visible separation of SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED authority;
-- persistent project + viewport/camera continuity;
-- task contexts `Inspect | Author | Represent | Test` that swap task-oriented browser/inspector/tools instead of stacking permanent panels;
-- workbench-level project/source/revision/export health;
-- exact context contracts, actions and forbidden behaviors;
-- persistent vs context-local state;
-- first-class revision/rebind/failure states;
-- full JV agent -> JURE -> owner -> export -> JV adapter walkthrough;
-- counterexamples: four instances from one source revision, alternate suspension, piston, rotor/thruster and future Map Workspace;
-- visual-direction constraints and the complete FC-9B concept inventory.
-
-The contract survived the real JV round-trip constraints and the listed counterexamples without a new global ontology, vehicle-specific workbench primitive or speculative plugin system.
+It defines JURE as an owner-first spatial engineering workbench; visible separation of SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED; persistent project + viewport continuity; task contexts `Inspect | Author | Represent | Test`; context-specific browser/inspector/tools; first-class revision/rebind/failure states; the complete JV round trip; and counterexamples including repeated source instances, alternate suspension, piston, rotor/thruster and a future Map Workspace.
 
 Result: **KEEP persistent workbench anatomy + context-specific information architecture**.
 
-### FC-9B — coordinated visual concepts / OWNER REVIEW GATE
+### FC-9B — coordinated visual concepts / REOPENED
 
-A coordinated concept pass was generated from one shared design brief for:
-1. **Inspect** — multi-source + consumer reference comparison and explicit adoption actions;
-2. **Author** — elements/frames/relations, direct gizmo manipulation, numeric transforms and diagnostics;
-3. **Represent** — multiple simultaneous mappings, span/roll correspondence and broken-rebind state;
-4. **Test** — authored editing locked, transient controls, evaluated-vs-neutral comparison and exact Reset;
-5. **Revision/rebind failure detail** — exact old/new revision comparison, authored target unchanged, Save/Test vs Export blocking semantics.
+The first concept-generation attempt is **INVALID AS DESIGN EVIDENCE**.
 
-Shared direction: serious modern CAD/creative engineering tool; viewport-first; dark neutral graphite/charcoal; restrained cool interaction accent; muted warnings; low ornament; precise 1px surfaces; medium density; no sci-fi HUD, dashboard cards, glassmorphism, decorative gradients or nested bento layouts.
+Reason: the external image provider failed its connection/login path and the owner did not receive any concept images. The previous chat response incorrectly described the concept set as if it had been delivered. That claim is explicitly withdrawn. No visual concept from that attempt is accepted, reviewable, or part of project authority.
 
-Important boundary: generated concept images are **not yet accepted design authority**. They require owner visual/product review. Their reproducible requirements live in `docs/WORKBENCH_DESIGN_CONTRACT.md`; if image evidence is lost, regenerate from that contract rather than reconstructing from memory.
+Result of failed attempt: **FALSIFIED DELIVERY / NO DESIGN ACCEPTANCE / NO IMPLEMENTATION PERMITTED**.
 
-Result: **DESIGN CANDIDATE GENERATED / IMPLEMENTATION BLOCKED ON OWNER CONCEPT REVIEW**.
+FC-9B is restarted with a stricter sequence:
+
+1. **FC-9B.0 — current evidence audit**: re-read the workbench contract and owner-tested interaction evidence; identify what must survive and what must not bias the redesign.
+2. **FC-9B.1 — master workbench concept**: establish one persistent visual/anatomical system first — viewport priority, project surface, task switcher, browser, inspector, status/diagnostics — using a real JURE/JV engineering scenario.
+3. **FC-9B.2 — coordinated task states**: derive Inspect, Author, Represent and Test from that same master concept rather than generating unrelated screens independently.
+4. **FC-9B.3 — hard states/details**: generate readable detail concepts for revision/rebind failure, active-preview blocked switching, and compact-laptop density if the primary screens do not prove those states clearly.
+5. **FC-9B.4 — consistency/falsification review**: reject the set if the viewport becomes secondary, task contexts read like separate pages, authority is color-only, UI collapses into dashboard cards, source/representation state becomes hidden, or a future Map Workspace would require a different global shell.
+6. **FC-9B.5 — owner review**: only actually delivered, readable images may enter owner review. Owner feedback may KEEP / CHANGE / FALSIFY the visual system or individual task states.
+
+Visual generation must use a functioning image-generation path and must not rely on the failed provider. The repository contract, not a lost chat image, remains the reproducible source for regeneration.
 
 ### FC-9C — accepted concept -> design system -> replacement implementation / BLOCKED
 
-Do not begin until FC-9B is owner-reviewed and accepted or revised.
+Do not begin until FC-9B produces a delivered, owner-reviewed concept set.
 
 After acceptance:
 1. extract exact typography, spacing, surfaces, borders, controls, icons, status semantics and component families from the accepted concept;
-2. record the allowed visible copy and authority/status language;
+2. record allowed visible copy and authority/status language;
 3. define component/state ownership so `App` remains composition glue;
 4. replace the old shell in small vertical slices, preserving validated mechanics until each replacement is independently proven;
 5. browser-test the real workflow and compare implementation screenshots against the accepted concept after every visual slice;
@@ -155,7 +147,7 @@ A future Map Workspace remains the second-domain counterexample. It may share pr
 
 ## BIND-00 preserved evidence
 
-Accepted exact source evidence remains `OneSided_Steering_Suspension_Rig.gltf`, SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`, 15 nodes / 14 joints / 1 skinned mesh in the tested revision. It proved exact source skin-joint drive from authored rigid truth while SOURCE remains fixed and falsified global-singleton representation storage.
+Accepted exact source evidence remains `OneSided_Steering_Suspension_Rig.gltf`, SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`, 15 nodes / 14 joints / 1 skinned mesh. It proved exact source skin-joint drive from authored rigid truth while SOURCE remains fixed and falsified global-singleton representation storage.
 
 ## Validation / tooling boundary
 
