@@ -2,7 +2,7 @@
 
 ## Current state
 
-The owner-tested foundation is usable. Active foundation convergence work now runs on `work/foundation-convergence-v1`, branched exactly from `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+The owner-tested foundation is usable. Active foundation convergence work runs on `work/foundation-convergence-v1`, branched exactly from `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
 
 Accepted baseline:
 - rigid `RigElement` and owner-local `RigFrame` authoring;
@@ -35,9 +35,9 @@ Verified on 2026-08-15:
 
 Result: **KEEP baseline / SAFE TO REFOUND ABOVE IT**.
 
-### FC-1 — real JV round-trip atlas / ACTIVE
+### FC-1 — real JV round-trip atlas / CLOSED
 
-Current JV evidence already separates several meanings that must not collapse into one imported "rig":
+Current JV evidence separates several meanings that must not collapse into one imported "rig":
 
 - **SOURCE FACT / HINT** — exact owner assets and their node hierarchy/socket metadata. The current one-sided suspension semantic contract explicitly marks its sockets/axes as `physicsAuthority: false` and says exact glTF + owner checkpoints outrank that secondary contract.
 - **CONSUMER REFERENCE: topology** — current M6 contains 19 bodies / 28 joints / 9 shapes / 4 corners. Rack, arms, wheel spin, coilovers and steering use different runtime mechanisms.
@@ -46,25 +46,52 @@ Current JV evidence already separates several meanings that must not collapse in
 - **CONSUMER DYNAMICS** — masses, inertia/density, friction, suspension hertz/damping/preload, rack servo force/friction, drive torque/speed, solver/contact behavior and related runtime tuning belong to current JV dynamics, not automatically to JURE authored geometry.
 - **RUNTIME REPRESENTATION** — JV already distinguishes rigid visual parts from endpoint/length-derived visual segments. Historical owner visual-package tooling additionally demonstrates endpoint-aim, stretch and roll-pinned stretch behavior; these are representation evidence, not a JURE schema to copy.
 
-Working authority hypothesis to falsify before freezing architecture:
+Working authority chain retained for FC-2:
 
 `SOURCE / CONSUMER REFERENCE / PROPOSAL -> explicit owner adoption/edit -> JURE AUTHORED geometry+kinematic intent -> transient TEST/EVALUATION -> derived consumer export`
 
-Candidate split, not yet a contract:
+Candidate authority split retained for FC-2:
 - JURE geometric/kinematic authority: identities, authored rigid poses, frames/hardpoints/pivots/axes, mechanical relations/DOFs, intended geometric limits, representation mappings;
 - consumer dynamic authority: masses/inertia, friction/contact/tire behavior, spring/damping force model, motor/servo force, solver and drive behavior;
-- classify every datum by meaning rather than by its current variable name. A consumer parameter is not imported as JURE truth merely because it contains geometry.
+- classify every datum by meaning rather than by its current variable name.
 
-Round-trip models still to attack before schema work:
-1. one monolithic JSON document containing source/reference/authored/export data;
-2. one owner-visible bundle with an internal manifest and explicitly separated source revisions/instances, consumer reference, authored rig and derived mappings;
-3. a loose workspace descriptor referencing independent external sidecar files.
+#### Interchange model falsification
 
-The winning model must survive at least: a knowingly provisional JV rig, changed exact source revision, four placed instances of one wheel asset, an alternate suspension, a piston, a rotor, and later a non-rig spatial/map object without forcing those concepts into `RigDocument`.
+**A — one monolithic JSON document: FALSIFIED as the primary project model.**
 
-**Do not change `RigDocument`, add `SourceInstance`, persist representation bindings, or redesign the UI until FC-1 closes.**
+It is easy to serialize and diff, but it either embeds potentially large binary SOURCE assets as bloated encoded data or stops being one transferable owner artifact. It also encourages SOURCE/REFERENCE/AUTHORED/export data and future non-rig domains to accrete into one god document.
 
-Next FC-1 gate: walk all three interchange models through the full `JV/agent export -> JURE inspect/adopt/author/test/save -> derived JV import` lifecycle and record which model fails which counterexample. Only then derive the smallest FC-2 project/authority contract.
+**B — one owner-visible logical bundle with explicit internal layers: KEEP / preferred direction.**
+
+The logical bundle can contain a small manifest plus exact source revisions, placed source instances, consumer-reference snapshots, one or more authored domain documents, representation data and derived consumer outputs while keeping their authority separate. One exact source revision can be reused by several placed instances (for example four wheels). A changed source creates a new exact revision and existing provenance/bindings can fail closed instead of silently retargeting. A future map document can coexist at project level without becoming part of `RigDocument`.
+
+Do **not** freeze the physical container yet. The same logical bundle may initially be represented by an extracted directory/test fixture and later by one owner-visible `.jure`/archive file without changing its authority model.
+
+**C — loose workspace descriptor + external sidecars: FALSIFIED as the primary owner interchange.**
+
+It keeps files independently editable but creates fragile paths, partial/stale transfers, multi-file save conflicts and a poor agent->owner->agent handoff. It may remain an implementation/storage convenience behind the logical bundle, not the owner-facing contract.
+
+Counterexample result for model B:
+- knowingly provisional JV rig -> survives because REFERENCE is not AUTHORED;
+- changed exact source revision -> survives through exact revision identity + fail-closed retargeting;
+- four placements of one wheel asset -> requires `SourceRevision` identity separate from placed instance identity;
+- alternate suspension -> no new project/container ontology required;
+- piston / rotor -> require later relation/driver semantics, not a new project model;
+- later map object/workspace -> can use another authored domain document at project level rather than polluting `RigDocument`.
+
+Result: **KEEP logical layered bundle; CHANGE project layer; DEFER physical container; do not expand `RigDocument` into a universal project schema.**
+
+### FC-2 — project / authority contract / ACTIVE
+
+The next implementation slice must be smaller than a package system. Define and test only the project-layer identities required by FC-1:
+
+1. exact `SourceRevision` identity remains immutable evidence;
+2. add a distinct placed `SourceInstance` concept outside renderer state;
+3. represent consumer-reference snapshot identity without treating its payload as authored kernel data;
+4. define a minimal project manifest that references authored domain documents rather than absorbing them;
+5. keep physical bundle storage and representation-binding persistence out of this slice.
+
+FC-2 exit gate: a pure data-model test must represent one source revision placed four times, a provisional JV reference snapshot, and one authored `RigDocument`; replacing the source revision must not silently retarget any instance/provenance claim. No React/Three/browser dependency is allowed in this contract.
 
 ## BIND-00 result
 
@@ -94,12 +121,12 @@ Exact pre-cleanup owner-evidence checkpoint is preserved on:
 ## Durable conclusions
 
 - `RigElement / RigFrame / RigRelation` remain the small authored kernel unless a real consumer falsifies them.
-- SOURCE reference, source provenance, authored rig, representation binding, transient preview, evaluated motion, and runtime/display state are distinct meanings.
+- SOURCE reference, source provenance, consumer reference, authored rig, representation binding, transient preview, evaluated motion, and runtime/display state are distinct meanings.
 - A useful JURE must support a complete mechanism with multiple simultaneous representation mappings.
 - Rigid pose stays free of scale; stretch/deformation belongs to representation/evaluation.
 - Motion testing starts kinematic: authored neutral truth must remain unchanged and `Reset` must restore it exactly.
 - Free camera/navigation and direct spatial inspection are product requirements, not optional polish.
-- Do not "fix" BIND-00 by simply replacing the singleton with an array before the next design pass.
+- Do not "fix" BIND-00 by simply replacing the singleton with an array before the representation design gate.
 
 ## Product direction after convergence
 
