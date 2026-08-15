@@ -1,4 +1,5 @@
 import type { RigDocument, RigidPose, SourceRevision } from '../kernel/types.js';
+import type { RigRepresentationDocument } from '../representation/types.js';
 
 export interface SourceInstance {
   id: string;
@@ -34,7 +35,12 @@ export interface AuthoredRigProjectDocument {
   document: RigDocument;
 }
 
-export type AuthoredProjectDocument = AuthoredRigProjectDocument;
+export interface AuthoredRigRepresentationProjectDocument {
+  kind: 'rig-representation';
+  document: RigRepresentationDocument;
+}
+
+export type AuthoredProjectDocument = AuthoredRigProjectDocument | AuthoredRigRepresentationProjectDocument;
 
 export interface JureProjectModel {
   schemaVersion: 1;

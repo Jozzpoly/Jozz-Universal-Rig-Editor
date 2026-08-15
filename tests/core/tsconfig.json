@@ -15,6 +15,7 @@
     "../../src/fixtures/synthetic-rig.ts",
     "../../src/source/**/*.ts",
     "../../src/project/**/*.ts",
+    "../../src/representation/**/*.ts",
     "../../src/app/workspace/layout-state.ts"
   ]
 }
