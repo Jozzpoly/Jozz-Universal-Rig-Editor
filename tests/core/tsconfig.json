@@ -17,6 +17,7 @@
     "../../src/project/**/*.ts",
     "../../src/representation/**/*.ts",
     "../../src/evaluation/**/*.ts",
+    "../../src/app/state/**/*.ts",
     "../../src/app/workspace/layout-state.ts"
   ]
 }
