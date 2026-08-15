@@ -50,7 +50,9 @@ The thin project-level separation is retained as a strong candidate:
 - `SourceRevision` — exact immutable source identity;
 - `SourceInstance` — one placed use of an exact source revision;
 - `ConsumerReferenceSnapshot` — external consumer evidence, never authored truth;
-- `SourceAdoptionRecord` — explicit record connecting a placed source datum to authored output.
+- `SourceAdoptionRecord` — immutable historical evidence of an explicit adoption event, including exact source revision, locator and source-instance placement snapshot at adoption time.
+
+Moving/re-registering a live `SourceInstance` never rewrites an earlier adoption record or authored truth. Adoption is historical evidence, not a live binding.
 
 This is a logical project contract, **not** an asset database. Physical `.jure`/ZIP packaging remains deferred.
 
@@ -64,11 +66,17 @@ Evaluated poses are revision-bound overlays only. Invalid/stale results fail clo
 
 ### State ownership
 
-Keep the explicit non-domain state owners introduced before FC-9:
+Keep domain truth outside React.
+
+Current owner-tested harness still has:
 
 - `RigAuthoringState` — authored session/selection/preview/history;
 - `SourceRuntimeState` — loaded SOURCE runtime asset + SOURCE selection;
 - `RigTestState` — transient TEST controls/result.
+
+RU-1 now adds a **candidate `ProjectSession`** above durable project edits. Its intended semantics are one chronological Undo/Redo history for persistent project changes such as SOURCE placement and authored rig edits, while selection, camera, layout, runtime relink and TEST remain outside that history.
+
+Important migration constraint: `ProjectSession` must become the single durable history owner before it is wired into the product. The old rig-specific `past/future` path must not remain active underneath it, otherwise JURE would have two competing Undo stacks. The current rig history therefore remains a harness implementation detail until a controlled replacement slice removes the duplication.
 
 `App` should remain composition/orchestration glue instead of becoming the owner of new domain semantics.
 
@@ -95,6 +103,8 @@ Current candidate mapping types are:
 `rigid | aim | span (+ optional roll correspondence)`
 
 The separation itself is KEEP. The exact vocabulary is **not yet final**. BIND-00 proves one narrow skin-joint path and falsifies singleton storage; it does not prove that these three mapping types cover the final product.
+
+Whether a pure `SourceInstance.pose` change should invalidate an existing representation mapping remains **UNKNOWN**. Current evidence proves fail-closed behavior for exact source-revision changes, not for whole-instance placement changes. Do not add a registration revision until a real representation workflow proves that requirement.
 
 ### Rig task contexts
 
@@ -152,9 +162,45 @@ The design must survive at least these real-use families:
 
 Do not import current M5/M6 geometry as truth. Current JV is consumer reference and evidence only.
 
-### RU-1 questions to resolve before the next major UI implementation
+### RU-1A — source adoption authority / IMPLEMENTED, SOURCE-REVIEWED, RUNTIME-UNVALIDATED
 
-- What is the smallest project/session model the owner actually manipulates?
+The first real-use red-team found that an adoption record pointing only to a live `SourceInstance` could become semantically misleading after the instance was moved or re-registered.
+
+The candidate correction is now implemented on the recovery branch:
+
+- adoption captures immutable `sourceInstanceId + sourceRevisionId + sourceInstancePose + locator` evidence;
+- validator compares adoption provenance against exact authored kernel provenance, not against the current mutable placement of the live instance;
+- moving/re-registering/removing the live instance does not rewrite historical adoption evidence;
+- exact source revision history required by adoption still fails closed when missing;
+- one project-domain creation function snapshots placement by value so later UI cannot accidentally retain mutable pose references.
+
+Do **not** call this PASS until the canonical TypeScript/test environment executes it.
+
+### RU-1B — project session / ACTIVE CANDIDATE
+
+Owner expectation confirmed: normal durable edits should have one chronological project Undo/Redo sequence. Example:
+
+`Move SOURCE -> Move authored frame -> Undo frame -> Undo SOURCE -> Redo SOURCE -> Redo frame`.
+
+Scope rule:
+
+- IN history: durable changes to `JureProjectModel` / authored documents;
+- OUT of history: selection, camera, panel/layout state, runtime file relink/object URLs, transient representation preview, transient TEST/evaluator state.
+
+A small pure candidate now exists to falsify this model:
+
+- `ProjectSession` stores committed/preview/past/future logical project states;
+- project commands can change placed `SourceInstance` pose or apply an existing `RigCommand` to an authored rig document;
+- authored rig revision increments at the project-command boundary;
+- preview/commit/cancel follows the existing editor transaction semantics;
+- redo is cleared by a new durable edit after undo;
+- SOURCE placement edits leave adoption snapshots untouched.
+
+This is **not wired to React/UI** and does not yet replace the current rig-specific history. Wiring is blocked until the old duplicate durable history path is deliberately retired in the same vertical slice.
+
+### RU-1 questions still to resolve before the next major UI implementation
+
+- What exact project/session operations are needed for add/remove/relink SourceInstance and project open/save?
 - What actions create authored truth from SOURCE versus create it freely from scratch?
 - When is representation bound to an element, a frame, two frames, or something else?
 - Which relation semantics are genuinely needed by the full owner workflow?
@@ -167,13 +213,13 @@ Resolve these through concrete scenarios and small executable falsifiers, not th
 
 ## UI / Build Web Apps direction after recovery
 
-The owner has explicitly abandoned Apixel for this month. No image-generation gate blocks progress.
+No visual redesign is being implemented during RU-1 foundation work. The existing owner-tested viewport-first UI remains a **working harness**, not final visual authority.
 
-Use the existing owner-tested viewport-first UI as a **working harness**, not final visual authority. Preserve proven interaction mechanics while real workflows are implemented. Product UX should now be driven by repeated real use:
+Product UX should be driven by repeated real use:
 
-`perform task -> observe friction -> repair the exact interaction -> repeat`
+`perform task -> observe friction -> repair the exact interaction -> repeat`.
 
-A later visual/polish pass may reorganize the complete workbench once the workflow is mature. Do not cosmetically freeze today's panels and do not invent a design system/framework before the real interaction requires it.
+When a major visual rework is justified again, follow the Build Web Apps discipline: complete/accept a readable primary-screen design first, extract the design system, then implement and browser-compare in small slices. Do not cosmetically freeze today's panels and do not build a new visual system before the real workflow is mature.
 
 ## Security / trust boundary
 
@@ -193,7 +239,9 @@ No security framework is required without a real new attack surface.
 
 Synthetic foundation harness at the pre-FC-9 checkpoint: **42/42 PASS** for the exact invariants it tests.
 
-This is not a claim of canonical full `npm run check` in the current execution environment. The previous direct disposable install attempt failed because the environment could not resolve `github.com`; no workaround chain was pursued.
+The RU-1A/RU-1B changes after that checkpoint are currently **source-reviewed only** in this orchestration environment. No new PASS count is claimed until the canonical TypeScript/test suite is actually executed.
+
+The previous direct disposable install attempt failed because the environment could not resolve `github.com`; no workaround chain was pursued.
 
 There is still no `package-lock.json`. Create it from a canonical successful install; do not block RU-1 product design on it.
 
