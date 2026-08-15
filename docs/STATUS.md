@@ -4,155 +4,153 @@
 
 Accepted product baseline remains `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
 
-Active foundation convergence is isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. The latest implementation checkpoint remains the FC-8 workbench-state line; FC-9 work after that point is design/documentation only.
+Active foundation convergence remains isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. The latest product/runtime implementation checkpoint is still FC-8. FC-9 changes are design/recovery documentation only; no replacement workbench UI has landed.
 
-The semantic/state foundation required before replacing the engineering UI is closed. Current panel placement, styling and navigation grouping remain disposable. Owner-tested interaction evidence to preserve unless falsified: free/unclamped inspection camera, Focus/Fit, direct Move/Rotate gizmo manipulation, world/local transforms, numeric editing over quaternion storage, preview/commit/cancel, undo/redo, and independent SOURCE/authored selection.
+Owner-tested interaction evidence to preserve unless later falsified: free/unclamped inspection camera, Focus/Fit, direct Move/Rotate gizmo manipulation, world/local transforms, numeric editing over quaternion storage, preview/commit/cancel, undo/redo, and independent SOURCE/authored selection.
 
 ## Recovery discipline
 
 - `main` remains accepted authority until explicit promotion.
-- Work stays on `work/foundation-convergence-v1`; PR #1 remains DRAFT.
-- Every gate or risky slice ends in a small recovery-safe commit and a `KEEP / CHANGE / DEFER / FALSIFIED` result.
-- Current repo/JV evidence outranks chat plans and historical tooling.
-- Synthetic tests prove only their exact invariant, never owner interaction/product feel.
+- PR #1 remains DRAFT.
+- Current repo/consumer evidence outranks chat reconstruction.
+- Small recovery-safe slices end in `KEEP / CHANGE / DEFER / FALSIFIED` decisions.
+- Synthetic tests prove only their exact invariant, never owner interaction or visual quality.
 - Do not add speculative plugin/ECS/physics/editor frameworks.
-- Git tree -> commit -> non-force ref update is the write boundary. A real FC-3 connection failure already proved this recovery model: branch HEAD stayed intact and only the idempotent tree step had to be retried.
-- Visual concept images are review evidence, not repository authority. `docs/WORKBENCH_DESIGN_CONTRACT.md` contains the reproducible brief/contract if a conversation or image-generation session is lost.
-- A concept-generation tool call is not evidence that a concept exists. FC-9B only advances when generated images are actually delivered and reviewable by the owner.
+- Visual concept images are review evidence, not repository authority.
+- A successful image-generation tool call is not proof of a good or even reviewable design experiment.
 
-## Closed convergence gates
+## Closed foundation gates
 
 ### FC-0 — evidence freeze
 
-Run base and owner-tested BIND/SOURCE evidence were frozen before new work. Post-checkpoint `main` changes were documentation-only.
+Accepted owner-tested baseline was frozen; post-checkpoint `main` change was documentation-only.
 
-Result: **KEEP accepted baseline / SAFE TO REFOUND ABOVE IT**.
+Result: **KEEP accepted baseline**.
 
-### FC-1 — real JV round-trip atlas
+### FC-1 — JV round-trip atlas
 
-Current JV separates SOURCE facts/hints, CONSUMER REFERENCE, provisional runtime geometry/topology, dynamics, temporary bridges and representation. Current JV runtime therefore cannot be imported wholesale as authored truth.
+Current JV evidence was separated into SOURCE, CONSUMER REFERENCE, provisional/runtime data, dynamics, temporary bridges and representation. Monolithic project JSON and loose owner-facing sidecars were falsified; one logical layered owner artifact remains the direction. Physical `.jure`/ZIP format remains deferred.
 
-Falsification result:
-- monolithic project JSON: **FALSIFIED**;
-- loose owner-facing sidecars: **FALSIFIED**;
-- one owner-visible logical layered bundle: **KEEP**;
-- physical ZIP/`.jure` container: **DEFERRED**.
-
-Authority chain:
-
-`SOURCE / CONSUMER REFERENCE / PROPOSAL -> explicit adoption/edit -> AUTHORED domain documents -> TEST/EVALUATION -> derived consumer export`
+Result: **KEEP layered authority model**.
 
 ### FC-2 — project / authority contract
 
-Project layer distinguishes exact `SourceRevision`, independent placed `SourceInstance`, external `ConsumerReferenceSnapshot`, project-level `SourceAdoptionRecord`, and authored domain documents. Kernel provenance stays revision-local (`sourceRevisionId + locator`) rather than depending on project placement state. Revision/rebind mismatches fail closed.
+Exact `SourceRevision`, independent placed `SourceInstance`, external `ConsumerReferenceSnapshot`, project-level `SourceAdoptionRecord`, authored documents and fail-closed revision/rebind semantics are established.
 
-Result: **KEEP exact project authority + placed-instance adoption context**.
+Result: **KEEP exact project authority**.
 
 ### FC-3 — mechanical assembly
 
-Neutral relation vocabulary: `origin-coincident`, `revolute`, `prismatic`, `spherical`, `distance`, `distance-range`. For revolute/prismatic, participating RigFrames are full joint datums: origin = anchor, local +Z = primary DOF axis, authored neutral = zero coordinate. Consumer mass/inertia/friction/Hertz/damping/motors/solver/Box3D IDs remain outside the authored kernel.
+Neutral relation vocabulary is `origin-coincident`, `revolute`, `prismatic`, `spherical`, `distance`, `distance-range`. RigFrames carry anchor/orientation semantics; consumer dynamics remain outside authored rig truth.
 
-Wishbone/steering/wheel, piston and rotor counterexamples passed synthetically.
-
-Result: **KEEP neutral mechanical intent / DEFER solver + advanced spherical policy**.
+Result: **KEEP neutral mechanics / DEFER solver and advanced spherical policy**.
 
 ### FC-4 — authored representation
 
-Representation is a separate authored `RigRepresentationDocument`, not part of `RigDocument` and not consumer-only. Initial geometric correspondence vocabulary: `rigid`, `aim`, `span`, with optional roll correspondence. Mappings capture exact SourceInstance + SourceRevision + locator. BIND-00 singleton storage remains falsified and quarantined as proof evidence only.
+Representation is a separate authored `RigRepresentationDocument` with multiple exact source-instance mappings (`rigid`, `aim`, `span`, optional roll correspondence). BIND-00 singleton storage is legacy proof only.
 
-Result: **KEEP separate authored representation domain**.
+Result: **KEEP separate representation domain**.
 
 ### FC-5 — AUTHOR / TEST boundary
 
-`RigTestState` and replaceable `RigEvaluator` provide revision-bound transient pose overrides. Invalid/stale output fails closed; leaving/resetting TEST removes evaluated influence; evaluated state never writes back automatically to authored neutral.
+`RigTestState` + replaceable `RigEvaluator` provide transient revision-bound evaluated views, exact Reset and no automatic write-back into authored neutral.
 
-Result: **KEEP evaluator boundary / DEFER solver implementation choice**.
+Result: **KEEP evaluation boundary / DEFER solver choice**.
 
-### FC-6 — deterministic logical project round trip
+### FC-6 — logical round trip
 
-Logical project parse/serialize is deterministic and fail-closed. Unknown relation/binding/document kinds are runtime errors; canonical save emits only known schema fields; source/rebind mismatch blocks serialization. Physical bundle format remains deferred.
+Project parse/serialize is deterministic and fail-closed for unknown kinds and source/rebind mismatches. Physical bundle format remains deferred.
 
-Result: **KEEP machine contract / DEFER physical container**.
+Result: **KEEP machine contract**.
 
 ### FC-7 — state ownership
 
-Explicit owners exist for rig authoring (`RigAuthoringState`), loaded SOURCE + SOURCE selection (`SourceRuntimeState`) and TEST (`RigTestState`). Project/kernel/representation remain outside React. File handle is IO-session state; camera/layout/layers are presentation state. Current `App` routes authored and SOURCE operations rather than owning their mutation semantics.
+Rig authoring, SOURCE runtime and TEST have explicit non-React state owners. App routes operations instead of owning domain mutation semantics; presentation/layout state remains disposable.
 
-Result: **KEEP explicit owners / STOP semantic architecture growth inside App**.
+Result: **KEEP explicit owners**.
 
 ### FC-8 — owner workflow / UX architecture
 
-Three information architectures were walked through the real JV round trip plus multi-source, piston, rotor and future map-workspace counterexamples.
+Permanent RIG+SOURCE panel accumulation and disconnected Import/Author/Represent/Test pages were falsified. The retained model is one persistent spatial workbench with task contexts `Inspect | Author | Represent | Test`; project/viewport/camera continuity remains while context-specific tools/browser/inspector change.
 
-- permanently extend current RIG/SOURCE/Inspector layout: **FALSIFIED** — it becomes a panel accumulator;
-- separate full pages for Import/Author/Representation/Test: **FALSIFIED** — breaks spatial, camera and comparison continuity;
-- persistent spatial workbench + explicit task contexts: **KEEP**.
-
-Pure `RigWorkspaceState` defines `inspect | author | represent | test` without JSX/layout/CSS. Context switching does not mutate authored truth; active authored preview blocks switching; TEST starts fresh transient state; leaving TEST discards controls/result; Reset remains transient.
-
-Disposable foundation harness after FC-8: **42/42 PASS**.
+Disposable semantic/state harness after FC-8: **42/42 PASS**.
 
 Result: **KEEP persistent spatial workbench + task contexts**.
 
 ## FC-9 — complete workbench visual/product design / ACTIVE
 
-Purpose: design the complete Rig Workspace before replacing the engineering shell. This is not a cosmetic retrofit. No final replacement UI code may land while the visual/product concept is unresolved.
+No final replacement UI may land while the product/visual direction is unresolved.
 
 ### FC-9.0 — drift audit / CLOSED
 
-At the start of this gate, draft PR #1 had advanced one documentation-only commit beyond the previous recovery head. No product code or semantic implementation drift was introduced. `main` remained exactly `d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+No product-code drift was found before FC-9. `main` remained the exact accepted baseline.
 
-Result: **KEEP drift commit / SAFE TO CONTINUE FC-9**.
+Result: **SAFE TO CONTINUE FC-9**.
 
 ### FC-9A — surface/state contract / CLOSED
 
-Canonical design contract: `docs/WORKBENCH_DESIGN_CONTRACT.md`.
+Canonical product/information contract: `docs/WORKBENCH_DESIGN_CONTRACT.md`.
 
-It defines JURE as an owner-first spatial engineering workbench; visible separation of SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED; persistent project + viewport continuity; task contexts `Inspect | Author | Represent | Test`; context-specific browser/inspector/tools; first-class revision/rebind/failure states; the complete JV round trip; and counterexamples including repeated source instances, alternate suspension, piston, rotor/thruster and a future Map Workspace.
+It keeps visible separation of SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED; persistent project + spatial viewport continuity; context-specific Inspect/Author/Represent/Test tools; first-class revision/rebind/failure states; the real JV round trip; repeated source-instance, alternate suspension, piston, rotor/thruster and future Map Workspace counterexamples.
 
-The contract now also contains a strict visual review protocol: creator-first hierarchy, viewport budget, task-mode continuity, progressive technical detail, command economy, failure-state semantics, master-system-before-variants, rejection of generic AI/CAD imitation and an explicit owner review order.
+Result: **KEEP semantic workbench contract**.
 
-Result: **KEEP persistent workbench anatomy + context-specific information architecture**.
+### FC-9B.1 — previous visual-board method / FALSIFIED
 
-### FC-9B — coordinated visual concepts / ACTIVE OWNER REVIEW
+Owner review on 2026-08-15 falsified the previous multi-screen visual-board approach as useful decision evidence.
 
-The first concept-generation attempt through the external provider is **INVALID AS DESIGN EVIDENCE** because the provider failed its connection/login path and the owner received no images. The previous chat claim that this concept set had been delivered was withdrawn.
+Failure mechanism:
+- several task contexts and several design questions were compressed into one generated board;
+- images became presentation/infographic artifacts rather than readable application screens;
+- density prevented practical inspection of hierarchy, controls and spatial priority;
+- visual output drifted away from JURE-specific interaction despite correct high-level semantic material.
 
-A clean restart was then performed through a functioning image-generation path using the hardened `WORKBENCH_DESIGN_CONTRACT.md` rather than reconstructing prompts from memory. Reviewable visual boards were successfully delivered in-chat. They cover the shared persistent shell and coordinated Inspect / Author / Represent / Test / revision-rebind states and explicitly keep implementation blocked.
+The generated boards are retained only as historical experiment evidence. They are **not** design candidates and do not satisfy FC-9B.
 
-These boards are **visual-direction evidence only**, not accepted production design. They are intentionally broader system studies and contain dense annotations. If the owner keeps the direction, the next FC-9B slice is to generate fresh standalone, readable primary-screen concepts (not crops) for the strongest master workbench direction and the hard states that remain ambiguous.
+Result: **FALSIFIED — PRESENTATION METHODOLOGY, NOT FC-9A PRODUCT MODEL**.
 
-Current result: **VISUAL RESTART DELIVERED / DIRECTION REVIEW ACTIVE / NO DESIGN ACCEPTANCE YET**.
+### FC-9B.2 — research-grounded controlled divergence / ACTIVE
 
-Acceptance remains blocked until owner review answers, in order:
-1. Is the global workbench anatomy right and is the viewport dominant enough?
-2. Is density/readability appropriate for long engineering sessions?
-3. Do Inspect / Author / Represent / Test feel like modes of one space rather than separate pages?
-4. Are authority and failure semantics clear without turning the tool into a debug dashboard?
-5. Only then: is the visual language itself worth keeping?
+The restart first rechecked real interface evidence from JURE, HomeScan and JES, then benchmarked relevant professional spatial-tool interaction patterns. The experiment deliberately separates two variables that the failed pass mixed together: task context and design direction.
 
-### FC-9C — accepted concept -> design system -> replacement implementation / BLOCKED
+All divergent concepts now use one identical canonical stress scenario: **AUTHOR / JV M6 front-left suspension / selected authored `FL lower-ball` frame / active Move preview**. Required evidence is held constant: the same Elements, Frames and Relations; SOURCE as read-only comparison; authored transform values; World/Local; Focus/Fit; Undo/Redo; Commit/Cancel; project revision/dirty state and one geometric warning. Scale and consumer dynamics/runtime tuning are explicitly absent from authored rig UI.
 
-Do not begin until FC-9B produces an owner-reviewed and accepted/revised visual direction.
+Four independent master-workbench hypotheses were issued as four separate image-generation sessions with no cross-image reference contamination:
 
-After acceptance:
-1. extract exact typography, spacing, surfaces, borders, controls, icons, status semantics and component families from fresh readable accepted concepts;
-2. record allowed visible copy and authority/status language;
-3. define component/state ownership so `App` remains composition glue;
-4. replace the old shell in small vertical slices, preserving validated mechanics until each replacement is independently proven;
-5. browser-test the real workflow and compare implementation screenshots against the accepted concept after every visual slice;
-6. only after visual/interaction owner evidence decide whether the convergence PR is ready for promotion.
+1. **A — Modular Spatial Workshop**: flexible Blender/DCC-like spatial areas, compact hierarchy/properties, maximizable viewport, expert shortcut language.
+2. **B — Calm Precision Instrument**: HomeScan-derived progressive disclosure, calmer hierarchy, mixed light chrome + dark stage, comfortable technical typography.
+3. **C — Assembly Engineering Workbench**: assembly/relationship-first browser, contextual Author command strip, precise grouped inspector, folded diagnostics/history.
+4. **D — Immersive Contextual Instrument**: maximum viewport, retractable chrome, selection-driven contextual inspector and numeric operation HUD.
 
-A future Map Workspace remains the second-domain counterexample. It may share project/source/file/viewport infrastructure, but FC-9 must not introduce a speculative plugin framework or pollute rig domain schemas.
+Every image prompt requires exactly one full desktop app screenshot and explicitly rejects concept boards, comparison grids, outside annotations, multiple screens, sci-fi HUDs, generic AI dashboards, glassmorphism, fake metrics and irrelevant CAD/runtime controls.
 
-## BIND-00 preserved evidence
+Tooling limitation: the current Apixel connector renders generated images to the owner-facing UI but does not return the image pixels/file back into the assistant's inspection context. Therefore the assistant does **not** claim visual QA of the generated pixels. Owner-visible image review (or later supplied screenshots/files) is required before any candidate can be kept or rejected visually.
 
-Accepted exact source evidence remains `OneSided_Steering_Suspension_Rig.gltf`, SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`, 15 nodes / 14 joints / 1 skinned mesh. It proved exact source skin-joint drive from authored rigid truth while SOURCE remains fixed and falsified global-singleton representation storage.
+Current result: **CONTROLLED DIVERGENCE GENERATED / OWNER VISUAL REVIEW NEXT / NO DESIGN ACCEPTANCE**.
+
+### FC-9B.3 — convergence / BLOCKED ON REVIEW
+
+After comparing A/B/C/D, keep useful traits rather than automatically selecting a whole image. Then:
+
+1. generate one or two hybrid AUTHOR candidates as separate screens;
+2. accept one master AUTHOR direction only after owner review;
+3. use that accepted visual direction as the reference for separate Inspect, Represent, Test and revision/rebind screens — one generation session per screen;
+4. validate the resulting family for continuity, authority semantics, long-session readability and future Map Workspace compatibility.
+
+Only this accepted complete family can become implementation design authority.
+
+### FC-9C — design system -> replacement implementation / BLOCKED
+
+After FC-9B acceptance:
+
+1. extract typography, spacing, surfaces, icons, status semantics, component families and allowed visible copy;
+2. define component/state ownership so `App` remains composition glue;
+3. replace the engineering shell in small vertical slices;
+4. browser-test each slice and compare rendered screenshots to the accepted concept;
+5. require owner interaction/visual evidence before promotion.
 
 ## Validation / tooling boundary
 
-Canonical full `npm run check` is still **NOT CLAIMED** in this execution environment. One direct fresh disposable clone/install attempt was stopped immediately when the environment could not resolve `github.com`; no workaround chain was pursued.
+Canonical full `npm run check` is still **NOT CLAIMED** in this execution environment. No product UI code has been added in FC-9, so the semantic/state evidence remains the FC-8 **42/42 PASS** boundary.
 
-No product UI code has been added in FC-9 so far. Disposable semantic/state evidence therefore remains the FC-8 **42/42 PASS** boundary; FC-9 currently adds product/design evidence, not new runtime claims.
-
-Repository still has no `package-lock.json`; create it from a canonical successful install rather than from an unverified environment.
+Repository still has no `package-lock.json`; create it only from a canonical successful install rather than an unverified environment.
