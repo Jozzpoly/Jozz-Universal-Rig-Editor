@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
 import { createRepresentationBindingDraft, evaluateRepresentationBindingPose, representationBindingMatchesSource, type RepresentationBindingDraft } from '../editor/representation-binding-draft.js';
 import type { TransformTarget } from '../editor/transform-target.js';
@@ -6,7 +6,7 @@ import { SYNTHETIC_RIG } from '../fixtures/synthetic-rig.js';
 import { resolveRigDocument } from '../kernel/resolve.js';
 import type { RigidPose } from '../kernel/types.js';
 import { openRigFile, saveRigFile, saveRigFileAs } from '../io/rig-file.js';
-import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
+import { openSourceAsset } from '../io/source-file.js';
 import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
 import {
@@ -24,6 +24,7 @@ import {
   undoRigAuthoring,
   visibleRigAuthoringDocument,
 } from './state/rig-authoring.js';
+import { createSourceRuntimeState, replaceSourceRuntimeAsset, selectSourceRuntimeLocator } from './state/source-runtime.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
 import { SourceNavigator, type SourceLayerVisibility } from './workspace/SourceNavigator.js';
@@ -44,8 +45,7 @@ export function App() {
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [transformSpace, setTransformSpace] = useState<'world' | 'local'>('world');
   const [fileState, setFileState] = useState<FileState | null>(null);
-  const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
-  const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
+  const [sourceRuntime, setSourceRuntime] = useState(createSourceRuntimeState);
   const [representationBinding, setRepresentationBinding] = useState<RepresentationBindingDraft | null>(null);
   const [rigVisible, setRigVisible] = useState(true);
   const [rigLayers, setRigLayers] = useState<RigLayerVisibility>(DEFAULT_RIG_LAYERS);
@@ -53,14 +53,17 @@ export function App() {
   const [sourceLayers, setSourceLayers] = useState<SourceLayerVisibility>(DEFAULT_SOURCE_LAYERS);
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic fixture · unsaved');
-  const sourceUrlRef = useRef<string | null>(null);
-
-  useEffect(() => () => {
-    if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
-  }, []);
 
   const session = authoring.session;
   const selectedTarget = authoring.selectedTarget;
+  const sourceAsset = sourceRuntime.asset;
+  const selectedSourceLocator = sourceRuntime.selectedLocator;
+
+  useEffect(() => {
+    const objectUrl = sourceAsset?.objectUrl ?? null;
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [sourceAsset?.objectUrl]);
+
   const document = visibleRigAuthoringDocument(authoring);
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
   const displayModel = useMemo(() => buildRigDisplayModel(document, resolved, selectedTarget), [document, resolved, selectedTarget]);
@@ -101,6 +104,10 @@ export function App() {
 
   const handleSelectTarget = useCallback((target: TransformTarget | null) => {
     setAuthoring((current) => selectRigAuthoringTarget(current, target));
+  }, []);
+
+  const handleSelectSourceLocator = useCallback((locator: string | null) => {
+    setSourceRuntime((current) => selectSourceRuntimeLocator(current, locator));
   }, []);
 
   const handleTransformStart = useCallback((target: TransformTarget) => {
@@ -180,14 +187,10 @@ export function App() {
 
   const handleOpenSource = async () => {
     try {
-      const previousUrl = sourceUrlRef.current;
       const opened = await openSourceAsset();
-      sourceUrlRef.current = opened.objectUrl;
-      setSourceAsset(opened);
+      setSourceRuntime((current) => replaceSourceRuntimeAsset(current, opened));
       setSourceVisible(true);
-      setSelectedSourceLocator(null);
       setRepresentationBinding(null);
-      if (previousUrl) URL.revokeObjectURL(previousUrl);
       setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
@@ -230,7 +233,7 @@ export function App() {
           layers={sourceLayers}
           onVisibleChange={setSourceVisible}
           onLayerChange={(layer, visible) => setSourceLayers((current) => ({ ...current, [layer]: visible }))}
-          onSelect={setSelectedSourceLocator}
+          onSelect={handleSelectSourceLocator}
         />
       )}
       viewport={(
