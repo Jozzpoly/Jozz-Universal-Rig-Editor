@@ -324,8 +324,71 @@ Use a normal desktop-editor viewport (target around 1440x900 or 1600x1000). A co
 ## 11. FC-9 exit logic
 
 - FC-9A closes when this contract survives the JV round trip and listed counterexamples.
-- FC-9B closes only when the four coordinated concepts are readable, mutually consistent and implementable.
+- FC-9B closes only when the coordinated concepts are actually delivered, readable, mutually consistent and implementable.
 - FC-9C begins only after owner review/acceptance of the visual concept.
 - Only then extract design tokens/component ownership and start replacing the old shell in small browser-validated slices.
 
 Until FC-9C acceptance, **do not wire the new task contexts into the old shell as the final UI and do not start a cosmetic retrofit**.
+
+## 12. FC-9B visual review protocol
+
+The first visual attempt failed at delivery and is not design evidence. The restart uses the following stricter protocol.
+
+### 12.1 Creator-first, not developer-first
+
+JURE is technically exact, but the UI is for the owner creating and correcting mechanisms. Human-readable names and spatial meaning are primary. Exact SHA values, locators, adapter versions and internal IDs must be available and trustworthy, but should normally be secondary detail rather than permanent visual noise.
+
+A concept is rejected if it looks like a repository/debug inspector with a 3D preview attached.
+
+### 12.2 Viewport budget
+
+The viewport must remain the dominant working surface on a normal desktop and still feel useful at a compact-laptop size. Browsers and inspectors may be dense, collapsible or context-sensitive, but may not squeeze the viewport into a secondary preview.
+
+A concept is rejected if side chrome feels more important than the spatial object being authored.
+
+### 12.3 Task contexts must read as tool modes, not pages
+
+`Inspect | Author | Represent | Test` must share the same project, viewport, camera and global workbench identity. Context change may recompose browser/inspector/tools, but must not resemble navigating to four separate applications or dashboards.
+
+A concept is rejected if task switching appears to reset spatial orientation or if each context has a different global shell.
+
+### 12.4 Exact authority without authority clutter
+
+SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED must remain visibly distinct through a combination of labels, line/geometry treatment, interaction affordance and status language. Color may reinforce meaning but cannot carry it alone.
+
+A concept is rejected if users must memorize a palette to know whether something is editable or trusted.
+
+### 12.5 Progressive technical detail
+
+Primary surfaces should answer spatial questions first: what is selected, where is it, what owns it, what relation/mapping is involved, what is wrong, and what action is safe. Full exact identity belongs in secondary metadata/disclosures when it is not immediately needed for the decision.
+
+A concept is rejected if raw hashes/IDs dominate the hierarchy or if important exact identity is hidden entirely.
+
+### 12.6 Command economy
+
+Global project actions stay low-noise. Contextual actions appear near the selection/task that owns them. Do not create a permanent top-bar button farm or floating HUD of every command JURE may eventually support.
+
+### 12.7 Failure behavior is part of the main design
+
+Revision mismatch, unresolved rebind, stale reference, active-preview blocking and TEST staleness must look like states of the workbench, not generic error modals. The UI must say which authority is affected and what remains safe: e.g. authored rig valid, representation export blocked.
+
+### 12.8 Master system before state variants
+
+FC-9B should first establish at least two competing **master workbench directions** from the same product contract. They are compared on viewport priority, long-session readability, command economy, authority clarity and future Map Workspace compatibility. Only the stronger direction is then expanded into coordinated Inspect / Author / Represent / Test / failure states.
+
+This prevents five polished screens from locking in a weak shell merely because they are visually consistent.
+
+### 12.9 Reject generic AI/CAD imitation
+
+Borrow the discipline of strong engineering tools, not their branding or accidental complexity. Reject sci-fi HUD styling, generic dark dashboard cards, glassmorphism, neon overlays, oversized rounded containers, excessive chips/badges, fake telemetry, decorative diagrams and superficial "professional CAD" mimicry that does not serve JURE's specific loop.
+
+### 12.10 Review order
+
+Owner review should happen in this order:
+1. global workbench anatomy and viewport priority;
+2. readability/density for long sessions;
+3. continuity across task contexts;
+4. authority semantics and failure communication;
+5. detailed visual language and polish.
+
+Do not spend implementation effort perfecting typography or icons before the first four questions are accepted.
