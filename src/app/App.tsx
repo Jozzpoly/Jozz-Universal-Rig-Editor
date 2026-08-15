@@ -1,16 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
 import { createRepresentationBindingDraft, evaluateRepresentationBindingPose, representationBindingMatchesSource, type RepresentationBindingDraft } from '../editor/representation-binding-draft.js';
-import { applyCommand, beginPreview, cancelPreview, commitPreview, createEditorSession, redo, undo, updatePreview, visibleDocument, type EditorSession } from '../editor/session.js';
-import { worldPoseToAuthoredPose, type TransformTarget } from '../editor/transform-target.js';
-import { setTransformTargetPose } from '../features/rig-transform/command.js';
+import type { TransformTarget } from '../editor/transform-target.js';
 import { SYNTHETIC_RIG } from '../fixtures/synthetic-rig.js';
 import { resolveRigDocument } from '../kernel/resolve.js';
-import type { RigidPose, RigDocument } from '../kernel/types.js';
+import type { RigidPose } from '../kernel/types.js';
 import { openRigFile, saveRigFile, saveRigFileAs } from '../io/rig-file.js';
 import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
 import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
+import {
+  beginRigAuthoringTransform,
+  canRedoRigAuthoring,
+  canUndoRigAuthoring,
+  cancelRigAuthoringTransform,
+  commitRigAuthoringPose,
+  commitRigAuthoringTransform,
+  createRigAuthoringState,
+  previewRigAuthoringTransform,
+  redoRigAuthoring,
+  replaceRigAuthoringDocument,
+  selectRigAuthoringTarget,
+  undoRigAuthoring,
+  visibleRigAuthoringDocument,
+} from './state/rig-authoring.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
 import { SourceNavigator, type SourceLayerVisibility } from './workspace/SourceNavigator.js';
@@ -25,16 +38,8 @@ interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: 
 const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true, bound: true };
 const DEFAULT_SOURCE_LAYERS: SourceLayerVisibility = { geometry: true, datum: true };
 
-function initialTransformTarget(document: RigDocument): TransformTarget | null {
-  const frame = document.frames[0];
-  if (frame) return { kind: 'frame', id: frame.id };
-  const element = document.elements[0];
-  return element ? { kind: 'element', id: element.id } : null;
-}
-
 export function App() {
-  const [session, setSession] = useState<EditorSession>(() => createEditorSession(SYNTHETIC_RIG));
-  const [selectedTarget, setSelectedTarget] = useState<TransformTarget | null>({ kind: 'frame', id: 'frame.link.mount' });
+  const [authoring, setAuthoring] = useState(() => createRigAuthoringState(SYNTHETIC_RIG, { kind: 'frame', id: 'frame.link.mount' }));
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('perspective');
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [transformSpace, setTransformSpace] = useState<'world' | 'local'>('world');
@@ -54,7 +59,9 @@ export function App() {
     if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
   }, []);
 
-  const document = visibleDocument(session);
+  const session = authoring.session;
+  const selectedTarget = authoring.selectedTarget;
+  const document = visibleRigAuthoringDocument(authoring);
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
   const displayModel = useMemo(() => buildRigDisplayModel(document, resolved, selectedTarget), [document, resolved, selectedTarget]);
   const visibleDisplayModel = useMemo(() => ({
@@ -92,31 +99,30 @@ export function App() {
     setViewRequest((current) => ({ id: (current?.id ?? 0) + 1, target }));
   }, []);
 
+  const handleSelectTarget = useCallback((target: TransformTarget | null) => {
+    setAuthoring((current) => selectRigAuthoringTarget(current, target));
+  }, []);
+
   const handleTransformStart = useCallback((target: TransformTarget) => {
-    setSession((current) => beginPreview(current, `Transform ${target.kind} ${target.id}`));
+    setAuthoring((current) => beginRigAuthoringTransform(current, target));
   }, []);
 
   const handleTransformPreview = useCallback((target: TransformTarget, worldPose: RigidPose) => {
-    setSession((current) => {
-      const started = current.preview ? current : beginPreview(current, `Transform ${target.kind} ${target.id}`);
-      const baseline = started.preview?.baseline ?? started.committed;
-      const authoredPose = worldPoseToAuthoredPose(baseline, target, worldPose);
-      return updatePreview(started, setTransformTargetPose(target, authoredPose));
-    });
+    setAuthoring((current) => previewRigAuthoringTransform(current, target, worldPose));
   }, []);
 
   const handleTransformCommit = useCallback((target: TransformTarget) => {
-    setSession((current) => commitPreview(current));
+    setAuthoring((current) => commitRigAuthoringTransform(current));
     setStatus(`Authored ${target.kind} committed · unsaved`);
   }, []);
 
   const handleTransformCancel = useCallback((target: TransformTarget) => {
-    setSession((current) => cancelPreview(current));
+    setAuthoring((current) => cancelRigAuthoringTransform(current));
     setStatus(`${target.kind === 'element' ? 'Element' : 'Frame'} transform cancelled`);
   }, []);
 
   const commitPose = useCallback((target: TransformTarget, pose: RigidPose) => {
-    setSession((current) => applyCommand(current, setTransformTargetPose(target, pose)));
+    setAuthoring((current) => commitRigAuthoringPose(current, target, pose));
     setStatus(`Authored ${target.kind} committed · unsaved`);
   }, []);
 
@@ -144,9 +150,8 @@ export function App() {
   const handleOpenRig = async () => {
     try {
       const opened = await openRigFile();
-      setSession(createEditorSession(opened.document));
+      setAuthoring(replaceRigAuthoringDocument(opened.document));
       setFileState({ handle: opened.handle, baselineHash: opened.baselineHash, name: opened.name });
-      setSelectedTarget(initialTransformTarget(opened.document));
       setRepresentationBinding(null);
       setStatus(`Opened ${opened.name}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
@@ -196,14 +201,14 @@ export function App() {
         <TopBar
           documentId={document.documentId}
           revision={session.committed.revision}
-          canUndo={session.past.length > 0 && !session.preview}
-          canRedo={session.future.length > 0 && !session.preview}
+          canUndo={canUndoRigAuthoring(authoring)}
+          canRedo={canRedoRigAuthoring(authoring)}
           onOpenRig={handleOpenRig}
           onSave={() => void handleSave()}
           onSaveAs={() => void handleSaveAs()}
           onOpenSource={handleOpenSource}
-          onUndo={() => setSession((current) => undo(current))}
-          onRedo={() => setSession((current) => redo(current))}
+          onUndo={() => setAuthoring((current) => undoRigAuthoring(current))}
+          onRedo={() => setAuthoring((current) => redoRigAuthoring(current))}
         />
       )}
       rigPane={(
@@ -214,7 +219,7 @@ export function App() {
           layers={rigLayers}
           onVisibleChange={setRigVisible}
           onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
-          onSelect={setSelectedTarget}
+          onSelect={handleSelectTarget}
         />
       )}
       sourcePane={(
@@ -244,7 +249,7 @@ export function App() {
             representationBinding={activeRepresentationBinding}
             boundRepresentationVisible={rigVisible && rigLayers.bound}
             viewRequest={viewRequest}
-            onSelect={setSelectedTarget}
+            onSelect={handleSelectTarget}
             onTransformStart={handleTransformStart}
             onTransformPreview={handleTransformPreview}
             onTransformCommit={handleTransformCommit}
