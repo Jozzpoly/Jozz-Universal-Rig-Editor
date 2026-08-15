@@ -18,6 +18,12 @@ The current UI is an accepted engineering baseline, not a promise that the final
 
 BIND-00 is a transient representation-binding prototype tested on the real `OneSided_Steering_Suspension_Rig.gltf`.
 
+Exact real SOURCE evidence used for the accepted SOURCE/BIND tests:
+- file: `OneSided_Steering_Suspension_Rig.gltf`;
+- SHA-256: `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
+- self-contained glTF (embedded buffer/texture), 15 nodes / 14 joints / 1 skinned mesh in the tested revision;
+- the asset is not stored canonically in this repo. If reproduction requires it, obtain the exact file from the owner/File Library and verify the SHA before use rather than substituting historical JV geometry.
+
 What it proved:
 - one authored `RigElement` can drive one exact rigid glTF skin joint through a stable rest offset;
 - the bound visual can follow authored Move/Rotate while the read-only SOURCE reference stays fixed;
