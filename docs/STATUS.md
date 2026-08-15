@@ -6,259 +6,171 @@ Accepted product authority remains:
 
 `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
 
-The active recovery/design line is:
+Active recovery/real-use branch:
 
 `work/real-use-foundation-recovery`
 
-It was created exactly from `fd2f2da49a5250cff7dec27ee5bc35b626819460`, the last semantic/state checkpoint before the FC-9 visual-concept detour.
+Current source-reviewed owner-gate checkpoint before this STATUS update:
 
-The later `work/foundation-convergence-v1` FC-9 commits are historical design evidence only. From `fd2f2da...` to the abandoned FC-9 head they changed only `docs/STATUS.md` and added `docs/WORKBENCH_DESIGN_CONTRACT.md`; no product/kernel/runtime code was introduced there.
+`b290a360d1ff0cf2f25f9dd48dc23ec29d7e5a70`
 
-## Recovery verdict
+The branch started exactly from pre-FC-9 semantic checkpoint `fd2f2da49a5250cff7dec27ee5bc35b626819460`. The abandoned FC-9 visual-concept line is historical evidence only. `main` has not been promoted or modified by RU-1.
 
-JURE does **not** need to be rolled back to the old BIND-00 baseline. The convergence work before FC-9 produced several useful implementation seams. It does, however, need to stop treating provisional vocabularies and UI task contexts as if they were already the final product design.
+## Product purpose
 
-The project now returns to its actual purpose:
+JURE is an owner-first spatial engineering workbench whose durable job is:
 
-> let the owner build, inspect, correct, represent and kinematically test a real rig on real assets without an agent guessing the geometry and without SOURCE, renderer or consumer-runtime state becoming authored truth.
+> let the owner inspect real source assets, create/correct authored rig truth, express mechanical/representation intent and test it without an agent guessing geometry and without SOURCE, renderer or consumer runtime becoming authored truth.
 
-JV/JV-Web is the first real consumer/falsifier. Current JV explicitly leaves lower wishbone/mating and final steering geometry unresolved and expects reliable mating points/frames to be authored in JURE rather than guessed in JV.
+JV/JV-Web is the first real consumer/falsifier, not a source of automatic authored truth.
 
-## Strong foundation — KEEP unless a real consumer falsifies it
+## Durable architecture — KEEP unless real use falsifies it
 
-### Authored truth
-
-- `RigDocument` remains authored rig truth.
-- `RigElement` is stable rigid authored identity.
-- `RigFrame` is a rigid datum local to an element or rig root.
-- rigid authored poses remain position + quaternion rotation; no scale.
+- `RigDocument` is authored rig truth.
+- `RigElement` and `RigFrame` use rigid position + quaternion rotation; no scale.
+- SOURCE / AUTHORED / PREVIEW / EVALUATED / display runtime are different meanings.
+- `SourceRevision` is exact immutable source identity (`sha256 + adapter identity`).
+- `SourceInstance` is one independently placed use of a revision.
+- `SourceAdoptionRecord` is immutable historical evidence of an explicit SOURCE -> AUTHORED decision.
 - source provenance is not representation binding.
-- SOURCE / AUTHORED / preview / EVALUATED / display-runtime remain different meanings.
+- Three/browser object URLs/file handles are disposable runtime state, never project truth.
+- TEST/evaluator state is transient and must never silently write back to authored neutral.
 
-### Authoring interaction
+Current mechanical relation vocabulary and `rigid | aim | span` representation vocabulary remain provisional. Do not defend their exact lists without real mechanism evidence.
 
-- Move/Rotate, world/local, numeric degree editing over quaternion storage;
-- preview/commit/cancel;
-- undo/redo;
-- free/unclamped inspection camera + Focus/Fit;
-- independent authored and SOURCE selection.
+## RU-0 — recovery from FC-9 / CLOSED
 
-### Project/evidence boundary
-
-The thin project-level separation is retained as a strong candidate:
-
-- `SourceRevision` — exact immutable source identity;
-- `SourceInstance` — one placed use of an exact source revision;
-- `ConsumerReferenceSnapshot` — external consumer evidence, never authored truth;
-- `SourceAdoptionRecord` — immutable historical evidence of an explicit adoption event, including exact source revision, locator and source-instance placement snapshot at adoption time.
-
-Moving/re-registering a live `SourceInstance` never rewrites an earlier adoption record or authored truth. Adoption is historical evidence, not a live binding.
-
-This is a logical project contract, **not** an asset database. Physical `.jure`/ZIP packaging remains deferred.
-
-### AUTHOR / TEST boundary
-
-The evaluator seam is retained:
-
-`RigDocument + transient controls -> RigEvaluationResult -> evaluated pose view`
-
-Evaluated poses are revision-bound overlays only. Invalid/stale results fail closed. Reset removes evaluator influence; TEST never silently writes back to authored neutral.
-
-### State ownership
-
-Keep domain truth outside React.
-
-Current owner-tested harness still has:
-
-- `RigAuthoringState` — authored session/selection/preview/history;
-- `SourceRuntimeState` — loaded SOURCE runtime asset + SOURCE selection;
-- `RigTestState` — transient TEST controls/result.
-
-RU-1 now adds a **candidate `ProjectSession`** above durable project edits. Its intended semantics are one chronological Undo/Redo history for persistent project changes such as SOURCE placement and authored rig edits, while selection, camera, layout, runtime relink and TEST remain outside that history.
-
-Important migration constraint: `ProjectSession` must become the single durable history owner before it is wired into the product. The old rig-specific `past/future` path must not remain active underneath it, otherwise JURE would have two competing Undo stacks. The current rig history therefore remains a harness implementation detail until a controlled replacement slice removes the duplication.
-
-`App` should remain composition/orchestration glue instead of becoming the owner of new domain semantics.
-
-## Provisional foundation — useful evidence, NOT frozen product truth
-
-### Mechanical relation vocabulary
-
-Current candidate types are:
-
-`origin-coincident | revolute | prismatic | spherical | distance | distance-range`
-
-For revolute/prismatic relations, current candidate semantics use RigFrame origin as anchor and local `+Z` as the primary DOF axis.
-
-These types are intentionally free of mass, inertia, friction, damping, motors, solver settings and Box3D IDs. That separation is KEEP.
-
-The **exact list and detailed semantics are still provisional** until walked through real owner workflows for suspension, steering, wheel spin, damper, cardan and non-vehicle counterexamples.
-
-### Representation vocabulary
-
-A separate authored representation domain remains the leading architecture because representation can be non-rigid and depends on placed source instances while `RigDocument` should not.
-
-Current candidate mapping types are:
-
-`rigid | aim | span (+ optional roll correspondence)`
-
-The separation itself is KEEP. The exact vocabulary is **not yet final**. BIND-00 proves one narrow skin-joint path and falsifies singleton storage; it does not prove that these three mapping types cover the final product.
-
-Whether a pure `SourceInstance.pose` change should invalidate an existing representation mapping remains **UNKNOWN**. Current evidence proves fail-closed behavior for exact source-revision changes, not for whole-instance placement changes. Do not add a registration revision until a real representation workflow proves that requirement.
-
-### Rig task contexts
-
-`inspect | author | represent | test` is a useful orchestration/state experiment, not a final navigation or UI contract.
-
-The durable requirement is simpler:
-
-- spatial/camera/project continuity must survive changes in task;
-- active authored previews must never be silently reinterpreted;
-- TEST is transient and resettable;
-- the UI must serve real work rather than force the owner to think in internal architecture names.
-
-Current panel placement and the old FC-9 visual concepts are not authority.
-
-## RU-0 — recovery from FC-9 visual detour / CLOSED
-
-Evidence:
-
-- `main` is unchanged and safe;
-- exact pre-FC-9 semantic checkpoint is `fd2f2da49a5250cff7dec27ee5bc35b626819460`;
-- the seven later FC-9 commits changed documentation only;
-- Apixel/image-generation output is not needed for this month's work and is removed as a project dependency;
-- the current owner-tested UI remains a working engineering harness while real workflows mature.
+The semantic foundation before the visual-concept detour was retained. No product rollback to BIND-00 was required. The existing UI remains a working engineering harness rather than final visual authority.
 
 Result: **RECOVERED WITHOUT PRODUCT ROLLBACK**.
 
-## RU-1 — real-use foundation design / ACTIVE
+## RU-1A — source adoption authority
 
-The next work is **not** another visual redesign and **not** a feature pile.
+Status: **IMPLEMENTED / SOURCE-REVIEWED / RUNTIME-UNVALIDATED**.
 
-Design and falsify the complete owner workflow on realistic rigging problems first:
+The previous live-pointer adoption model was falsified. Adoption now snapshots:
 
-`open/create project`
-`-> add/place exact SOURCE assets`
-`-> inspect source geometry/datums`
-`-> create/adopt authored elements + frames`
-`-> define mechanical intent`
-`-> map real representation`
-`-> direct authoring + diagnostics`
-`-> kinematic TEST`
-`-> exact Reset`
-`-> save/reopen`
-`-> export through a small consumer adapter`
+`sourceInstanceId + sourceRevisionId + sourceInstancePose-at-adoption + locator`
 
-The design must survive at least these real-use families:
+Consequences:
 
-1. JV double-wishbone + steering corner;
-2. wheel/hub/steering-member separation;
-3. spring/damper length-changing visual representation;
-4. cardan/shaft orientation + length behavior;
-5. repeated source revision used by several independent instances;
-6. virtual owner-authored frames that do not exist in SOURCE;
-7. a simple piston/slider;
-8. a rotor/gimbal/thruster-style non-vehicle counterexample.
+- moving/re-registering/removing the live SourceInstance never rewrites historical adoption evidence;
+- exact authored provenance still fails closed when its SourceRevision disappears or disagrees;
+- explicit Owner adoption creates `provenance: owner-authored`; source origin remains separately recorded by `frame.source` + `SourceAdoptionRecord`;
+- adoption creation deep-copies placement and is centralized in project-domain code.
 
-Do not import current M5/M6 geometry as truth. Current JV is consumer reference and evidence only.
+## RU-1B — project session, exact source runtime and persistence
 
-### RU-1A — source adoption authority / IMPLEMENTED, SOURCE-REVIEWED, RUNTIME-UNVALIDATED
+Status: **IMPLEMENTED / SOURCE-REVIEWED / RUNTIME-UNVALIDATED**.
 
-The first real-use red-team found that an adoption record pointing only to a live `SourceInstance` could become semantically misleading after the instance was moved or re-registered.
+Owner decision: normal durable edits use **one chronological project Undo/Redo history**.
 
-The candidate correction is now implemented on the recovery branch:
+Example:
 
-- adoption captures immutable `sourceInstanceId + sourceRevisionId + sourceInstancePose + locator` evidence;
-- validator compares adoption provenance against exact authored kernel provenance, not against the current mutable placement of the live instance;
-- moving/re-registering/removing the live instance does not rewrite historical adoption evidence;
-- exact source revision history required by adoption still fails closed when missing;
-- one project-domain creation function snapshots placement by value so later UI cannot accidentally retain mutable pose references.
+`Move SOURCE -> Move authored frame -> Undo frame -> Undo SOURCE -> Redo SOURCE -> Redo frame`
 
-Do **not** call this PASS until the canonical TypeScript/test environment executes it.
+History boundary:
 
-### RU-1B — project session / ACTIVE CANDIDATE
+- IN: durable `JureProjectModel` and authored-document changes;
+- OUT: selection, camera, panel/layout state, runtime source relink/object URLs, legacy representation preview and TEST/evaluator state.
 
-Owner expectation confirmed: normal durable edits should have one chronological project Undo/Redo sequence. Example:
+`ProjectSession` is now the durable history owner used by `App`. The old rig-specific history implementation remains in the repository as legacy/harness code but is no longer the active App history path. Do not wire a second durable Undo stack underneath ProjectSession.
 
-`Move SOURCE -> Move authored frame -> Undo frame -> Undo SOURCE -> Redo SOURCE -> Redo frame`.
+Additional implemented semantics:
 
-Scope rule:
+- one exact SourceRevision can back multiple independently placed SourceInstances;
+- registering exact bytes again reuses their revision identity instead of creating aliases;
+- adding a new revision + first SourceInstance is one Owner action / one Undo;
+- removing or re-registering a SourceInstance is blocked while authored representation bindings depend on it;
+- historical adoption may survive removal of the live instance;
+- runtime relink is keyed by exact revision and requires SHA-256 + adapter match;
+- relink/unlink is workspace recovery only and creates no project history;
+- SOURCE inspection may select non-rigid nodes, but only verified rigid-compatible nodes can cross into authored RigFrame truth;
+- logical project Save/Open uses deterministic project serialization and guarded overwrite hashes;
+- runtime `blob:` URLs are not persisted; saved projects may require exact source relink after reopen.
 
-- IN history: durable changes to `JureProjectModel` / authored documents;
-- OUT of history: selection, camera, panel/layout state, runtime file relink/object URLs, transient representation preview, transient TEST/evaluator state.
+## RU-1C — first SOURCE -> AUTHORED owner gate
 
-A small pure candidate now exists to falsify this model:
+Status: **WIRED IN WORKBENCH / SOURCE-REVIEWED / RUNTIME-UNVALIDATED / OWNER VALIDATION NEXT**.
 
-- `ProjectSession` stores committed/preview/past/future logical project states;
-- project commands can change placed `SourceInstance` pose or apply an existing `RigCommand` to an authored rig document;
-- authored rig revision increments at the project-command boundary;
-- preview/commit/cancel follows the existing editor transaction semantics;
-- redo is cleared by a new durable edit after undo;
-- SOURCE placement edits leave adoption snapshots untouched.
+The current harness now exposes one complete vertical slice:
 
-This is **not wired to React/UI** and does not yet replace the current rig-specific history. Wiring is blocked until the old duplicate durable history path is deliberately retired in the same vertical slice.
+`open/import project`
+`-> open exact SOURCE`
+`-> create/reuse placed SourceInstance`
+`-> Move/Rotate SOURCE placement with the viewport gizmo`
+`-> inspect exact SOURCE nodes`
+`-> select an existing authored RigElement`
+`-> Preview adopted SOURCE datum as a new owned RigFrame`
+`-> Commit or Cancel`
+`-> unified Undo/Redo`
+`-> Save/Open logical project`
+`-> exact SOURCE relink`
 
-### RU-1 questions still to resolve before the next major UI implementation
+Important UI authority language:
 
-- What exact project/session operations are needed for add/remove/relink SourceInstance and project open/save?
-- What actions create authored truth from SOURCE versus create it freely from scratch?
-- When is representation bound to an element, a frame, two frames, or something else?
-- Which relation semantics are genuinely needed by the full owner workflow?
-- What is a TEST driver/DOF from the owner's point of view?
-- What diagnostics are required to author mating/axes/lengths without guesswork?
-- What must Save persist, and what remains disposable workspace state?
-- What is the smallest consumer-export boundary JV needs?
+- exact loaded source asset = **READ ONLY**;
+- `SourceInstance.pose` = **editable project placement**;
+- adoption preview = transient;
+- Commit is the explicit crossing into authored truth.
 
-Resolve these through concrete scenarios and small executable falsifiers, not through a large framework or another stack of design documents.
+The renderer applies SourceInstance pose outside the glTF root and keeps SOURCE separate from rig `TransformTarget`; SOURCE placement is not disguised as a RigElement.
 
-## UI / Build Web Apps direction after recovery
+### Deliberate first-gate limits
 
-No visual redesign is being implemented during RU-1 foundation work. The existing owner-tested viewport-first UI remains a **working harness**, not final visual authority.
+This slice does **not** prove the final JURE workflow. Current deliberate limits are:
 
-Product UX should be driven by repeated real use:
+- UI exposes one active SourceInstance at a time; multi-instance project semantics exist but no full instance browser yet;
+- frame adoption targets an already existing RigElement; element creation is not bundled into this slice;
+- no surface/vertex picking for missing source datums yet;
+- no free virtual-frame creation/derived construction datum workflow yet;
+- BIND-00 remains only a legacy transient representation proof;
+- final representation workflow and kinematic TEST/solver are not implemented by this gate;
+- current panels/layout are not final visual design.
 
-`perform task -> observe friction -> repair the exact interaction -> repeat`.
-
-When a major visual rework is justified again, follow the Build Web Apps discipline: complete/accept a readable primary-screen design first, extract the design system, then implement and browser-compare in small slices. Do not cosmetically freeze today's panels and do not build a new visual system before the real workflow is mature.
-
-## Security / trust boundary
-
-JURE is a local owner tool, not a remote multi-user service. Do not inflate security into a parallel project.
-
-Meaningful trust boundaries are local imported files and parsed source/project data. Continue to:
-
-- treat imported JSON/glTF as untrusted input;
-- validate/canonicalize before treating data as project state;
-- fail closed on unknown schema/relation/representation kinds and source revision mismatches;
-- keep guarded file overwrite behavior;
-- avoid dynamic code execution/plugin loading from source files.
-
-No security framework is required without a real new attack surface.
+Do not expand these limits before the owner tests the vertical slice unless a hard correctness blocker is found.
 
 ## Validation boundary
 
-Synthetic foundation harness at the pre-FC-9 checkpoint: **42/42 PASS** for the exact invariants it tests.
+Pre-FC-9 synthetic foundation harness: **42/42 PASS** for only the invariants it actually tested.
 
-The RU-1A/RU-1B changes after that checkpoint are currently **source-reviewed only** in this orchestration environment. No new PASS count is claimed until the canonical TypeScript/test suite is actually executed.
+RU-1A/RU-1B/RU-1C changes after that checkpoint are **not included in that PASS count**. They are source-reviewed only in the current orchestration environment.
 
-The previous direct disposable install attempt failed because the environment could not resolve `github.com`; no workaround chain was pursued.
+A direct isolated repository fetch/install attempt again failed because the environment could not resolve `github.com`. Global TypeScript 5.8.3 exists locally, but reconstructing the repository around a noncanonical compiler would not provide a trustworthy project validation, so no workaround chain was used.
 
-There is still no `package-lock.json`. Create it from a canonical successful install; do not block RU-1 product design on it.
+There is still no canonical new `npm run check` claim and no owner/browser gate claim for `b290a360...`.
+
+## Immediate next gate
+
+Do not add another feature pile.
+
+Next step is a real browser/owner validation of RU-1C with the actual `OneSided_Steering_Suspension_Rig.gltf` (or another explicitly chosen real mechanism) and an authored rig containing a meaningful target element.
+
+Validate at minimum:
+
+1. exact SOURCE opens/relinks and is visibly read-only while placement remains editable;
+2. placed SOURCE Move/Rotate is spatially correct and Undo/Redo feels chronological;
+3. SOURCE datum marker follows instance placement exactly;
+4. adoption preview appears at the correct project-world point and correct owner-local pose;
+5. Cancel leaves no authored frame/history entry;
+6. Commit creates one authored frame + one adoption record + one Undo step;
+7. Undo removes the adopted frame without stale UI selection; Redo restores it;
+8. Save/Open preserves SourceInstance placement, authored frame and adoption while runtime bytes require/accept exact relink.
+
+Only after this gate should the next capability be selected from observed friction: likely virtual frame creation, geometry picking/construction datums, multi-instance browser, or the next real representation requirement.
 
 ## Foundation exit criterion
 
-Foundation is done when the owner can take a real JV mechanism and, without agent-side coordinate guessing:
+Foundation is done only when the owner can take a real JV mechanism and, without agent-side coordinate guessing:
 
 - place/inspect exact source assets;
-- author or adopt the needed elements, frames and mechanical intent;
-- map the real visual representation;
-- move/test the mechanism kinematically and understand diagnostics;
+- author/adopt required elements, frames and mechanical intent;
+- map real visual representation;
+- move/test the mechanism kinematically with useful diagnostics;
 - Reset exactly to authored neutral;
-- save/reopen the work;
+- save/reopen;
 - export a small consumer-facing result;
 
-and then a normal new capability can be added as:
+then return to the normal cadence:
 
 `small need -> small vertical slice -> targeted test -> owner-visible gate -> next`.
-
-At that point foundation stops being the main subject of the project.
