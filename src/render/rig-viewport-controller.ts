@@ -9,16 +9,37 @@ import type { RigidPose, RigId } from '../kernel/types.js';
 export type CameraPreset = 'perspective' | 'front' | 'top' | 'side';
 export type ViewFitTarget = 'source-selection' | 'source' | 'rig' | 'all';
 
+export interface SourcePlacementView {
+  sourceInstanceId: string;
+  pose: RigidPose;
+  editActive: boolean;
+}
+
 export interface ViewportCallbacks {
   onSelect(target: TransformTarget | null): void;
   onTransformStart(target: TransformTarget): void;
   onTransformPreview(target: TransformTarget, worldPose: RigidPose): void;
   onTransformCommit(target: TransformTarget): void;
   onTransformCancel(target: TransformTarget): void;
+  onSourceTransformStart?(sourceInstanceId: string): void;
+  onSourceTransformPreview?(sourceInstanceId: string, worldPose: RigidPose): void;
+  onSourceTransformCommit?(sourceInstanceId: string): void;
+  onSourceTransformCancel?(sourceInstanceId: string): void;
 }
+
+type TransformSubject =
+  | { kind: 'rig'; target: TransformTarget }
+  | { kind: 'source-instance'; sourceInstanceId: string };
 
 function sameTarget(a: TransformTarget | null, b: TransformTarget | null): boolean {
   return a?.kind === b?.kind && a?.id === b?.id;
+}
+
+function sameSubject(a: TransformSubject | null, b: TransformSubject | null): boolean {
+  if (!a || !b || a.kind !== b.kind) return a === b;
+  return a.kind === 'rig'
+    ? b.kind === 'rig' && sameTarget(a.target, b.target)
+    : b.kind === 'source-instance' && a.sourceInstanceId === b.sourceInstanceId;
 }
 
 export class RigViewportController {
@@ -37,6 +58,7 @@ export class RigViewportController {
   private readonly pointer = new THREE.Vector2();
   private readonly selectable = new Map<THREE.Object3D, TransformTarget>();
   private selectedTarget: TransformTarget | null = null;
+  private sourcePlacement: SourcePlacementView | null = null;
   private readonly selectedProxy = new THREE.Object3D();
   private readonly targetWorldPoses = new Map<RigId, RigidPose>();
   private resizeObserver: ResizeObserver;
@@ -44,6 +66,7 @@ export class RigViewportController {
   private callbacks: ViewportCallbacks;
   private transformDragActive = false;
   private transformCancelRequested = false;
+  private transformDragSubject: TransformSubject | null = null;
   private sourceSelectionPose: RigidPose | null = null;
   private boundRepresentationPose: RigidPose | null = null;
   private boundRepresentationTarget: THREE.Object3D | null = null;
@@ -89,16 +112,20 @@ export class RigViewportController {
     this.scene.add(key);
 
     this.transform.addEventListener('mouseDown', () => {
-      if (!this.selectedTarget) return;
-      if (!this.targetWorldPoses.has(this.selectedTarget.id)) return;
+      const subject = this.currentTransformSubject();
+      if (!subject) return;
+      this.transformDragSubject = subject;
       this.transformDragActive = true;
       this.transformCancelRequested = false;
       this.orbit.enabled = false;
-      this.callbacks.onTransformStart(this.selectedTarget);
+      if (subject.kind === 'rig') this.callbacks.onTransformStart(subject.target);
+      else this.callbacks.onSourceTransformStart?.(subject.sourceInstanceId);
     });
     this.transform.addEventListener('objectChange', () => {
-      if (!this.transformDragActive || this.transformCancelRequested || !this.selectedTarget) return;
-      this.callbacks.onTransformPreview(this.selectedTarget, this.readProxyPose());
+      if (!this.transformDragActive || this.transformCancelRequested || !this.transformDragSubject) return;
+      const subject = this.transformDragSubject;
+      if (subject.kind === 'rig') this.callbacks.onTransformPreview(subject.target, this.readProxyPose());
+      else this.callbacks.onSourceTransformPreview?.(subject.sourceInstanceId, this.readProxyPose());
     });
     this.transform.addEventListener('dragging-changed', (event) => {
       const dragging = Boolean((event as { value?: boolean }).value);
@@ -106,12 +133,13 @@ export class RigViewportController {
     });
     this.transform.addEventListener('mouseUp', () => {
       this.orbit.enabled = true;
-      const target = this.selectedTarget;
-      if (!this.transformDragActive || this.transformCancelRequested || !target) {
+      const subject = this.transformDragSubject;
+      if (!this.transformDragActive || this.transformCancelRequested || !subject) {
         this.resetDragState();
         return;
       }
-      this.callbacks.onTransformCommit(target);
+      if (subject.kind === 'rig') this.callbacks.onTransformCommit(subject.target);
+      else this.callbacks.onSourceTransformCommit?.(subject.sourceInstanceId);
       this.resetDragState();
     });
 
@@ -131,15 +159,32 @@ export class RigViewportController {
   setTransformMode(mode: 'translate' | 'rotate'): void { this.transform.setMode(mode); }
 
   setRigVisible(visible: boolean): void {
-    if (!visible && this.transformDragActive) this.cancelActiveTransform();
+    if (!visible && this.transformDragSubject?.kind === 'rig') this.cancelActiveTransform();
     this.rigVisible = visible;
     this.root.visible = visible;
     this.syncTransformProxy();
   }
 
   setSourceGeometryVisible(visible: boolean): void {
+    if (!visible && this.transformDragSubject?.kind === 'source-instance') this.cancelActiveTransform();
     this.sourceGeometryVisible = visible;
     this.sourceRoot.visible = visible;
+    this.syncTransformProxy();
+  }
+
+  setSourcePlacement(placement: SourcePlacementView | null): void {
+    const before = this.currentTransformSubject();
+    const after: TransformSubject | null = placement?.editActive
+      ? { kind: 'source-instance', sourceInstanceId: placement.sourceInstanceId }
+      : (this.rigVisible && this.selectedTarget ? { kind: 'rig', target: this.selectedTarget } : null);
+    if (this.transformDragActive && !sameSubject(before, after)) this.cancelActiveTransform();
+    this.sourcePlacement = placement;
+    if (placement) this.applyPose(this.sourceRoot, placement.pose);
+    else {
+      this.sourceRoot.position.set(0, 0, 0);
+      this.sourceRoot.quaternion.identity();
+    }
+    this.syncTransformProxy();
   }
 
   setSourceDatumVisible(visible: boolean): void {
@@ -238,7 +283,7 @@ export class RigViewportController {
   }
 
   setDisplayModel(model: RigDisplayModel, selectedTarget: TransformTarget | null): void {
-    if (this.transformDragActive && !sameTarget(this.selectedTarget, selectedTarget)) {
+    if (this.transformDragActive && this.transformDragSubject?.kind === 'rig' && !sameTarget(this.transformDragSubject.target, selectedTarget)) {
       this.cancelActiveTransform();
     }
 
@@ -408,9 +453,20 @@ export class RigViewportController {
     this.orbit.update();
   }
 
+  private currentTransformSubject(): TransformSubject | null {
+    if (this.sourcePlacement?.editActive && this.sourceGeometryVisible) {
+      return { kind: 'source-instance', sourceInstanceId: this.sourcePlacement.sourceInstanceId };
+    }
+    if (!this.rigVisible || !this.selectedTarget) return null;
+    return this.targetWorldPoses.has(this.selectedTarget.id) ? { kind: 'rig', target: this.selectedTarget } : null;
+  }
+
   private syncTransformProxy(): void {
-    if (!this.rigVisible || !this.selectedTarget) { this.transform.detach(); return; }
-    const pose = this.targetWorldPoses.get(this.selectedTarget.id);
+    const subject = this.currentTransformSubject();
+    if (!subject) { this.transform.detach(); return; }
+    const pose = subject.kind === 'rig'
+      ? this.targetWorldPoses.get(subject.target.id) ?? null
+      : this.sourcePlacement?.pose ?? null;
     if (!pose) { this.transform.detach(); return; }
     this.applyPose(this.selectedProxy, pose);
     this.transform.attach(this.selectedProxy);
@@ -459,11 +515,12 @@ export class RigViewportController {
   }
 
   private cancelActiveTransform(): void {
-    if (!this.transformDragActive || !this.selectedTarget) return;
-    const target = this.selectedTarget;
+    if (!this.transformDragActive || !this.transformDragSubject) return;
+    const subject = this.transformDragSubject;
     this.transformCancelRequested = true;
     this.transform.reset();
-    this.callbacks.onTransformCancel(target);
+    if (subject.kind === 'rig') this.callbacks.onTransformCancel(subject.target);
+    else this.callbacks.onSourceTransformCancel?.(subject.sourceInstanceId);
     this.transform.pointerUp(null);
     this.orbit.enabled = true;
   }
@@ -471,6 +528,7 @@ export class RigViewportController {
   private resetDragState(): void {
     this.transformDragActive = false;
     this.transformCancelRequested = false;
+    this.transformDragSubject = null;
   }
 
   private onPointerDown = (event: PointerEvent): void => {
@@ -508,7 +566,7 @@ export class RigViewportController {
     this.animationFrame = requestAnimationFrame(this.animate);
     this.orbit.update();
     this.renderer.render(this.scene, this.camera);
-  };
+  }
 
   private disposeObjectTree(root: THREE.Object3D): void {
     root.traverse((object) => {
