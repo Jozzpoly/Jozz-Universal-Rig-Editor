@@ -98,11 +98,11 @@ async function dragWorldXAxisAt(worldPoint, didMove, label) {
     const startX = origin.x + ux * handleDistance;
     const startY = origin.y + uy * handleDistance;
     await page.mouse.move(startX, startY);
-    await page.waitForTimeout(70);
+    await page.waitForTimeout(60);
     await page.mouse.down();
     await page.mouse.move(startX + ux * 75, startY + uy * 75, { steps: 8 });
     await page.mouse.up();
-    await page.waitForTimeout(140);
+    await page.waitForTimeout(110);
     await assertNoRuntimeFault(`${label} drag at handle distance ${handleDistance}`);
     if (await didMove()) {
       console.log(`${label} transform succeeded with handle distance ${handleDistance}`);
@@ -110,7 +110,54 @@ async function dragWorldXAxisAt(worldPoint, didMove, label) {
     }
   }
 
-  throw new Error(`Browser probe could not move ${label} gizmo. Transform-handle coordinates may need calibration.`);
+  throw new Error(`Browser probe could not move ${label} world-X gizmo.`);
+}
+
+async function dragAnyTranslateHandleAt(worldPoint, reselect, didMove, label) {
+  const canvas = page.locator('.viewport canvas');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Viewport canvas has no bounding box.');
+  const origin = projectedScreenPoint(box, worldPoint);
+  console.log(`${label} viewport`, box);
+  console.log(`${label} projected origin`, origin);
+
+  const directions = [];
+  const camera = cameraForViewport(box);
+  for (const axis of [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)]) {
+    const axisPoint = worldPoint.clone().add(axis).project(camera);
+    const centerPoint = worldPoint.clone().project(camera);
+    let dx = axisPoint.x - centerPoint.x;
+    let dy = -(axisPoint.y - centerPoint.y);
+    const length = Math.hypot(dx, dy);
+    if (length > 1e-9) directions.push({ ux: dx / length, uy: dy / length });
+  }
+  // Add a dense radial fallback so this probe does not depend on exact Three gizmo hit geometry.
+  for (let degrees = 0; degrees < 360; degrees += 15) {
+    const angle = THREE.MathUtils.degToRad(degrees);
+    directions.push({ ux: Math.cos(angle), uy: Math.sin(angle) });
+  }
+
+  for (const radius of [18, 24, 30, 38, 46, 56, 68, 80]) {
+    for (const direction of directions) {
+      await reselect();
+      const startX = origin.x + direction.ux * radius;
+      const startY = origin.y + direction.uy * radius;
+      if (startX < box.x + 2 || startX > box.x + box.width - 2 || startY < box.y + 2 || startY > box.y + box.height - 2) continue;
+      await page.mouse.move(startX, startY);
+      await page.waitForTimeout(12);
+      await page.mouse.down();
+      await page.mouse.move(startX + direction.ux * 55, startY + direction.uy * 55, { steps: 4 });
+      await page.mouse.up();
+      await page.waitForTimeout(45);
+      await assertNoRuntimeFault(`${label} handle scan radius ${radius}`);
+      if (await didMove()) {
+        console.log(`${label} transform succeeded at radius ${radius}`, direction);
+        return;
+      }
+    }
+  }
+
+  throw new Error(`Browser probe could not engage any ${label} translate handle around ${JSON.stringify(origin)}.`);
 }
 
 async function installMockPicker(bytes, fileName) {
@@ -140,7 +187,6 @@ try {
   const sourceBefore = await sourceWorldPosition();
   console.log('SOURCE datum before placement', sourceBefore.toArray());
 
-  // Replay the owner's real sequence: edit the placed SOURCE, commit, Undo, Redo.
   await page.getByRole('button', { name: 'Edit placement' }).click();
   let sourceMoved = sourceBefore;
   await dragWorldXAxisAt(new THREE.Vector3(0, 0, 0), async () => {
@@ -151,7 +197,7 @@ try {
   console.log('SOURCE datum after placement', sourceMoved.toArray());
 
   await page.getByRole('button', { name: 'Undo' }).click();
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(100);
   await assertNoRuntimeFault('SOURCE placement Undo');
   const sourceUndone = await sourceWorldPosition();
   if (distanceBetween(sourceUndone, sourceBefore) > 2e-4) {
@@ -159,7 +205,7 @@ try {
   }
 
   await page.getByRole('button', { name: 'Redo' }).click();
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(100);
   await assertNoRuntimeFault('SOURCE placement Redo');
   const sourceRedone = await sourceWorldPosition();
   if (distanceBetween(sourceRedone, sourceMoved) > 2e-4) {
@@ -178,28 +224,38 @@ try {
   await assertNoRuntimeFault('adoption commit');
 
   const adoptedFrameRow = linkBranch.locator('.nav-row.indent').filter({ hasText: sourceDatumName }).first();
-  await adoptedFrameRow.waitFor();
-  await adoptedFrameRow.click();
-  await page.locator('.authored-context .inspector-name').filter({ hasText: sourceDatumName }).waitFor();
+  const selectAdoptedFrame = async () => {
+    await adoptedFrameRow.waitFor();
+    await adoptedFrameRow.click();
+    await page.locator('.authored-context .inspector-name').filter({ hasText: sourceDatumName }).waitFor();
+  };
+  await selectAdoptedFrame();
 
   const positionX = page.locator('.authored-context .transform-group').first().locator('.axis-x input');
-  const frameBeforeX = Number(await positionX.inputValue());
-  if (!Number.isFinite(frameBeforeX)) throw new Error(`Adopted frame initial X is not finite: ${await positionX.inputValue()}`);
+  const positionY = page.locator('.authored-context .transform-group').first().locator('.axis-y input');
+  const positionZ = page.locator('.authored-context .transform-group').first().locator('.axis-z input');
+  const readFrameLocalPosition = async () => new THREE.Vector3(
+    Number(await positionX.inputValue()),
+    Number(await positionY.inputValue()),
+    Number(await positionZ.inputValue()),
+  );
+  const frameBefore = await readFrameLocalPosition();
+  if (![frameBefore.x, frameBefore.y, frameBefore.z].every(Number.isFinite)) throw new Error(`Adopted frame initial local pose is not finite: ${frameBefore.toArray()}`);
 
-  let frameAfterX = frameBeforeX;
-  await dragWorldXAxisAt(adoptedWorldBefore, async () => {
+  let frameAfter = frameBefore;
+  await dragAnyTranslateHandleAt(adoptedWorldBefore, selectAdoptedFrame, async () => {
     if (await positionX.count() === 0) return false;
-    frameAfterX = Number(await positionX.inputValue());
-    return Number.isFinite(frameAfterX) && Math.abs(frameAfterX - frameBeforeX) > 1e-5;
+    frameAfter = await readFrameLocalPosition();
+    return distanceBetween(frameBefore, frameAfter) > 1e-5;
   }, 'freshly adopted frame');
-  console.log(`adopted frame local X ${frameBeforeX} -> ${frameAfterX}`);
+  console.log(`adopted frame local position ${frameBefore.toArray()} -> ${frameAfter.toArray()}`);
 
   await page.getByRole('button', { name: 'Undo' }).click();
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(100);
   await assertNoRuntimeFault('adopted frame move Undo');
-  const frameUndoneX = Number(await positionX.inputValue());
-  if (!Number.isFinite(frameUndoneX) || Math.abs(frameUndoneX - frameBeforeX) > 1e-5) {
-    throw new Error(`Undo did not restore adopted frame transform: expected ${frameBeforeX}, got ${frameUndoneX}.`);
+  const frameUndone = await readFrameLocalPosition();
+  if (distanceBetween(frameUndone, frameBefore) > 1e-5) {
+    throw new Error(`Undo did not restore adopted frame transform: expected ${frameBefore.toArray()}, got ${frameUndone.toArray()}.`);
   }
 
   console.log('BROWSER_REAL_OWNER_PATH_SMOKE_PASS');
