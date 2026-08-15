@@ -18,7 +18,7 @@ The semantic/state foundation required before replacing the engineering UI is cl
 - Do not add speculative plugin/ECS/physics/editor frameworks.
 - Git tree -> commit -> non-force ref update is the write boundary. A real FC-3 connection failure already proved this recovery model: branch HEAD stayed intact and only the idempotent tree step had to be retried.
 - Visual concept images are review evidence, not repository authority. `docs/WORKBENCH_DESIGN_CONTRACT.md` contains the reproducible brief/contract if a conversation or image-generation session is lost.
-- A concept-generation tool call is not evidence that a concept exists. FC-9B only advances when the generated images are actually delivered and reviewable by the owner.
+- A concept-generation tool call is not evidence that a concept exists. FC-9B only advances when generated images are actually delivered and reviewable by the owner.
 
 ## Closed convergence gates
 
@@ -110,33 +110,33 @@ Canonical design contract: `docs/WORKBENCH_DESIGN_CONTRACT.md`.
 
 It defines JURE as an owner-first spatial engineering workbench; visible separation of SOURCE / REFERENCE / AUTHORED / REPRESENTATION / EVALUATED; persistent project + viewport continuity; task contexts `Inspect | Author | Represent | Test`; context-specific browser/inspector/tools; first-class revision/rebind/failure states; the complete JV round trip; and counterexamples including repeated source instances, alternate suspension, piston, rotor/thruster and a future Map Workspace.
 
+The contract now also contains a strict visual review protocol: creator-first hierarchy, viewport budget, task-mode continuity, progressive technical detail, command economy, failure-state semantics, master-system-before-variants, rejection of generic AI/CAD imitation and an explicit owner review order.
+
 Result: **KEEP persistent workbench anatomy + context-specific information architecture**.
 
-### FC-9B — coordinated visual concepts / REOPENED
+### FC-9B — coordinated visual concepts / ACTIVE OWNER REVIEW
 
-The first concept-generation attempt is **INVALID AS DESIGN EVIDENCE**.
+The first concept-generation attempt through the external provider is **INVALID AS DESIGN EVIDENCE** because the provider failed its connection/login path and the owner received no images. The previous chat claim that this concept set had been delivered was withdrawn.
 
-Reason: the external image provider failed its connection/login path and the owner did not receive any concept images. The previous chat response incorrectly described the concept set as if it had been delivered. That claim is explicitly withdrawn. No visual concept from that attempt is accepted, reviewable, or part of project authority.
+A clean restart was then performed through a functioning image-generation path using the hardened `WORKBENCH_DESIGN_CONTRACT.md` rather than reconstructing prompts from memory. Reviewable visual boards were successfully delivered in-chat. They cover the shared persistent shell and coordinated Inspect / Author / Represent / Test / revision-rebind states and explicitly keep implementation blocked.
 
-Result of failed attempt: **FALSIFIED DELIVERY / NO DESIGN ACCEPTANCE / NO IMPLEMENTATION PERMITTED**.
+These boards are **visual-direction evidence only**, not accepted production design. They are intentionally broader system studies and contain dense annotations. If the owner keeps the direction, the next FC-9B slice is to generate fresh standalone, readable primary-screen concepts (not crops) for the strongest master workbench direction and the hard states that remain ambiguous.
 
-FC-9B is restarted with a stricter sequence:
+Current result: **VISUAL RESTART DELIVERED / DIRECTION REVIEW ACTIVE / NO DESIGN ACCEPTANCE YET**.
 
-1. **FC-9B.0 — current evidence audit**: re-read the workbench contract and owner-tested interaction evidence; identify what must survive and what must not bias the redesign.
-2. **FC-9B.1 — master workbench concept**: establish one persistent visual/anatomical system first — viewport priority, project surface, task switcher, browser, inspector, status/diagnostics — using a real JURE/JV engineering scenario.
-3. **FC-9B.2 — coordinated task states**: derive Inspect, Author, Represent and Test from that same master concept rather than generating unrelated screens independently.
-4. **FC-9B.3 — hard states/details**: generate readable detail concepts for revision/rebind failure, active-preview blocked switching, and compact-laptop density if the primary screens do not prove those states clearly.
-5. **FC-9B.4 — consistency/falsification review**: reject the set if the viewport becomes secondary, task contexts read like separate pages, authority is color-only, UI collapses into dashboard cards, source/representation state becomes hidden, or a future Map Workspace would require a different global shell.
-6. **FC-9B.5 — owner review**: only actually delivered, readable images may enter owner review. Owner feedback may KEEP / CHANGE / FALSIFY the visual system or individual task states.
-
-Visual generation must use a functioning image-generation path and must not rely on the failed provider. The repository contract, not a lost chat image, remains the reproducible source for regeneration.
+Acceptance remains blocked until owner review answers, in order:
+1. Is the global workbench anatomy right and is the viewport dominant enough?
+2. Is density/readability appropriate for long engineering sessions?
+3. Do Inspect / Author / Represent / Test feel like modes of one space rather than separate pages?
+4. Are authority and failure semantics clear without turning the tool into a debug dashboard?
+5. Only then: is the visual language itself worth keeping?
 
 ### FC-9C — accepted concept -> design system -> replacement implementation / BLOCKED
 
-Do not begin until FC-9B produces a delivered, owner-reviewed concept set.
+Do not begin until FC-9B produces an owner-reviewed and accepted/revised visual direction.
 
 After acceptance:
-1. extract exact typography, spacing, surfaces, borders, controls, icons, status semantics and component families from the accepted concept;
+1. extract exact typography, spacing, surfaces, borders, controls, icons, status semantics and component families from fresh readable accepted concepts;
 2. record allowed visible copy and authority/status language;
 3. define component/state ownership so `App` remains composition glue;
 4. replace the old shell in small vertical slices, preserving validated mechanics until each replacement is independently proven;
