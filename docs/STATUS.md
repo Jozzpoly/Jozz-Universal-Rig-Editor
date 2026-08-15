@@ -2,153 +2,156 @@
 
 ## Current state
 
-The accepted owner-tested product baseline remains `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+Accepted product baseline remains `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
 
-Active convergence work is isolated on `work/foundation-convergence-v1` and collected in draft PR #1. The latest semantic checkpoint before this status update is `ced1be1604170c2abc47c9da4fcc695baf0d611a`.
+Active foundation convergence is isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. The latest code checkpoint before this status commit is `d1af1d07a8735c4edccd161561cf134523b3fdfa`.
 
-Accepted pre-run interaction evidence still includes:
-- rigid `RigElement` and owner-local `RigFrame` authoring;
-- Move/Rotate, world/local, numeric XYZ degree editing over quaternion storage;
-- preview/commit/cancel, undo/redo, deterministic RigDocument save/open;
-- free inspection camera with Focus/Fit helpers;
-- read-only glTF/GLB SOURCE inspection with exact SHA-256/locators and independent SOURCE selection;
-- viewport-first resizable/collapsible engineering workspace.
-
-The current UI layout remains an engineering harness, not final information architecture.
+Accepted pre-run interaction evidence remains: rigid element/frame authoring, free inspection camera, Focus/Fit, Move/Rotate, world/local transforms, numeric editing, preview/commit/cancel, undo/redo, deterministic RigDocument save/open, exact read-only SOURCE inspection and independent SOURCE/authored selection. Current panel layout is an engineering harness, not final information architecture.
 
 ## Recovery discipline
 
-Purpose of this branch: converge on the last whole-foundation redesign before returning to ordinary small feature development.
-
-Rules:
-- `main` stays accepted authority until explicit promotion;
-- each gate ends in a small commit and a `KEEP / CHANGE / DEFER / FALSIFIED` result;
-- current repo/JV evidence outranks chat plans and historical tooling;
-- synthetic tests prove only their exact invariant, never owner interaction or product feel;
-- no speculative plugin/ECS/physics/editor framework;
-- if a connection fails between GitHub tree/commit/ref steps, the last branch ref remains the recovery point. This already occurred once during FC-3: tree creation disconnected, branch HEAD stayed intact, and the idempotent tree step was safely repeated without force-push or reconstruction.
+- `main` remains accepted authority until explicit promotion.
+- Every semantic stage ends in a small commit and `KEEP / CHANGE / DEFER / FALSIFIED` result.
+- Current repo/JV evidence outranks chat plans and historical tooling.
+- Synthetic tests prove only their exact invariant, never owner interaction/product feel.
+- No speculative plugin/ECS/physics/editor framework.
+- Git tree -> commit -> non-force ref update is the write boundary. One real FC-3 connection failure already proved this recovery model: the branch ref stayed intact and only the idempotent tree step had to be retried.
 
 ## FC-0 — evidence freeze / CLOSED
 
-Verified 2026-08-15:
-- run base: `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
-- owner-tested checkpoint: `checkpoint/foundation-bind00-owner-tested-2026-08-15@548fb40f8c8d799abf35185b314696d33515261d`;
-- checkpoint -> main is two documentation-only commits; no product code changed after accepted BIND evidence;
-- no competing JURE PR was open when the branch was created.
+Run base: `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+Owner-tested checkpoint: `checkpoint/foundation-bind00-owner-tested-2026-08-15@548fb40f8c8d799abf35185b314696d33515261d`.
+Checkpoint -> main was documentation-only; no product code changed after accepted BIND evidence.
 
 Result: **KEEP baseline / SAFE TO REFOUND ABOVE IT**.
 
 ## FC-1 — real JV round-trip atlas / CLOSED
 
-Real current JV separates meanings that must not collapse into one imported "rig": SOURCE facts/hints, provisional runtime geometry/topology, consumer dynamics, temporary product bridges and visual representation.
+Current JV mixes SOURCE facts/hints, provisional runtime geometry/topology, consumer dynamics, temporary product bridges and representation. Therefore current JV runtime cannot be imported wholesale as authored truth.
 
-Important falsifier: the current front mechanism itself mixes different authority levels. FL has a source-registered steering center/axis but provisional suspension constraints and a temporary steering bridge; the #7 steering member can be a live visual segment without being the physical steering joint. Therefore current JV runtime cannot be imported as authored truth.
+Interchange model result:
+- monolithic JSON: **FALSIFIED**;
+- loose owner-facing sidecars: **FALSIFIED**;
+- one owner-visible logical layered bundle: **KEEP**;
+- physical ZIP/`.jure` container: **DEFERRED**.
 
-Interchange alternatives:
-- monolithic JSON project: **FALSIFIED** — binary/source bloat and god-schema pressure;
-- loose owner-facing sidecars: **FALSIFIED** — fragile paths, partial/stale transfers and poor agent<->owner handoff;
-- one owner-visible logical layered bundle: **KEEP** — exact sources, placed instances, consumer REFERENCE, authored domain documents, representation and derived outputs stay separate internally.
+Authority chain retained:
 
-Physical container format remains **DEFERRED**. The same logical contract may begin as fixtures/directories and later become one archive/`.jure` artifact without changing authority semantics.
-
-Result: **KEEP layered logical bundle / CHANGE project layer / DEFER storage container**.
+`SOURCE / CONSUMER REFERENCE / PROPOSAL -> explicit adoption/edit -> AUTHORED domain documents -> TEST/EVALUATION -> derived consumer export`
 
 ## FC-2 — project / authority contract / CLOSED
 
-Implemented in small slices:
-- `61d3d42897196333acef7372568c28a1e01cd7a6` — pure `src/project` authority model;
-- `faf61ea56dbb79d6dbbde88e548dc7e429ae9fea` — project-level source-adoption context.
+Implemented:
+- `61d3d42897196333acef7372568c28a1e01cd7a6` — project authority model;
+- `faf61ea56dbb79d6dbbde88e548dc7e429ae9fea` — project-level source adoption context.
 
-Current contract:
+Current meanings:
 - `SourceRevision` = exact immutable source identity;
-- `SourceInstance` = one placed use of an exact revision, with independent rigid pose;
-- `ConsumerReferenceSnapshot` = exact external evidence, not authored rig data;
-- `SourceAdoptionRecord` = which placed source instance + revision-local locator was explicitly used for an authored element/frame;
-- authored project documents currently include `RigDocument` explicitly, leaving future real domains to extend the union rather than making `RigDocument` universal.
-
-A rejected alternative was adding `sourceInstanceId` directly to kernel `SourceBinding`. That would make a standalone `RigDocument` depend on project/workspace state it cannot itself validate. Kernel provenance therefore remains exact `sourceRevisionId + locator`; placed-instance context lives one layer above.
-
-Synthetic evidence in the available disposable environment:
-- project contract: 7/7 targeted tests PASS;
-- one exact revision can back four independent placed instances;
-- two instances may adopt the same revision-local locator while remaining distinguishable;
-- moving a SOURCE instance does not mutate authored truth;
-- source revision changes/re-registration fail closed against adoption/provenance;
-- CONSUMER REFERENCE remains outside `RigDocument`.
+- `SourceInstance` = independent placed use of an exact revision;
+- `ConsumerReferenceSnapshot` = external evidence, never automatic authored truth;
+- `SourceAdoptionRecord` = exact placed-instance context for an explicit authored adoption;
+- kernel `SourceBinding` stays revision-local (`sourceRevisionId + locator`) so standalone RigDocument does not depend on workspace/project placement state.
 
 Result: **KEEP project layer + exact fail-closed identity + project-level adoption context**.
 
 ## FC-3 — mechanical assembly / CLOSED
 
 Implemented:
-- `0ea75fd0ca2b7c621e8be1b5d225ae75b17586e7` — neutral mechanical relation vocabulary + validation;
-- `ced1be1604170c2abc47c9da4fcc695baf0d611a` — full relation-frame axis semantics + canonical architecture update.
+- `0ea75fd0ca2b7c621e8be1b5d225ae75b17586e7` — neutral mechanical relations;
+- `ced1be1604170c2abc47c9da4fcc695baf0d611a` — relation-frame semantics.
 
-Current relation vocabulary:
-- `origin-coincident`;
-- `revolute` with optional geometric angle limits;
-- `prismatic` with optional geometric translation limits;
-- `spherical`;
-- `distance`;
-- `distance-range`.
+Vocabulary: `origin-coincident`, `revolute`, `prismatic`, `spherical`, `distance`, `distance-range`.
 
-Semantics:
-- relations connect authored `RigFrame`s, not consumer bodies;
-- for `revolute` and `prismatic`, frame origin is the anchor and local **+Z** is the primary DOF axis; X/Y retain orientation/reference basis;
-- authored neutral defines zero for revolute/prismatic coordinates; limits are interpreted relative to that intended neutral, not a transient runtime state;
-- distance/range are geometric intent only; no spring/motor dynamics are imported;
-- no `fixed` relation yet because rigidly co-moving datums can live on one `RigElement` until a real mechanism falsifies that choice.
+For revolute/prismatic relations, each RigFrame is the full joint datum: frame origin = anchor, local +Z = primary DOF axis, authored neutral = zero coordinate. Consumer dynamics such as mass, inertia, friction, Hertz/damping, motors, solver settings and Box3D IDs remain outside the authored mechanical kernel.
 
-Falsifiers passed:
-- full synthetic wishbone/steering/wheel corner can be expressed without mass, inertia, friction, Hertz, damping, motors, solver or Box3D IDs;
-- piston uses the same `prismatic` vocabulary;
-- rotor uses the same `revolute` vocabulary;
-- invalid geometric limits fail closed;
-- local +Z axis extraction was separately tested under arbitrary frame rotation.
+The same vocabulary covered a synthetic full wishbone/steering/wheel corner, piston and rotor without new kernel entity types.
 
-Result: **KEEP neutral relation vocabulary + frame-defined DOF axis / DEFER solver and advanced spherical limits**.
+Result: **KEEP neutral mechanical intent / DEFER solver + advanced spherical policy**.
 
-## FC-4 — representation architecture / ACTIVE
+## FC-4 — authored representation / CLOSED
 
-Do not extend BIND-00 by making its singleton an array.
+Implemented:
+- `8d270cdf6612c0a7102d74524d052fc57a7bbbad` — separate `RigRepresentationDocument` contract;
+- `3b724f8b663598d79b3f639c26b16e533d62aee0` — architecture boundary documentation.
 
-Real representation evidence to cover:
-- rigid chassis/wheel/knuckle/part following an authored element;
-- exact source skin joint driven by an authored rigid target (BIND-00 proof);
-- steering rod / cardan / damper spanning two moving endpoints;
-- endpoint pieces that aim along a span;
-- middle pieces that stretch along a source-local axis;
-- wishbone evidence that may need roll-pinned span orientation rather than naive stretch;
-- repeated source instances and exact revision-local source targets.
+Rejected:
+- representation inside `RigDocument` — would couple mechanics to placed source/deformation;
+- consumer-only representation — would lose owner-authored visual calibration.
 
-Storage alternatives to falsify before code:
-1. representation mappings inside `RigDocument`;
-2. separate authored rig-representation document at project level, referencing a RigDocument plus exact SourceInstances;
-3. consumer-only representation with JURE storing nothing persistent.
+Kept representation vocabulary:
+- `rigid` — exact source datum <-> authored element/frame;
+- `aim` — rigid endpoint orientation from two authored frames without length change;
+- `span` — endpoint correspondence permitting representation-only axial deformation;
+- optional third roll correspondence for two-point orientation ambiguity such as wishbone roll.
 
-FC-4 exit gate: select the smallest model that persists complete representation intent without putting scale/deformation into rigid poses, survives multiple simultaneous mappings, source revision failure/rebind and wheel/damper/cardan/wishbone counterexamples, and does not make the mechanical kernel depend on Three/glTF renderer ontology.
+Every mapping stores exact `sourceInstanceId + sourceRevisionId + targetLocator`, so source re-registration requires explicit rebind. BIND-00 remains proof evidence only; singleton storage remains falsified.
+
+Result: **KEEP separate authored representation domain / no scale or renderer ontology in RigDocument**.
+
+## FC-5 — AUTHOR / TEST evaluation boundary / CLOSED
+
+Implemented `6078d50e7415997184a8d3f0f7e324cfaeb22c0b`.
+
+TEST is transient state:
+- evaluator receives authored rig + transient numeric controls;
+- result is tagged with evaluator ID + document ID + authored revision;
+- result can only overlay element world poses;
+- owned frame poses are re-resolved from those overlays + authored local frames;
+- stale revision, missing element or invalid rigid pose fails closed;
+- Reset clears all evaluator influence and restores exact authored view;
+- no evaluated state writes back into authored truth automatically.
+
+The evaluator implementation itself remains replaceable. Neutral kinematic solver vs controlled consumer evaluator is **DEFERRED** until the real mechanism requires it.
+
+Result: **KEEP evaluator boundary / DEFER solver selection**.
+
+## FC-6 — deterministic logical project round trip / CLOSED
+
+Implemented:
+- `d5b185677fe5d3bdd8f8f661bec6bffaebb29cf8` — deterministic project parse/serialize + runtime unknown-type rejection;
+- `d1af1d07a8735c4edccd161561cf134523b3fdfa` — strict SourceInstance pose canonicalization.
+
+Properties now protected:
+- project arrays and authored domain documents serialize deterministically;
+- parse -> serialize -> parse is stable for the logical project contract;
+- unknown relation type, representation binding type and authored document kind are hard errors at runtime rather than TypeScript-only assumptions;
+- canonical save emits the known schema instead of carrying accidental extra JSON fields forward;
+- source/rebind mismatches block serialization rather than silently retargeting authored/representation data.
+
+Disposable foundation harness after final FC-6 hardening: **25/25 PASS** across project authority, mechanics, representation, TEST/evaluation and logical round-trip tests.
+
+This is not a claim of canonical full-repository validation: the disposable environment uses Node 22.16.0 / TypeScript 5.8.3 while repository `package.json` declares TypeScript 7.0.2 and canonical dependencies are not installed there.
+
+Result: **KEEP logical machine contract / DEFER physical bundle container**.
+
+## FC-7 — state ownership / ACTIVE
+
+Purpose: prevent the existing `App.tsx` from becoming the architecture for future SOURCE/REFERENCE/AUTHOR/REPRESENTATION/TEST and multi-workspace growth before any visual redesign.
+
+State domains to prove against current code before refactoring:
+1. durable project/authored documents;
+2. external SOURCE/reference runtime cache (loaded bytes, parsed adapters, display handles) — never authored truth;
+3. editor interaction state (selection, transform mode, preview/commit/cancel);
+4. TEST/evaluation state;
+5. workspace presentation state (camera/layout/layers);
+6. file/save session state.
+
+FC-7 exit gate: App becomes composition/orchestration glue for these explicit owners without changing accepted interaction behavior or prematurely designing the final UI. Only after this boundary is stable may the Build Web Apps redesign phase design the complete Import/Reference, Author, Representation, Test and multi-source surfaces.
 
 ## BIND-00 preserved evidence
 
-Exact tested SOURCE:
-- `OneSided_Steering_Suspension_Rig.gltf`;
-- SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
-- 15 nodes / 14 joints / 1 skinned mesh in the accepted revision.
+Exact accepted test source: `OneSided_Steering_Suspension_Rig.gltf`, SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`, 15 nodes / 14 joints / 1 skinned mesh. BIND-00 proved one exact source skin joint can be driven from authored rigid truth while SOURCE remains fixed and falsified one-global-binding storage.
 
-BIND-00 proved one exact glTF skin joint can be driven by one authored `RigElement` through a stable rest offset while SOURCE remains fixed. It falsified the one-global-binding model. No persistent representation schema is inherited from the prototype.
+## Product direction
 
-## Product direction after convergence
+JURE is an owner-first spatial authoring workbench whose first mature domain is rigging. It may become an authoring nucleus toward JES, but convergence must not turn it into a generic framework or browser clone of JES.
 
-JURE is treated as an owner-first spatial authoring workbench whose first mature domain tool is rigging. It may become an authoring nucleus/stepping stone toward JES, but this run must not turn it into a generic framework or a browser clone of JES.
-
-Target owner workflow remains:
+Target owner flow remains:
 
 `open logical package -> inspect SOURCE + REFERENCE -> explicitly adopt/create AUTHORED assembly -> map representation -> diagnose -> TEST -> exact Reset -> save/export -> consumer adapter`
 
-The complete UI/UX redesign is intentionally downstream of semantic gates. Build Web Apps guidance will be used there to design the complete editor state surface before implementation; current panel placement will not be incrementally polished into a false final architecture.
+Complete UI/UX redesign remains downstream of semantic/state gates. Current panel placement will not be incrementally polished into a false final architecture.
 
-## Validation/tooling boundary
+## Tooling debt
 
-Current disposable synthetic checks use available Node 22.16.0 / TypeScript 5.8.3. Repository `package.json` declares TypeScript 7.0.2 and dependencies are not installed in this execution environment, so canonical full `npm run check` is **not claimed** yet.
-
-The repository still has no `package-lock.json`; that reproducibility debt remains non-blocking until a canonical successful install is available.
+No `package-lock.json` yet; direct dependencies are exact-pinned but transitive installs are not fully reproducible. Add the lockfile from a canonical successful install; this remains non-blocking for current semantic work.
