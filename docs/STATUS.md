@@ -10,9 +10,9 @@ Active recovery line:
 
 `work/real-use-foundation-recovery`
 
-Latest canonical code/test checkpoint before this STATUS update:
+Latest CI-green product checkpoint before this STATUS update:
 
-`92c0bf0cff5f103cfa28e98e724c62410acc23bf`
+`94bb914a273ecfcfaca6183c690365ff6eb77f1c`
 
 `main` has not been promoted or modified by RU-1.
 
@@ -48,9 +48,9 @@ Owner decision remains one durable history, e.g.:
 
 ## RU-1C — first SOURCE -> AUTHORED gate
 
-Status: **WIRED / CANONICAL AUTOMATED PASS / MANUAL BROWSER-SPATIAL VALIDATION NEXT**.
+Status: **WIRED / CANONICAL AUTOMATED PASS / OWNER WORKFLOW GATE PARTIALLY FALSIFIED BY UI CONFUSION**.
 
-Current slice:
+Current intended slice:
 
 `open/import project`
 `-> open exact SOURCE`
@@ -70,7 +70,6 @@ Deliberate limits:
 - adoption targets an existing RigElement;
 - no arbitrary surface/vertex picking;
 - no free virtual/derived construction datum workflow;
-- BIND-00 is legacy transient representation evidence;
 - final representation and kinematic TEST are not part of RU-1C;
 - current layout is an engineering harness, not final UI authority.
 
@@ -102,34 +101,22 @@ These are different exact SourceRevisions sharing a filename. Never weaken exact
 
 ## Validation infrastructure
 
-Two process defects were fixed during RU-1C:
+Recovery branch CI owns automated validation before Owner interaction testing:
 
-1. `scripts/test-core.mjs` previously used a stale FC8-era allow-list and omitted several RU-1 tests. It now discovers every `tests/core/*.test.mjs` deterministically.
-2. Owner Windows was being used as a repeated compile/test loop. Recovery branch now has `.github/workflows/recovery-check.yml` and CI owns automated validation before Owner interaction testing.
-
-Recovery CI:
-
-- push to `work/real-use-foundation-recovery`;
 - Node `24.16.0`;
 - npm `11.17.0`;
 - `npm install`;
 - `npm run check`;
+- all `tests/core/*.test.mjs` discovered deterministically;
 - read-only GitHub token permissions;
 - checkout/setup-node pinned by full action commit SHA.
 
 Owner machine is no longer the normal compiler/test runner. Owner gates are reserved for Windows/browser/spatial/product validation that CI cannot establish.
 
-## 2026-08-15 canonical automated evidence
+## Canonical automated evidence
 
-Owner Gate V3 exposed one remaining TS narrowing error. It was corrected with explicit null/identity checks rather than casts/non-null assertions.
+Recovery CI on `92c0bf0cff5f103cfa28e98e724c62410acc23bf` established:
 
-First Recovery CI then ran the full current test set and found one failure in `roundtrip-contract.test.mjs`. Investigation showed product serialization was correct: canonical serialization sorts SourceInstances by stable ID, while the test incorrectly assumed array index 0 still meant `instance.wheel`. The test was changed to assert by stable identities; product semantics were not changed.
-
-Recovery CI on exact checkpoint `92c0bf0cff5f103cfa28e98e724c62410acc23bf`:
-
-- Node `v24.16.0`: PASS;
-- npm `11.17.0`: PASS;
-- dependency install: PASS, 0 vulnerabilities reported;
 - TypeScript project check: PASS;
 - 22 discovered core test files;
 - **115 tests PASS / 0 FAIL**;
@@ -137,32 +124,73 @@ Recovery CI on exact checkpoint `92c0bf0cff5f103cfa28e98e724c62410acc23bf`:
 
 Build emitted one non-blocking delivery warning: main JS bundle is about 943 kB minified / 248 kB gzip. Record for later performance work; do not divert RU-1C into code splitting before real owner workflow validation.
 
+The later owner-clarity cleanup checkpoint `94bb914a273ecfcfaca6183c690365ff6eb77f1c` also passed the same Recovery CI.
+
+## 2026-08-16 Owner browser evidence — important classification
+
+Owner supplied a six-screenshot sequence showing:
+
+1. no representation binding;
+2. legacy `Bind visual preview` activated for SOURCE `Chassis_Top` and authored element `Link`;
+3. authored element moved with BIND-00 active;
+4. authored element moved again with BIND-00 active;
+5. first Undo;
+6. second Undo.
+
+Observed effect: Undo appears to reset/snap SOURCE representation state.
+
+Critical classification:
+
+**OWNER OBSERVED / LEGACY-PATH CONFUSION — NOT EVIDENCE OF `ProjectSession` SOURCE-PLACEMENT FAILURE.**
+
+Why:
+
+- screenshots show the active project remained `project.synthetic` / `fixture.synthetic-linkage`, not the prepared RU-1C owner project;
+- screenshots show `BIND-00 · legacy transient` before Undo;
+- App explicitly cleared transient `representationBinding` before every durable Undo/Redo;
+- therefore the first Undo combined a durable authored-history change with disappearance of the transient BIND-00 visual deformation, producing a large visual snap;
+- the intended SOURCE placement -> adoption -> chronological history path was not actually exercised by this screenshot sequence.
+
+The failure is still real at the product/UI level: legacy BIND-00 was visible next to the new SOURCE -> AUTHORED workflow and was easy to mistake for current rigging behavior.
+
+## Owner-clarity correction
+
+CI-green checkpoint:
+
+`94bb914a273ecfcfaca6183c690365ff6eb77f1c`
+
+Changes:
+
+- startup `project.synthetic` is visibly marked **DEMO / SYNTHETIC FIXTURE** in the top bar;
+- legacy `Bound` layer control is hidden from the active Rig navigator;
+- legacy `Bind visual preview` UI is quarantined behind a disabled owner-facing flag;
+- BIND-00 proof implementation remains in code/tests as historical evidence and is not reinterpreted as current representation architecture;
+- no `ProjectSession`, SourceInstance placement, adoption, serializer or renderer semantics were changed because the screenshot evidence did not justify such changes.
+
 ## Validation boundary
 
 Demonstrated now:
 
 - exact current JV source identity;
-- current TypeScript wiring compiles on canonical toolchain;
-- all current core tests execute and pass;
-- production build succeeds;
-- tested RU-1A/B/C semantic invariants pass.
+- canonical TypeScript/build/test pass;
+- tested RU-1A/B/C semantic invariants;
+- real Owner evidence that legacy BIND-00 must not share the active RU-1 workflow surface.
 
-Not demonstrated yet:
+Still not demonstrated in the Owner browser:
 
-- latest exact checkpoint in Owner Windows/browser;
-- spatial correctness and feel of SOURCE placement;
-- visual datum placement after SourceInstance transforms;
-- Preview/Cancel/Commit usability;
-- browser Save/Open/relink interaction;
-- final representation or TEST workflow.
+- actual placed SourceInstance Move/Rotate history without BIND-00;
+- SOURCE datum marker following placed SourceInstance;
+- adoption Preview/Cancel/Commit on the intended owner project;
+- mixed chronological history across SOURCE placement -> frame adoption -> authored frame move;
+- Save/Open/exact relink after that workflow.
 
 ## Immediate next gate
 
-Do not add another feature pile and do not send the Owner another compile/test gate.
+Do not add another feature pile and do not debug BIND-00.
 
-Next is a browser/spatial Owner gate only. Validate SOURCE placement, chronological Undo/Redo, datum marker placement, adoption Preview/Cancel/Commit, frame Undo/Redo, Save/Open and exact relink.
+Run one clean browser/spatial gate against exact CI-green checkpoint `94bb914a...`, with legacy BIND controls absent and with the top bar confirming a non-demo owner project before SOURCE editing.
 
-Only after that select the next slice from observed friction. Likely candidates remain virtual frame creation, geometry picking/construction datums, multi-instance browsing, or the first real representation requirement.
+If that gate passes, close RU-1C and select the next slice from real JV need. The current highest-leverage candidate is **owner creation of authored RigElements/frames for a real mechanism**, because RU-1C can only adopt a datum onto an already existing RigElement. Arbitrary geometry picking/construction datums should follow only when the real JV source lacks suitable exact sockets/axes.
 
 ## Foundation exit criterion
 
