@@ -63,6 +63,37 @@ export function validateJureProjectModel(project: JureProjectModel): Diagnostic[
     if (reference.payloadLocator.trim().length === 0 || !/^[a-f0-9]{64}$/i.test(reference.payloadSha256)) diagnostics.push({ code: 'project.reference.payload.invalid', severity: 'error', message: `Consumer reference ${reference.id} has invalid payload identity.`, references: [reference.id] });
   }
 
+  const authoredById = new Map(project.authoredDocuments.map((authored) => [authored.document.documentId, authored] as const));
+  const instanceById = new Map(project.sourceInstances.map((instance) => [instance.id, instance] as const));
+
+  for (const adoption of project.sourceAdoptions) {
+    register(adoption.id, 'source adoption');
+    const instance = instanceById.get(adoption.sourceInstanceId);
+    if (!instance) {
+      diagnostics.push({ code: 'project.adoption.instance.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing instance ${adoption.sourceInstanceId}.`, references: [adoption.id, adoption.sourceInstanceId] });
+      continue;
+    }
+    const authored = authoredById.get(adoption.target.documentId);
+    if (!authored) {
+      diagnostics.push({ code: 'project.adoption.document.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing authored document ${adoption.target.documentId}.`, references: [adoption.id, adoption.target.documentId] });
+      continue;
+    }
+    const target = adoption.target.kind === 'element'
+      ? authored.document.elements.find((element) => element.id === adoption.target.id)
+      : authored.document.frames.find((frame) => frame.id === adoption.target.id);
+    if (!target) {
+      diagnostics.push({ code: 'project.adoption.target.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing ${adoption.target.kind} ${adoption.target.id}.`, references: [adoption.id, adoption.target.id] });
+      continue;
+    }
+    if (!target.source) {
+      diagnostics.push({ code: 'project.adoption.provenance.missing', severity: 'error', message: `Source adoption ${adoption.id} targets ${adoption.target.id} without exact kernel source provenance.`, references: [adoption.id, adoption.target.id] });
+      continue;
+    }
+    if (target.source.sourceRevisionId !== instance.sourceRevisionId || target.source.locator !== adoption.locator) {
+      diagnostics.push({ code: 'project.adoption.provenance.mismatch', severity: 'error', message: `Source adoption ${adoption.id} disagrees with exact kernel provenance on ${adoption.target.id}.`, references: [adoption.id, adoption.target.id, adoption.sourceInstanceId] });
+    }
+  }
+
   for (const authored of project.authoredDocuments) {
     register(authored.document.documentId, 'authored rig document');
     const rigDiagnostics = validateRigDocument(authored.document);

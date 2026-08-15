@@ -18,6 +18,17 @@ export interface ConsumerReferenceSnapshot {
   payloadSha256: string;
 }
 
+export interface SourceAdoptionRecord {
+  id: string;
+  sourceInstanceId: string;
+  locator: string;
+  target: {
+    documentId: string;
+    kind: 'element' | 'frame';
+    id: string;
+  };
+}
+
 export interface AuthoredRigProjectDocument {
   kind: 'rig';
   document: RigDocument;
@@ -36,5 +47,6 @@ export interface JureProjectModel {
   sourceRevisions: SourceRevision[];
   sourceInstances: SourceInstance[];
   consumerReferences: ConsumerReferenceSnapshot[];
+  sourceAdoptions: SourceAdoptionRecord[];
   authoredDocuments: AuthoredProjectDocument[];
 }
