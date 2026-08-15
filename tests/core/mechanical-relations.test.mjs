@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const { validateRigDocument } = await import('../../.core-dist/kernel/validate.js');
+const { relationPrimaryAxisWorld } = await import('../../.core-dist/kernel/relation-frame.js');
 
 const pose = (x = 0, y = 0, z = 0) => ({ position: { x, y, z }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
 const frame = (id, ownerElementId, position = [0, 0, 0]) => ({
@@ -68,6 +69,18 @@ test('the same relation vocabulary covers a piston and a rotor without new kerne
     { id: 'relation.rotor', type: 'revolute', frameA: 'frame.knuckle.wheel-spin', frameB: 'frame.wheel.spin' },
   ];
   assert.deepEqual(validateRigDocument(document).filter((diagnostic) => diagnostic.severity === 'error'), []);
+});
+
+test('revolute/prismatic primary axis is encoded by the full frame orientation using local +Z', () => {
+  assert.deepEqual(relationPrimaryAxisWorld(pose()), { x: 0, y: 0, z: 1 });
+  const half = Math.PI / 4;
+  const rotated = relationPrimaryAxisWorld({
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) },
+  });
+  assert.ok(Math.abs(rotated.x - 1) < 1e-12);
+  assert.ok(Math.abs(rotated.y) < 1e-12);
+  assert.ok(Math.abs(rotated.z) < 1e-12);
 });
 
 test('mechanical geometric limits fail closed when reversed or non-finite', () => {
