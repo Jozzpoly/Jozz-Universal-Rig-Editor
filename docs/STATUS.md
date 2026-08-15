@@ -1,188 +1,216 @@
 # Status
 
-## Current state
+## Current authority
 
-Accepted product baseline remains `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
+Accepted product authority remains:
 
-Active foundation convergence is isolated on `work/foundation-convergence-v1` and aggregated in draft PR #1. Latest state-ownership architecture checkpoint is `eb2fb71d58a7c69f9a1b8649f18d749854b07c58`.
+`main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
 
-Accepted pre-run interaction evidence remains: rigid element/frame authoring, free inspection camera, Focus/Fit, Move/Rotate, world/local transforms, numeric editing, preview/commit/cancel, undo/redo, deterministic RigDocument save/open, exact read-only SOURCE inspection and independent SOURCE/authored selection. Current panel layout is an engineering harness, not final information architecture.
+The active recovery/design line is:
 
-## Recovery discipline
+`work/real-use-foundation-recovery`
 
-- `main` remains accepted authority until explicit promotion.
-- Every semantic stage ends in a small commit and `KEEP / CHANGE / DEFER / FALSIFIED` result.
-- Current repo/JV evidence outranks chat plans and historical tooling.
-- Synthetic tests prove only their exact invariant, never owner interaction/product feel.
-- No speculative plugin/ECS/physics/editor framework.
-- Git tree -> commit -> non-force ref update is the write boundary. One real FC-3 connection failure already proved this recovery model: the branch ref stayed intact and only the idempotent tree step had to be retried.
+It was created exactly from `fd2f2da49a5250cff7dec27ee5bc35b626819460`, the last semantic/state checkpoint before the FC-9 visual-concept detour.
 
-## FC-0 — evidence freeze / CLOSED
+The later `work/foundation-convergence-v1` FC-9 commits are historical design evidence only. From `fd2f2da...` to the abandoned FC-9 head they changed only `docs/STATUS.md` and added `docs/WORKBENCH_DESIGN_CONTRACT.md`; no product/kernel/runtime code was introduced there.
 
-Run base: `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`.
-Owner-tested checkpoint: `checkpoint/foundation-bind00-owner-tested-2026-08-15@548fb40f8c8d799abf35185b314696d33515261d`.
-Checkpoint -> main was documentation-only; no product code changed after accepted BIND evidence.
+## Recovery verdict
 
-Result: **KEEP baseline / SAFE TO REFOUND ABOVE IT**.
+JURE does **not** need to be rolled back to the old BIND-00 baseline. The convergence work before FC-9 produced several useful implementation seams. It does, however, need to stop treating provisional vocabularies and UI task contexts as if they were already the final product design.
 
-## FC-1 — real JV round-trip atlas / CLOSED
+The project now returns to its actual purpose:
 
-Current JV mixes SOURCE facts/hints, provisional runtime geometry/topology, consumer dynamics, temporary product bridges and representation. Therefore current JV runtime cannot be imported wholesale as authored truth.
+> let the owner build, inspect, correct, represent and kinematically test a real rig on real assets without an agent guessing the geometry and without SOURCE, renderer or consumer-runtime state becoming authored truth.
 
-Interchange model result:
-- monolithic JSON: **FALSIFIED**;
-- loose owner-facing sidecars: **FALSIFIED**;
-- one owner-visible logical layered bundle: **KEEP**;
-- physical ZIP/`.jure` container: **DEFERRED**.
+JV/JV-Web is the first real consumer/falsifier. Current JV explicitly leaves lower wishbone/mating and final steering geometry unresolved and expects reliable mating points/frames to be authored in JURE rather than guessed in JV.
 
-Authority chain retained:
+## Strong foundation — KEEP unless a real consumer falsifies it
 
-`SOURCE / CONSUMER REFERENCE / PROPOSAL -> explicit adoption/edit -> AUTHORED domain documents -> TEST/EVALUATION -> derived consumer export`
+### Authored truth
 
-## FC-2 — project / authority contract / CLOSED
+- `RigDocument` remains authored rig truth.
+- `RigElement` is stable rigid authored identity.
+- `RigFrame` is a rigid datum local to an element or rig root.
+- rigid authored poses remain position + quaternion rotation; no scale.
+- source provenance is not representation binding.
+- SOURCE / AUTHORED / preview / EVALUATED / display-runtime remain different meanings.
 
-Implemented:
-- `61d3d42897196333acef7372568c28a1e01cd7a6` — project authority model;
-- `faf61ea56dbb79d6dbbde88e548dc7e429ae9fea` — project-level source adoption context.
+### Authoring interaction
 
-Current meanings:
-- `SourceRevision` = exact immutable source identity;
-- `SourceInstance` = independent placed use of an exact revision;
-- `ConsumerReferenceSnapshot` = external evidence, never automatic authored truth;
-- `SourceAdoptionRecord` = exact placed-instance context for an explicit authored adoption;
-- kernel `SourceBinding` stays revision-local (`sourceRevisionId + locator`) so standalone RigDocument does not depend on workspace/project placement state.
+- Move/Rotate, world/local, numeric degree editing over quaternion storage;
+- preview/commit/cancel;
+- undo/redo;
+- free/unclamped inspection camera + Focus/Fit;
+- independent authored and SOURCE selection.
 
-Result: **KEEP project layer + exact fail-closed identity + project-level adoption context**.
+### Project/evidence boundary
 
-## FC-3 — mechanical assembly / CLOSED
+The thin project-level separation is retained as a strong candidate:
 
-Implemented:
-- `0ea75fd0ca2b7c621e8be1b5d225ae75b17586e7` — neutral mechanical relations;
-- `ced1be1604170c2abc47c9da4fcc695baf0d611a` — relation-frame semantics.
+- `SourceRevision` — exact immutable source identity;
+- `SourceInstance` — one placed use of an exact source revision;
+- `ConsumerReferenceSnapshot` — external consumer evidence, never authored truth;
+- `SourceAdoptionRecord` — explicit record connecting a placed source datum to authored output.
 
-Vocabulary: `origin-coincident`, `revolute`, `prismatic`, `spherical`, `distance`, `distance-range`.
+This is a logical project contract, **not** an asset database. Physical `.jure`/ZIP packaging remains deferred.
 
-For revolute/prismatic relations, each RigFrame is the full joint datum: frame origin = anchor, local +Z = primary DOF axis, authored neutral = zero coordinate. Consumer dynamics such as mass, inertia, friction, Hertz/damping, motors, solver settings and Box3D IDs remain outside the authored mechanical kernel.
+### AUTHOR / TEST boundary
 
-The same vocabulary covered a synthetic full wishbone/steering/wheel corner, piston and rotor without new kernel entity types.
+The evaluator seam is retained:
 
-Result: **KEEP neutral mechanical intent / DEFER solver + advanced spherical policy**.
+`RigDocument + transient controls -> RigEvaluationResult -> evaluated pose view`
 
-## FC-4 — authored representation / CLOSED
+Evaluated poses are revision-bound overlays only. Invalid/stale results fail closed. Reset removes evaluator influence; TEST never silently writes back to authored neutral.
 
-Implemented:
-- `8d270cdf6612c0a7102d74524d052fc57a7bbbad` — separate `RigRepresentationDocument` contract;
-- `3b724f8b663598d79b3f639c26b16e533d62aee0` — initial representation architecture boundary.
+### State ownership
 
-Rejected:
-- representation inside `RigDocument` — would couple mechanics to placed source/deformation;
-- consumer-only representation — would lose owner-authored visual calibration.
+Keep the explicit non-domain state owners introduced before FC-9:
 
-Kept representation vocabulary:
-- `rigid` — exact source datum <-> authored element/frame;
-- `aim` — rigid endpoint orientation from two authored frames without length change;
-- `span` — endpoint correspondence permitting representation-only axial deformation;
-- optional third roll correspondence for two-point orientation ambiguity such as wishbone roll.
+- `RigAuthoringState` — authored session/selection/preview/history;
+- `SourceRuntimeState` — loaded SOURCE runtime asset + SOURCE selection;
+- `RigTestState` — transient TEST controls/result.
 
-Every mapping stores exact `sourceInstanceId + sourceRevisionId + targetLocator`, so source re-registration requires explicit rebind. BIND-00 remains proof evidence only; singleton storage remains falsified.
+`App` should remain composition/orchestration glue instead of becoming the owner of new domain semantics.
 
-Result: **KEEP separate authored representation domain / no scale or renderer ontology in RigDocument**.
+## Provisional foundation — useful evidence, NOT frozen product truth
 
-## FC-5 — AUTHOR / TEST evaluation boundary / CLOSED
+### Mechanical relation vocabulary
 
-Implemented `6078d50e7415997184a8d3f0f7e324cfaeb22c0b`.
+Current candidate types are:
 
-TEST is transient state:
-- evaluator receives authored rig + transient numeric controls;
-- result is tagged with evaluator ID + document ID + authored revision;
-- result can only overlay element world poses;
-- owned frame poses are re-resolved from those overlays + authored local frames;
-- stale revision, missing element or invalid rigid pose fails closed;
-- Reset clears all evaluator influence and restores exact authored view;
-- no evaluated state writes back into authored truth automatically.
+`origin-coincident | revolute | prismatic | spherical | distance | distance-range`
 
-The evaluator implementation itself remains replaceable. Neutral kinematic solver vs controlled consumer evaluator is **DEFERRED** until the real mechanism requires it.
+For revolute/prismatic relations, current candidate semantics use RigFrame origin as anchor and local `+Z` as the primary DOF axis.
 
-Result: **KEEP evaluator boundary / DEFER solver selection**.
+These types are intentionally free of mass, inertia, friction, damping, motors, solver settings and Box3D IDs. That separation is KEEP.
 
-## FC-6 — deterministic logical project round trip / CLOSED
+The **exact list and detailed semantics are still provisional** until walked through real owner workflows for suspension, steering, wheel spin, damper, cardan and non-vehicle counterexamples.
 
-Implemented:
-- `d5b185677fe5d3bdd8f8f661bec6bffaebb29cf8` — deterministic project parse/serialize + runtime unknown-type rejection;
-- `d1af1d07a8735c4edccd161561cf134523b3fdfa` — strict SourceInstance pose canonicalization.
+### Representation vocabulary
 
-Properties protected:
-- project arrays and authored domain documents serialize deterministically;
-- parse -> serialize -> parse is stable for the logical project contract;
-- unknown relation type, representation binding type and authored document kind are hard runtime errors;
-- canonical save emits only the known schema instead of carrying accidental JSON fields forward;
-- source/rebind mismatches block serialization rather than silently retargeting authored/representation data.
+A separate authored representation domain remains the leading architecture because representation can be non-rigid and depends on placed source instances while `RigDocument` should not.
 
-Result: **KEEP logical machine contract / DEFER physical bundle container**.
+Current candidate mapping types are:
 
-## FC-7 — editor state ownership / CLOSED
+`rigid | aim | span (+ optional roll correspondence)`
 
-Implemented as independent slices:
-- `76f2385cdeff323835a41a8b2bfb9b54d95e320d` — pure `RigAuthoringState` owner for EditorSession, authored selection, preview/commit/cancel and undo/redo;
-- `9d6e246be8b1b9dfa7ad2216b25ca8adc8671be2` — current App routes authoring operations through that owner;
-- `e35c80342b44bb92e7ec0174bb1835bd66d9d31d` — pure SOURCE runtime owner;
-- `ddc92c695eb8894c8de55e7c514055477dd3bd77` — current App routes SOURCE asset/selection lifecycle through that owner;
-- `eb2fb71d58a7c69f9a1b8649f18d749854b07c58` — canonical state-ownership architecture.
+The separation itself is KEEP. The exact vocabulary is **not yet final**. BIND-00 proves one narrow skin-joint path and falsifies singleton storage; it does not prove that these three mapping types cover the final product.
 
-State boundaries now explicit:
-- durable project/authored documents — outside React;
-- rig authoring interaction — `RigAuthoringState`;
-- SOURCE runtime + SOURCE selection — `SourceRuntimeState`;
-- TEST/evaluation — `RigTestState`;
-- file handle/baseline — IO/session orchestration, not authored truth;
-- camera/layout/layers/view requests — disposable presentation state;
-- BIND-00 — quarantined legacy transient proof, not an extension point.
+### Rig task contexts
 
-Validation:
-- authoring owner: targeted replacement/preview/commit/cancel/world->local/undo/redo/selection tests;
-- SOURCE owner: replacement/selection/clear/fail-closed locator tests;
-- combined disposable foundation harness after FC-7 state slices: **36/36 PASS**;
-- both App integration steps received syntax/transpile checks with zero parser diagnostics;
-- canonical full `npm run check` is still **NOT CLAIMED**. A direct fresh disposable clone attempt was made once and stopped immediately because the execution environment could not resolve `github.com`; no workaround chain was pursued.
+`inspect | author | represent | test` is a useful orchestration/state experiment, not a final navigation or UI contract.
 
-Result: **KEEP explicit owners / KEEP current presentation shell disposable / STOP architecture growth inside App**.
+The durable requirement is simpler:
 
-## FC-8 — owner workflow + UX architecture / ACTIVE
+- spatial/camera/project continuity must survive changes in task;
+- active authored previews must never be silently reinterpreted;
+- TEST is transient and resettable;
+- the UI must serve real work rather than force the owner to think in internal architecture names.
 
-Purpose: use the now-stable semantic/state boundaries to design the complete owner workflow before any final UI implementation. This is the Build Web Apps design gate, not a panel-polish pass.
+Current panel placement and the old FC-9 visual concepts are not authority.
 
-The design must cover together, not piecemeal:
-- project/package opening and exact SOURCE revision/instance visibility;
-- CONSUMER REFERENCE inspection without authority inversion;
-- explicit source/reference -> authored adoption;
-- authored elements/frames/relations and free virtual construction;
-- multiple simultaneous representation mappings;
-- AUTHOR vs TEST separation, controls, diagnostics and exact Reset;
-- save/export/rebind/revision mismatch states;
-- several source assets/instances in one project;
-- a future second domain workspace (map authoring is the main counterexample) without turning rig UI into a generic framework.
+## RU-0 — recovery from FC-9 visual detour / CLOSED
 
-UX alternatives to falsify before coding:
-1. extend the current always-visible RIG/SOURCE/Inspector three-pane layout;
-2. hard separate pages/tabs for Import, Author, Representation and Test;
-3. persistent viewport/workbench shell with explicit task contexts that swap navigators/inspectors/tools while preserving camera/project context.
+Evidence:
 
-FC-8 exit gate: choose the information architecture by walking the real JV owner round trip plus piston/rotor/multi-source/map counterexamples through each alternative. Preserve only interaction evidence already owner-tested (free camera, Focus/Fit, direct manipulation, world/local, numeric edits, undo/redo); do not preserve current panel placement merely because it exists.
+- `main` is unchanged and safe;
+- exact pre-FC-9 semantic checkpoint is `fd2f2da49a5250cff7dec27ee5bc35b626819460`;
+- the seven later FC-9 commits changed documentation only;
+- Apixel/image-generation output is not needed for this month's work and is removed as a project dependency;
+- the current owner-tested UI remains a working engineering harness while real workflows mature.
 
-No visual redesign code should land before this gate closes.
+Result: **RECOVERED WITHOUT PRODUCT ROLLBACK**.
 
-## BIND-00 preserved evidence
+## RU-1 — real-use foundation design / ACTIVE
 
-Exact accepted test source: `OneSided_Steering_Suspension_Rig.gltf`, SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`, 15 nodes / 14 joints / 1 skinned mesh. BIND-00 proved one exact source skin joint can be driven from authored rigid truth while SOURCE remains fixed and falsified one-global-binding storage.
+The next work is **not** another visual redesign and **not** a feature pile.
 
-## Product direction
+Design and falsify the complete owner workflow on realistic rigging problems first:
 
-JURE is an owner-first spatial authoring workbench whose first mature domain is rigging. It may become an authoring nucleus toward JES, but convergence must not turn it into a generic framework or browser clone of JES.
+`open/create project`
+`-> add/place exact SOURCE assets`
+`-> inspect source geometry/datums`
+`-> create/adopt authored elements + frames`
+`-> define mechanical intent`
+`-> map real representation`
+`-> direct authoring + diagnostics`
+`-> kinematic TEST`
+`-> exact Reset`
+`-> save/reopen`
+`-> export through a small consumer adapter`
 
-Target owner flow remains:
+The design must survive at least these real-use families:
 
-`open logical package -> inspect SOURCE + REFERENCE -> explicitly adopt/create AUTHORED assembly -> map representation -> diagnose -> TEST -> exact Reset -> save/export -> consumer adapter`
+1. JV double-wishbone + steering corner;
+2. wheel/hub/steering-member separation;
+3. spring/damper length-changing visual representation;
+4. cardan/shaft orientation + length behavior;
+5. repeated source revision used by several independent instances;
+6. virtual owner-authored frames that do not exist in SOURCE;
+7. a simple piston/slider;
+8. a rotor/gimbal/thruster-style non-vehicle counterexample.
 
-## Tooling debt
+Do not import current M5/M6 geometry as truth. Current JV is consumer reference and evidence only.
 
-No `package-lock.json` yet; direct dependencies are exact-pinned but transitive installs are not fully reproducible. Add the lockfile from a canonical successful install; this remains non-blocking for current semantic/design work.
+### RU-1 questions to resolve before the next major UI implementation
+
+- What is the smallest project/session model the owner actually manipulates?
+- What actions create authored truth from SOURCE versus create it freely from scratch?
+- When is representation bound to an element, a frame, two frames, or something else?
+- Which relation semantics are genuinely needed by the full owner workflow?
+- What is a TEST driver/DOF from the owner's point of view?
+- What diagnostics are required to author mating/axes/lengths without guesswork?
+- What must Save persist, and what remains disposable workspace state?
+- What is the smallest consumer-export boundary JV needs?
+
+Resolve these through concrete scenarios and small executable falsifiers, not through a large framework or another stack of design documents.
+
+## UI / Build Web Apps direction after recovery
+
+The owner has explicitly abandoned Apixel for this month. No image-generation gate blocks progress.
+
+Use the existing owner-tested viewport-first UI as a **working harness**, not final visual authority. Preserve proven interaction mechanics while real workflows are implemented. Product UX should now be driven by repeated real use:
+
+`perform task -> observe friction -> repair the exact interaction -> repeat`
+
+A later visual/polish pass may reorganize the complete workbench once the workflow is mature. Do not cosmetically freeze today's panels and do not invent a design system/framework before the real interaction requires it.
+
+## Security / trust boundary
+
+JURE is a local owner tool, not a remote multi-user service. Do not inflate security into a parallel project.
+
+Meaningful trust boundaries are local imported files and parsed source/project data. Continue to:
+
+- treat imported JSON/glTF as untrusted input;
+- validate/canonicalize before treating data as project state;
+- fail closed on unknown schema/relation/representation kinds and source revision mismatches;
+- keep guarded file overwrite behavior;
+- avoid dynamic code execution/plugin loading from source files.
+
+No security framework is required without a real new attack surface.
+
+## Validation boundary
+
+Synthetic foundation harness at the pre-FC-9 checkpoint: **42/42 PASS** for the exact invariants it tests.
+
+This is not a claim of canonical full `npm run check` in the current execution environment. The previous direct disposable install attempt failed because the environment could not resolve `github.com`; no workaround chain was pursued.
+
+There is still no `package-lock.json`. Create it from a canonical successful install; do not block RU-1 product design on it.
+
+## Foundation exit criterion
+
+Foundation is done when the owner can take a real JV mechanism and, without agent-side coordinate guessing:
+
+- place/inspect exact source assets;
+- author or adopt the needed elements, frames and mechanical intent;
+- map the real visual representation;
+- move/test the mechanism kinematically and understand diagnostics;
+- Reset exactly to authored neutral;
+- save/reopen the work;
+- export a small consumer-facing result;
+
+and then a normal new capability can be added as:
+
+`small need -> small vertical slice -> targeted test -> owner-visible gate -> next`.
+
+At that point foundation stops being the main subject of the project.
