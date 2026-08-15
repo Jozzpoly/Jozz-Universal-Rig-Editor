@@ -10,9 +10,9 @@ Active recovery/real-use branch:
 
 `work/real-use-foundation-recovery`
 
-Last code/test checkpoint before this STATUS update:
+Last code checkpoint before this STATUS update:
 
-`94772304c02b91e6f00e73b5a11521d891c3e977`
+`70b7a5cb2955a9cd0a3e30186400fe2160fe793f`
 
 The branch started from pre-FC-9 semantic checkpoint `fd2f2da49a5250cff7dec27ee5bc35b626819460`. The abandoned FC-9 visual-concept line is historical evidence only. `main` has not been promoted or modified by RU-1.
 
@@ -90,7 +90,7 @@ Additional implemented semantics:
 
 ## RU-1C — first SOURCE -> AUTHORED owner gate
 
-Status: **WIRED / SOURCE-REVIEWED / OWNER GATE BLOCKED BY EVIDENCE ASSUMPTION, NOT PRODUCT FAILURE**.
+Status: **WIRED / CANONICAL WINDOWS VALIDATION IN PROGRESS / TYPECHECK BLOCKER FIXED / OWNER RERUN REQUIRED**.
 
 Current workbench vertical slice:
 
@@ -184,32 +184,71 @@ corrects this by:
   - same exact SHA + adapter -> relink without durable mutation;
   - same bytes + different adapter version -> different SourceRevision.
 
-This correction means the next `npm run check` is the first intended canonical run that actually includes the full current RU-1 core test set. **No PASS is claimed until the Owner reruns it.**
+This correction makes the next successful `npm run check` meaningful for the full current RU-1 core set rather than only the old manually listed subset.
+
+## 2026-08-15 Owner Gate V2 — first canonical Windows check
+
+Owner ran V2 in an isolated disposable Downloads workspace against exact reviewed head:
+
+`0d30b040e966007086417ec01dc72367f7d814ab`
+
+Environment/evidence:
+
+- Node `v24.16.0`;
+- npm `11.17.0`;
+- exact JURE head check: PASS;
+- canonical JV SOURCE Git blob `06d5c66f6d13fb64863ab15a660f060358872291`: PASS;
+- downloaded SOURCE size 64,264 bytes: PASS;
+- SHA-256 `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`: PASS;
+- expected 15-node/socket/axis-marker structure: PASS;
+- `npm install`: PASS, 32 packages added, 0 vulnerabilities reported by that run;
+- `npm run check`: BLOCKED during canonical `tsc -b` before core tests/build.
+
+TypeScript found exactly two App wiring errors:
+
+1. `sourceRuntime.selection` could be re-read as null after optional-chain narrowing;
+2. the `ProjectAuthoringOperation` discriminated-union narrowing was lost when `authoring.activeOperation` was re-read inside the adoption-preview callback.
+
+Commit:
+
+`70b7a5cb2955a9cd0a3e30186400fe2160fe793f`
+
+fixes both without casts/non-null assertions and without changing project semantics: the checked `selection` and `activeOperation` values are snapshotted locally before their existing narrowings. Commit review confirms the diff contains only those two local narrowing changes.
+
+**No `npm run check` PASS is claimed yet.** Core tests and app build have still not executed on the corrected head; the Owner must rerun the canonical gate.
 
 ## Validation boundary
 
 Pre-FC9 synthetic foundation evidence remains **42/42 PASS** only for its historical tested invariants.
 
-RU-1A/B/C are not covered by that count. The orchestration environment cannot currently clone/install the repo due DNS resolution, so source review is not promoted to runtime PASS.
+RU-1A/B/C are not covered by that count. Current stronger evidence is:
 
-The first owner gate did not reach `npm install` or `npm run check`; it stopped correctly at the false fixture-identity assumption. A corrected owner gate must target the latest recovery head, verify canonical current JV source identity, then execute the now-complete `npm run check` before browser validation.
+- exact current JV source identity: verified in the Owner Windows gate;
+- canonical dependency install: verified on Windows/Node 24.16.0/npm 11.17.0;
+- canonical TypeScript gate: V2 exposed two real wiring errors and therefore correctly BLOCKED;
+- those two errors are source-reviewed as fixed at `70b7a5cb...`;
+- full core-test set, application build and manual browser workflow remain unvalidated until the next Owner run.
+
+The orchestration environment still cannot clone/install the repo because it cannot resolve `github.com`; do not replace the Owner's canonical environment with the available noncanonical local compiler.
 
 ## Immediate next gate
 
 Do not add another feature pile.
 
-Rerun RU-1C on the canonical current JV SourceRevision and validate:
+Rerun RU-1C on the corrected recovery head and validate:
 
 1. automated exact branch/source identity checks;
-2. canonical `npm run check` including all discovered RU-1 core tests;
-3. SOURCE opens/relinks read-only while SourceInstance placement is editable;
-4. placed SOURCE Move/Rotate is spatially correct and Undo/Redo is chronological;
-5. selected datum marker follows SourceInstance placement exactly;
-6. adoption preview lands at the correct project-world point / correct owner-local pose;
-7. Cancel creates no durable frame/history;
-8. Commit creates one authored frame + adoption evidence + one Undo step;
-9. Undo/Redo removes/restores it without stale selection;
-10. Save/Open preserves placement, authored frame and adoption; relink accepts only the same exact revision.
+2. canonical TypeScript check;
+3. all discovered `tests/core/*.test.mjs` tests;
+4. application build;
+5. SOURCE opens/relinks read-only while SourceInstance placement is editable;
+6. placed SOURCE Move/Rotate is spatially correct and Undo/Redo is chronological;
+7. selected datum marker follows SourceInstance placement exactly;
+8. adoption preview lands at the correct project-world point / correct owner-local pose;
+9. Cancel creates no durable frame/history;
+10. Commit creates one authored frame + adoption evidence + one Undo step;
+11. Undo/Redo removes/restores it without stale selection;
+12. Save/Open preserves placement, authored frame and adoption; relink accepts only the same exact revision.
 
 Only after this gate should the next capability be selected from observed Owner friction — likely virtual frame creation, arbitrary geometry picking/construction datums, multi-instance browsing, or the next real representation need.
 
