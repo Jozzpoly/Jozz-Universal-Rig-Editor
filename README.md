@@ -1,10 +1,16 @@
 # Jozz Universal Rig Editor
 
-A small local web workbench for authoring rig intent without making source assets, renderer state, or runtime state the authored truth.
+JURE is a local web workbench for visually authoring rig intent on real assets without making source files, renderer state, or runtime state the authored truth.
 
-Current owner-tested baseline supports first-class rigid `RigElement` and local `RigFrame` authoring through one selection/preview/commit interaction path, one `origin-coincident` relation, undo/redo, deterministic RigDocument serialization, guarded local save, a local glTF/GLB read-only SOURCE reference/inspection layer, and a viewport-first resizable workspace.
+`main` is the canonical current state. The owner-tested foundation already includes rigid `RigElement` / local `RigFrame` authoring, Move/Rotate with preview/commit/cancel, world/local transforms, undo/redo, deterministic RigDocument save/open, read-only glTF/GLB SOURCE inspection, independent authored/SOURCE selection, and a viewport-first resizable workspace.
 
-The current `work/binding-foundation-a` branch also contains **BIND-00**, a deliberately transient representation-binding proof. It demonstrates that one exact glTF skin joint can be driven by an authored `RigElement` while SOURCE remains fixed, but it intentionally stores only one binding and is not a final/persistent representation model. See `docs/STATUS.md` before continuing this branch.
+The repository also contains **BIND-00**, a deliberately limited transient proof that one exact glTF skin joint can be driven by an authored `RigElement` while SOURCE remains fixed. The real owner test passed that narrow claim and also falsified the prototype's single-global-binding model. BIND-00 is evidence for the next design phase, not the final representation architecture. See `docs/STATUS.md`.
+
+## Project direction
+
+The next fundamental problem is to design JURE as a practical universal rigging workbench for the owner's current projects: first JV/JV-Web, later potentially native JV and JV/VAW experiments. The tool must let the owner attach rig intent to real assets, author frames/pivots/hardpoints/relations, map multiple pieces of representation, and later test the mechanism kinematically without mutating authored neutral truth.
+
+Do **not** continue BIND-00 by merely turning its singleton state into an array. Revisit the complete assembly/binding/motion workflow first.
 
 ## Run
 
@@ -15,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Then open the local Vite URL in current Chrome or Edge. File System Access is used for guarded Open/Save/Save As.
+Open the local Vite URL in current Chrome or Edge. File System Access is used for guarded Open/Save/Save As.
 
 Fast checks:
 
@@ -24,14 +30,22 @@ npm run test:core
 npm run typecheck
 ```
 
-Full checkpoint (typecheck + core tests + Vite production build):
+Checkpoint validation:
 
 ```bash
 npm run check
 ```
 
+## Canonical project docs
+
+- `AGENTS.md` — project rules and working discipline.
+- `docs/ARCHITECTURE.md` — durable technical boundaries.
+- `docs/STATUS.md` — current evidence, open design questions, and next direction.
+
+Do not create parallel roadmap/handoff documents unless there is a concrete recovery need that cannot be represented in these files.
+
 ## Asset policy
 
-Original assets authored by Jozzpoly remain the property of Jozzpoly. They may be used as part of this project and its development workflow, but are not granted for standalone resale, relicensing, or independent redistribution without the owner's permission. Third-party code/assets must retain their actual license and provenance.
+Original assets authored by Jozzpoly remain the property of Jozzpoly. They may be used normally for this project and its development, but are not granted for standalone resale, relicensing, or independent redistribution without the owner's permission. Third-party code/assets retain their actual licenses and provenance.
 
-No source asset becomes authored rig truth merely by being loaded into the Workbench.
+Loading a source asset never makes it authored rig truth.
