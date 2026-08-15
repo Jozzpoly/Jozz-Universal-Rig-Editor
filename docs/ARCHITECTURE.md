@@ -1,113 +1,130 @@
 # Architecture
 
-The durable authority boundary is intentionally explicit:
+JURE's durable authority boundary is:
 
-`SOURCE / CONSUMER REFERENCE -> explicit adoption/edit -> AUTHORED domain documents -> resolved/evaluated views -> display / derived consumer export`
+`SOURCE / CONSUMER REFERENCE -> explicit authoring -> AUTHORED documents -> resolved/evaluated views -> representation/display -> consumer export`
 
-Only an explicit authoring path may change authored truth. SOURCE loading, consumer-reference import, preview state, Three scene state, evaluated motion, and runtime observations never write back automatically.
+Only an explicit authoring action may change authored truth. SOURCE loading, consumer reference, preview state, Three objects, evaluated motion and runtime observations never write back automatically.
 
-## Project layer
+## Durable boundaries
 
-`JureProjectModel` is a thin logical project contract above authored domain documents. It is storage-format independent; it is **not** a universal document schema and does not imply a ZIP/`.jure` format yet.
+### Rig authored truth
 
-Current project meanings:
-- `SourceRevision`: exact immutable source identity (`sha256` + adapter identity + revision ID).
-- `SourceInstance`: one placed use of an exact source revision with its own rigid pose. Several instances may reuse one revision.
-- `ConsumerReferenceSnapshot`: exact external consumer evidence. Its payload remains reference material, not authored kernel truth.
-- `SourceAdoptionRecord`: project-level evidence of which placed source instance + revision-local locator was explicitly used to produce an authored element/frame. Kernel provenance stays revision-local and does not depend on workspace state.
-- authored domain documents: currently `RigDocument` and `RigRepresentationDocument`. Future real tools may add another explicit document kind without expanding either existing document into a god schema.
+`RigDocument` is the authored rig document.
 
-Changing a source revision or re-registering an instance must fail closed against existing adoption/provenance/representation claims. Moving a `SourceInstance` never moves authored rig data automatically.
+- `RigElement` — stable rigid authored thing; not a renderer object or physics body.
+- `RigFrame` — rigid datum local to a `RigElement` or rig root; useful for mounts, pivots, axes, hardpoints and virtual reference frames.
+- `RigRelation` — explicit geometric/mechanical intent between authored frames.
+- `RigElement.source` / `RigFrame.source` — exact source provenance only. Provenance does not mean representation binding.
 
-## Rig kernel
+Coordinates are right-handed, Y-up, metres/radians. Authored rigid poses are position + quaternion rotation only. Scale/stretch/deformation is not part of rigid pose.
 
-- `RigElement`: stable authored identity + neutral rigid pose; not a physics body or renderer object.
-- `RigFrame`: local rigid frame owned by a `RigElement` or rig-root. It may describe a mount, pivot, axis datum, sensor frame, hardpoint, etc.; a frame does not require a relation.
-- `RigRelation`: neutral mechanical/geometric intent between two authored frames, not a Box3D joint definition.
-- `RigElement.source` / `RigFrame.source`: optional exact source provenance (`SourceRevision` + revision-local locator). It answers where authored data came from; it does **not** define which placed SOURCE instance is currently visible and does not define representation binding.
+There is deliberately no generic element hierarchy, ECS, physics-body schema or renderer ontology in the kernel.
 
-Coordinates are right-handed, Y-up, metres/radians. Frames are authored locally to their owner element. Current rigid poses contain position + rotation only. There is deliberately no generic element hierarchy in the kernel yet.
+### Project/source boundary
 
-### Mechanical relation vocabulary
+`JureProjectModel` is a thin logical project candidate above authored documents, not an asset database and not a physical archive format.
 
-The first real-consumer vocabulary is deliberately small:
-- `origin-coincident` — diagnostic/geometric origin coincidence retained from the foundation;
-- `revolute` — one rotational DOF, optional geometric angular limits;
-- `prismatic` — one translational DOF, optional geometric translation limits;
-- `spherical` — shared-origin spherical articulation without speculative cone/twist policy yet;
-- `distance` — fixed authored distance between frame origins;
-- `distance-range` — allowed geometric length interval, suitable for travel envelopes without importing spring dynamics.
+Current meanings that survived the first convergence pass:
 
-For axis-bearing `revolute` and `prismatic` relations, each participating `RigFrame` is the full joint datum: its origin is the anchor and local **+Z** is the primary DOF axis. Local X/Y retain the remaining orientation/reference basis. The axis is therefore derived from frame rotation rather than duplicated as another vector field.
+- `SourceRevision` — exact immutable source identity (`sha256` + adapter identity + revision ID).
+- `SourceInstance` — one placed use of an exact source revision with its own rigid pose; multiple instances may reuse one revision.
+- `ConsumerReferenceSnapshot` — exact external consumer evidence, never authored kernel truth.
+- `SourceAdoptionRecord` — explicit project-level record linking a placed source datum to authored output.
 
-Authored neutral is the zero coordinate for revolute/prismatic intent. Optional limits are interpreted relative to that neutral, never relative to a transient runtime state.
+Moving/replacing SOURCE never moves authored data automatically. Revision mismatches fail closed for exact provenance/adoption/representation claims.
 
-The kernel does not store masses, inertia, friction, spring Hertz/damping, motor/servo forces, tire/contact behavior, solver settings, or Box3D IDs. Those are consumer/runtime dynamics unless a later real authoring requirement proves otherwise.
+Physical `.jure`/ZIP packaging remains deferred until the real owner workflow proves what must travel together.
 
-A separate `fixed` relation is intentionally absent for now: rigidly co-moving authored datums can live on one `RigElement`. Add a new relation type only when a real mechanism cannot be expressed cleanly with the existing vocabulary.
+### Authoring interaction
 
-## SOURCE and authored representation
+Selection/transform targets are editor concepts (`RigElement | RigFrame`), not new kernel entities.
 
-Opening glTF/GLB creates independently inspectable, read-only SOURCE evidence. SOURCE selection is separate from authored selection.
+An authored drag is:
 
-Source provenance, placed source instances, project-level adoption context, and authored representation are different semantics. Do not put visual scale/stretch/deformation into `RigElement` or `RigFrame` rigid pose.
+`committed -> preview -> commit/cancel`
 
-`RigRepresentationDocument` is a separate authored document tied to one `RigDocument`. It is project-contextual by design because representation connects authored rig datums to exact placed source data.
+The gizmo may operate in world space, but frame edits are converted back to owner-local authored poses. Moving an element moves its resolved frames while preserving their local authored poses.
 
-Every representation target captures:
-- `sourceInstanceId` — which placed use is being represented;
-- `sourceRevisionId` — the exact revision against which locators are meaningful;
-- `targetLocator` — the exact source object/node to drive.
-
-The initial representation vocabulary is geometric correspondence rather than renderer behavior copied from JV:
-- `rigid`: one exact source datum corresponds to one authored `RigElement` or `RigFrame`; the exact source asset supplies the target<->datum rest relationship;
-- `aim`: a source anchor/aim pair corresponds to two authored frames and is transformed rigidly, suitable for endpoint pieces that must point at the other end without changing length;
-- `span`: a source start/end pair corresponds to two authored frames and permits representation-only axial deformation between them;
-- optional roll correspondence supplies a third source datum + authored frame when two points are insufficient to determine orientation, as in roll-pinned wishbone cases.
-
-These mappings can coexist arbitrarily; there is no singleton representation slot. Exact locator existence and non-rigid source compatibility are source-adapter/evaluation concerns, not reasons to import glTF/Three ontology into the kernel.
-
-BIND-00 remains prototype evidence only. Its successful exact skin-joint drive is covered conceptually by `rigid`; its one-global-binding storage model remains falsified.
-
-New deformation types may be added to the representation domain when a real asset requires them (for example a non-affine spring/skin deformation) without changing `RigDocument`, the project authority model, or consumer physics semantics.
-
-## Editor and evaluation
-
-Selection/transform targets are editor concepts: `RigElement | RigFrame`, not new kernel entities.
-
-An authored drag is `committed -> preview -> commit/cancel`. The gizmo manipulates an ephemeral world-space proxy. Element world pose writes to the element rigid pose; frame world pose is converted back to its owner-local pose. Moving an element therefore moves its resolved frames while preserving their authored local poses.
-
-Workspace state such as selection, camera, panel layout, layers, transient SOURCE preview, loaded external bytes, and TEST state is not serialized into `RigDocument`.
-
-Motion testing preserves:
+### AUTHOR / TEST separation
 
 `AUTHORED NEUTRAL != transient EVALUATED motion`
 
-`RigTestState` and `RigEvaluator` are separate from authored documents. Evaluators return revision-bound transient pose overrides; stale or invalid results fail closed. Reset removes evaluator influence rather than writing neutral poses back into the document. The concrete solver remains replaceable.
+`RigTestState` and the replaceable `RigEvaluator` boundary are separate from authored documents. Evaluator output is revision-bound pose overlay + diagnostics. Stale/invalid results fail closed. Reset removes evaluator influence; TEST never silently writes back to authored neutral.
 
-## Editor state ownership
+The concrete kinematic solver/consumer evaluator is not architecture yet.
 
-The application shell must compose explicit owners rather than become the semantic owner of every subsystem.
+### State ownership
 
-Current boundaries:
-- **durable project/authored state** — `JureProjectModel`, `RigDocument`, and `RigRepresentationDocument`; domain truth is validated/serialized outside React;
-- **rig authoring interaction** — `RigAuthoringState` owns `EditorSession`, authored selection, preview/commit/cancel and undo/redo. `App` requests authoring operations but does not implement their mutation semantics;
-- **SOURCE runtime** — `SourceRuntimeState` owns the currently loaded inspectable source and SOURCE selection. Browser object-URL cleanup is lifecycle glue around that runtime state and is never authored truth;
-- **TEST/evaluation** — `RigTestState` is transient and separate from authoring history;
-- **file session** — file handle/baseline hash belongs to IO/session orchestration and is not serialized into authored documents;
-- **presentation/workspace** — camera preset, transform display mode, panel/layout state, layer visibility and fit/focus requests are disposable presentation state;
-- **BIND-00 preview** — legacy transient proof state only. It may remain in the current engineering harness until replacement UI exists, but it is not an owner or extension point for the final representation architecture.
+Keep domain truth outside React.
 
-`App.tsx` may coordinate these owners and derive display data, but new domain mutation rules must not be implemented directly in `App`. A future UI redesign may replace the component structure and presentation state wholesale without changing the project/kernel/representation/evaluation contracts.
+- `RigAuthoringState` — authored session, authored selection, preview/commit/cancel, history.
+- `SourceRuntimeState` — currently loaded SOURCE runtime data + SOURCE selection.
+- `RigTestState` — transient TEST controls/result.
+- file handles/baseline hashes — IO session state.
+- camera/layout/layers/focus requests — disposable presentation state.
+- BIND-00 state — legacy transient proof only.
 
-## Display / consumer boundary
+`App.tsx` may compose these owners and derive display state, but new domain mutation rules must not accumulate in `App`.
 
-`authored domain documents -> resolved/evaluated views -> representation output -> Three / consumer adapter`
+### Display/consumer boundary
 
-Three is an adapter. Renderer objects are disposable and contain no authored authority. Camera/navigation is inspection infrastructure and must not inherit gameplay camera clamps.
+`authored documents -> resolved/evaluated views -> representation output -> Three / consumer adapter`
 
-JV is the first real consumer/falsifier. A JV adapter may map neutral JURE relation intent into Box3D/runtime structures and combine it with JV-owned dynamics, but JURE must not import JV UI/ontology or create cross-repo runtime coupling.
+Three is disposable display infrastructure. Camera/navigation is inspection infrastructure and must remain free of gameplay camera clamps.
 
-## Testing loop
+JV/JV-Web is the first real consumer and falsifier. Its adapter should stay small and combine JURE-authored geometry/intent with JV-owned runtime dynamics rather than importing either product wholesale into the other.
 
-Normal work is a small vertical slice with targeted tests protecting the semantic invariant actually at risk. Use full `npm run check` and a real browser owner gate for foundation/schema/checkpoint changes or interaction changes that cannot be proved synthetically. A synthetic PASS is not owner acceptance and is never evidence for behavior that was not inspected.
+## Provisional vocabulary — do not defend without real-use evidence
+
+The following survived synthetic/counterexample tests, but are not final product truth.
+
+### Mechanical relations
+
+Current candidates:
+
+`origin-coincident | revolute | prismatic | spherical | distance | distance-range`
+
+The current axis-bearing convention uses the relation frame origin as anchor and frame-local `+Z` as primary DOF axis. Optional limits are geometric, relative to authored neutral.
+
+The important durable rule is what is **absent**: no mass, inertia, friction, spring damping, motor force, tire/contact model, solver configuration or Box3D IDs in authored mechanical intent.
+
+The exact relation list, joint-datum convention and limit semantics remain open to falsification by the full JV rig and non-vehicle examples.
+
+### Authored representation
+
+The separation between mechanical authored truth and visual representation is a strong architectural direction because real visuals can be rigid, source-hierarchical or length-changing without changing the rigid rig itself.
+
+The current candidate `RigRepresentationDocument` is project-contextual and can address exact placed SOURCE targets using:
+
+`sourceInstanceId + sourceRevisionId + locator`
+
+Current mapping experiments are:
+
+- `rigid` — one source target follows one authored element/frame datum through an exact rest correspondence;
+- `aim` — an endpoint-oriented rigid visual references two authored frames;
+- `span` — a visual spans two authored frames and may change length;
+- optional roll correspondence — third datum when two endpoints do not determine orientation.
+
+The **separate representation domain** is the main KEEP. The exact `rigid/aim/span` vocabulary is provisional until tested against the real wheel/knuckle/arms, spring/damper and cardan workflows. Add or remove mapping types based on assets, not on renderer convenience.
+
+BIND-00 remains evidence only: it proved an authored element can drive one exact glTF skin joint while SOURCE stays fixed and it falsified one-global-binding storage.
+
+### Workspace/task contexts
+
+`inspect | author | represent | test` currently exists as a small state experiment. It is not a final navigation model or a requirement to expose those four words as permanent UI modes.
+
+Durable UX requirements are instead:
+
+- one continuous spatial/project context where possible;
+- free camera and rapid Focus/Fit;
+- clear separation of SOURCE, AUTHORED and EVALUATED state;
+- direct manipulation plus precise numeric editing;
+- transient operations cannot become durable truth accidentally;
+- UI evolves from the real owner workflow, not from internal architecture labels.
+
+## Validation discipline
+
+A normal feature should be a small vertical slice with targeted tests for the semantic risk it introduces. Full `npm run check` and a real owner/browser gate are for foundation/schema/checkpoint or important interaction changes.
+
+Synthetic tests prove their exact invariant only. They do not convert provisional vocabulary into owner-accepted product design.
