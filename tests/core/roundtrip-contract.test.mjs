@@ -71,6 +71,7 @@ test('logical project serialization is deterministic across array ordering and r
 test('canonical project save strips unknown fields instead of carrying accidental JSON payload forward', () => {
   const project = projectFixture();
   project.sourceRevisions[0].debug = 'drop-me';
+  project.sourceInstances[0].pose.position.debug = 'drop-me';
   const rig = project.authoredDocuments.find((entry) => entry.kind === 'rig').document;
   rig.elements[0].debug = 'drop-me';
   rig.relations[0].debug = 'drop-me';
