@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createSourceAdoptionRecord } from '../../.core-dist/project/source-adoption.js';
 import { validateJureProjectModel } from '../../.core-dist/project/validate.js';
 
 const pose = (x = 0, y = 0, z = 0) => ({ position: { x, y, z }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
@@ -16,28 +17,25 @@ const rig = {
     { id: 'frame.fr.wheel', name: 'FR Wheel', ownerElementId: null, pose: pose(1, 0, 1), source: sourceDatum, provenance: { kind: 'source-proposal' } },
   ], relations: [],
 };
-const adoptionSource = (sourceInstanceId, sourceInstancePose) => ({
-  sourceInstanceId,
-  sourceRevisionId: wheelSource.id,
-  sourceInstancePose,
-  locator: sourceDatum.locator,
-});
-const project = () => ({
-  schemaVersion: 1, projectId: 'project.jv-roundtrip', units: 'm-rad',
-  coordinateSystem: { handedness: 'right', upAxis: 'Y' }, sourceRevisions: [wheelSource],
-  sourceInstances: [
+const project = () => {
+  const sourceInstances = [
     { id: 'wheel.fl', name: 'FL wheel', sourceRevisionId: wheelSource.id, pose: pose(1, 0, -1) },
     { id: 'wheel.fr', name: 'FR wheel', sourceRevisionId: wheelSource.id, pose: pose(1, 0, 1) },
     { id: 'wheel.rl', name: 'RL wheel', sourceRevisionId: wheelSource.id, pose: pose(-1, 0, -1) },
     { id: 'wheel.rr', name: 'RR wheel', sourceRevisionId: wheelSource.id, pose: pose(-1, 0, 1) },
-  ],
-  consumerReferences: [{ id: 'reference.jv.m6', label: 'JV M6 current reference', consumer: { id: 'jv-web', revision: 'f8eb0908f5934aed2d504f34ce483a02754039ec' }, payloadLocator: 'reference/jv-m6.json', payloadSha256: 'b'.repeat(64) }],
-  sourceAdoptions: [
-    { id: 'adopt.fl.wheel', source: adoptionSource('wheel.fl', pose(1, 0, -1)), target: { documentId: rig.documentId, kind: 'frame', id: 'frame.fl.wheel' } },
-    { id: 'adopt.fr.wheel', source: adoptionSource('wheel.fr', pose(1, 0, 1)), target: { documentId: rig.documentId, kind: 'frame', id: 'frame.fr.wheel' } },
-  ],
-  authoredDocuments: [{ kind: 'rig', document: rig }],
-});
+  ];
+  return {
+    schemaVersion: 1, projectId: 'project.jv-roundtrip', units: 'm-rad',
+    coordinateSystem: { handedness: 'right', upAxis: 'Y' }, sourceRevisions: [wheelSource],
+    sourceInstances,
+    consumerReferences: [{ id: 'reference.jv.m6', label: 'JV M6 current reference', consumer: { id: 'jv-web', revision: 'f8eb0908f5934aed2d504f34ce483a02754039ec' }, payloadLocator: 'reference/jv-m6.json', payloadSha256: 'b'.repeat(64) }],
+    sourceAdoptions: [
+      createSourceAdoptionRecord({ id: 'adopt.fl.wheel', sourceInstance: sourceInstances[0], locator: sourceDatum.locator, target: { documentId: rig.documentId, kind: 'frame', id: 'frame.fl.wheel' } }),
+      createSourceAdoptionRecord({ id: 'adopt.fr.wheel', sourceInstance: sourceInstances[1], locator: sourceDatum.locator, target: { documentId: rig.documentId, kind: 'frame', id: 'frame.fr.wheel' } }),
+    ],
+    authoredDocuments: [{ kind: 'rig', document: rig }],
+  };
+};
 
 test('one exact source revision can back four independent placed instances', () => {
   assert.deepEqual(validateJureProjectModel(project()).filter((diagnostic) => diagnostic.severity === 'error'), []);
@@ -48,6 +46,14 @@ test('adoption snapshots distinguish two placed instances using the same exact d
   assert.equal(candidate.sourceAdoptions[0].source.locator, candidate.sourceAdoptions[1].source.locator);
   assert.notEqual(candidate.sourceAdoptions[0].source.sourceInstanceId, candidate.sourceAdoptions[1].source.sourceInstanceId);
   assert.deepEqual(validateJureProjectModel(candidate).filter((diagnostic) => diagnostic.severity === 'error'), []);
+});
+
+test('adoption creation snapshots source placement instead of retaining mutable pose references', () => {
+  const sourceInstance = { id: 'wheel.test', name: 'Wheel test', sourceRevisionId: wheelSource.id, pose: pose(1, 2, 3) };
+  const adoption = createSourceAdoptionRecord({ id: 'adopt.test', sourceInstance, locator: sourceDatum.locator, target: { documentId: rig.documentId, kind: 'frame', id: 'frame.fl.wheel' } });
+  sourceInstance.pose.position.x = 99;
+  sourceInstance.pose.rotation.w = 0.5;
+  assert.deepEqual(adoption.source.sourceInstancePose, pose(1, 2, 3));
 });
 
 test('moving a live source instance does not mutate authored truth or historical adoption placement', () => {
