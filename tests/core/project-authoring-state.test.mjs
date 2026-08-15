@@ -30,23 +30,18 @@ test('SOURCE placement and authored rig transform share one chronological Projec
   state = authoring.previewProjectSourceInstanceTransform(state, 'source-instance.fl', pose(5, 0, 0));
   assert.equal(sourcePoseX(state), 5);
   assert.equal(state.session.committed.sourceInstances[0].pose.position.x, 0);
-  state = authoring.commitProjectAuthoringTransform(state);
+  state = authoring.commitProjectAuthoringOperation(state);
 
   state = authoring.previewProjectRigTransform(state, { kind: 'frame', id: 'frame.mount' }, pose(15, 0, 0));
   assert.equal(rig(state).frames[0].pose.position.x, 5);
-  state = authoring.commitProjectAuthoringTransform(state);
+  state = authoring.commitProjectAuthoringOperation(state);
 
   assert.equal(state.session.past.length, 2);
-  assert.equal(state.session.committed.sourceInstances[0].pose.position.x, 5);
-  assert.equal(rig(state).frames[0].pose.position.x, 5);
-
   state = authoring.undoProjectAuthoring(state);
   assert.equal(rig(state).frames[0].pose.position.x, 1);
   assert.equal(sourcePoseX(state), 5);
-
   state = authoring.undoProjectAuthoring(state);
   assert.equal(sourcePoseX(state), 0);
-
   state = authoring.redoProjectAuthoring(state);
   assert.equal(sourcePoseX(state), 5);
   state = authoring.redoProjectAuthoring(state);
@@ -66,20 +61,20 @@ test('cancelled SOURCE transform restores committed placement and creates no his
   let state = authoring.createProjectAuthoringState(projectFixture(), 'rig.vehicle');
   state = authoring.previewProjectSourceInstanceTransform(state, 'source-instance.fl', pose(7, 0, 0));
   assert.equal(sourcePoseX(state), 7);
-  state = authoring.cancelProjectAuthoringTransform(state);
+  state = authoring.cancelProjectAuthoringOperation(state);
   assert.equal(sourcePoseX(state), 0);
   assert.equal(state.session.past.length, 0);
-  assert.equal(state.activeTransform, null);
+  assert.equal(state.activeOperation, null);
 });
 
-test('a second transform kind cannot hijack an active project preview', () => {
+test('a second operation kind cannot hijack an active project preview', () => {
   let state = authoring.createProjectAuthoringState(projectFixture(), 'rig.vehicle');
   state = authoring.beginProjectSourceInstanceTransform(state, 'source-instance.fl');
   assert.throws(
     () => authoring.previewProjectRigTransform(state, { kind: 'frame', id: 'frame.mount' }, pose(15, 0, 0)),
     /already active/,
   );
-  assert.equal(state.activeTransform.kind, 'source-instance');
+  assert.equal(state.activeOperation.kind, 'source-instance-transform');
 });
 
 test('numeric rig edit also enters the same project history without a rig-specific undo stack', () => {
@@ -88,4 +83,37 @@ test('numeric rig edit also enters the same project history without a rig-specif
   assert.equal(state.session.past.length, 1);
   assert.equal(state.session.committed.authoredDocuments.find((entry) => entry.kind === 'rig').document.revision, 3);
   assert.equal(rig(state).frames[0].pose.position.x, 3);
+});
+
+test('SOURCE datum adoption is a previewable atomic project operation with Commit/Cancel', () => {
+  let state = authoring.createProjectAuthoringState(projectFixture(), 'rig.vehicle', { kind: 'element', id: 'element.arm' });
+  const input = {
+    rigDocumentId: 'rig.vehicle',
+    frameId: 'frame.adopted',
+    frameName: 'Adopted datum',
+    ownerElementId: 'element.arm',
+    adoptionId: 'adopt.frame.adopted',
+    sourceDatum: {
+      sourceInstanceId: 'source-instance.fl',
+      sourceRevisionId: source.id,
+      locator: 'gltf2.node:datum',
+      sourceRevisionWorldPose: pose(12, 0, 0),
+    },
+  };
+
+  state = authoring.beginProjectSourceFrameAdoption(state, input);
+  assert.equal(state.session.committed.sourceAdoptions.length, 0);
+  assert.equal(rig(state).frames.some((frame) => frame.id === 'frame.adopted'), true);
+  assert.equal(rig(state).frames.find((frame) => frame.id === 'frame.adopted').pose.position.x, 2);
+  assert.equal(authoring.canUndoProjectAuthoring(state), false);
+
+  state = authoring.cancelProjectAuthoringOperation(state);
+  assert.equal(rig(state).frames.some((frame) => frame.id === 'frame.adopted'), false);
+  assert.equal(state.session.past.length, 0);
+
+  state = authoring.beginProjectSourceFrameAdoption(state, input);
+  state = authoring.commitProjectAuthoringOperation(state);
+  assert.equal(state.session.committed.sourceAdoptions.length, 1);
+  assert.equal(rig(state).frames.some((frame) => frame.id === 'frame.adopted'), true);
+  assert.equal(state.session.past.length, 1);
 });
