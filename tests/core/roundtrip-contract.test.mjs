@@ -122,8 +122,12 @@ test('historical adoption snapshot remains serializable after live source placem
   project.sourceInstances[0] = { ...project.sourceInstances[0], pose: pose(9, 8, 7) };
   const text = serializeJureProjectModel(project);
   const parsed = parseJureProjectModel(text);
-  assert.deepEqual(parsed.sourceInstances[0].pose, pose(9, 8, 7));
-  assert.deepEqual(parsed.sourceAdoptions[0].source.sourceInstancePose, pose(1, 0, 0));
+  const liveWheelInstance = parsed.sourceInstances.find((instance) => instance.id === 'instance.wheel');
+  const wheelAdoption = parsed.sourceAdoptions.find((adoption) => adoption.id === 'adopt.wheel');
+  assert.ok(liveWheelInstance);
+  assert.ok(wheelAdoption);
+  assert.deepEqual(liveWheelInstance.pose, pose(9, 8, 7));
+  assert.deepEqual(wheelAdoption.source.sourceInstancePose, pose(1, 0, 0));
 });
 
 test('project parser rejects malformed top-level shapes', () => {
