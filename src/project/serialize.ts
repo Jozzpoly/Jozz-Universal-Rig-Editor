@@ -12,7 +12,19 @@ function canonicalizeProject(project: JureProjectModel): JureProjectModel {
     sourceRevisions: [...project.sourceRevisions].sort((a,b)=>a.id.localeCompare(b.id)).map((source)=>({ id:source.id,label:source.label,uri:source.uri,sha256:source.sha256,adapter:{id:source.adapter.id,version:source.adapter.version} })),
     sourceInstances: [...project.sourceInstances].sort((a,b)=>a.id.localeCompare(b.id)).map((instance)=>({ id:instance.id,name:instance.name,sourceRevisionId:instance.sourceRevisionId,pose:{ position:{x:instance.pose.position.x,y:instance.pose.position.y,z:instance.pose.position.z}, rotation:{x:instance.pose.rotation.x,y:instance.pose.rotation.y,z:instance.pose.rotation.z,w:instance.pose.rotation.w} } })),
     consumerReferences: [...project.consumerReferences].sort((a,b)=>a.id.localeCompare(b.id)).map((reference)=>({ id:reference.id,label:reference.label,consumer:{id:reference.consumer.id,revision:reference.consumer.revision},payloadLocator:reference.payloadLocator,payloadSha256:reference.payloadSha256 })),
-    sourceAdoptions: [...project.sourceAdoptions].sort((a,b)=>a.id.localeCompare(b.id)).map((adoption)=>({ id:adoption.id,sourceInstanceId:adoption.sourceInstanceId,locator:adoption.locator,target:{documentId:adoption.target.documentId,kind:adoption.target.kind,id:adoption.target.id} })),
+    sourceAdoptions: [...project.sourceAdoptions].sort((a,b)=>a.id.localeCompare(b.id)).map((adoption)=>({
+      id: adoption.id,
+      source: {
+        sourceInstanceId: adoption.source.sourceInstanceId,
+        sourceRevisionId: adoption.source.sourceRevisionId,
+        sourceInstancePose: {
+          position: { x: adoption.source.sourceInstancePose.position.x, y: adoption.source.sourceInstancePose.position.y, z: adoption.source.sourceInstancePose.position.z },
+          rotation: { x: adoption.source.sourceInstancePose.rotation.x, y: adoption.source.sourceInstancePose.rotation.y, z: adoption.source.sourceInstancePose.rotation.z, w: adoption.source.sourceInstancePose.rotation.w },
+        },
+        locator: adoption.source.locator,
+      },
+      target: { documentId:adoption.target.documentId,kind:adoption.target.kind,id:adoption.target.id },
+    })),
     authoredDocuments: [...project.authoredDocuments].sort((a,b)=>a.document.documentId.localeCompare(b.document.documentId)).map((authored)=> authored.kind==='rig'
       ? { kind:'rig', document:canonicalizeRigDocument(authored.document) }
       : { kind:'rig-representation', document:canonicalizeRigRepresentationDocument(authored.document) }),

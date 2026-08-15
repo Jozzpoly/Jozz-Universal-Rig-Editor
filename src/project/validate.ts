@@ -118,14 +118,22 @@ export function validateJureProjectModel(project: JureProjectModel): Diagnostic[
 
   for (const adoption of project.sourceAdoptions) {
     register(adoption.id, 'source adoption');
-    const instance = instanceById.get(adoption.sourceInstanceId);
-    if (!instance) { diagnostics.push({ code: 'project.adoption.instance.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing instance ${adoption.sourceInstanceId}.`, references: [adoption.id, adoption.sourceInstanceId] }); continue; }
+    const snapshot = adoption.source;
+    if (!snapshot || typeof snapshot !== 'object') {
+      diagnostics.push({ code: 'project.adoption.source.invalid', severity: 'error', message: `Source adoption ${adoption.id} is missing its source snapshot.`, references: [adoption.id] });
+      continue;
+    }
+    if (typeof snapshot.sourceInstanceId !== 'string' || snapshot.sourceInstanceId.trim().length === 0) diagnostics.push({ code: 'project.adoption.source-instance.invalid', severity: 'error', message: `Source adoption ${adoption.id} has an invalid source instance identity snapshot.`, references: [adoption.id] });
+    if (!sourceById.has(snapshot.sourceRevisionId)) diagnostics.push({ code: 'project.adoption.source-revision.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing exact source revision ${snapshot.sourceRevisionId}.`, references: [adoption.id, snapshot.sourceRevisionId] });
+    if (typeof snapshot.locator !== 'string' || snapshot.locator.trim().length === 0) diagnostics.push({ code: 'project.adoption.locator.invalid', severity: 'error', message: `Source adoption ${adoption.id} has an empty source locator snapshot.`, references: [adoption.id] });
+    if (!snapshot.sourceInstancePose || !poseFinite(snapshot.sourceInstancePose) || !quatNormalized(snapshot.sourceInstancePose.rotation)) diagnostics.push({ code: 'project.adoption.source-instance-pose.invalid', severity: 'error', message: `Source adoption ${adoption.id} has an invalid source instance pose snapshot.`, references: [adoption.id, snapshot.sourceInstanceId] });
+
     const rig = rigById.get(adoption.target.documentId);
     if (!rig) { diagnostics.push({ code: 'project.adoption.document.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing rig document ${adoption.target.documentId}.`, references: [adoption.id, adoption.target.documentId] }); continue; }
     const target = adoption.target.kind === 'element' ? rig.elements.find((element) => element.id === adoption.target.id) : rig.frames.find((frame) => frame.id === adoption.target.id);
     if (!target) { diagnostics.push({ code: 'project.adoption.target.missing', severity: 'error', message: `Source adoption ${adoption.id} references missing ${adoption.target.kind} ${adoption.target.id}.`, references: [adoption.id, adoption.target.id] }); continue; }
     if (!target.source) { diagnostics.push({ code: 'project.adoption.provenance.missing', severity: 'error', message: `Source adoption ${adoption.id} targets ${adoption.target.id} without exact kernel source provenance.`, references: [adoption.id, adoption.target.id] }); continue; }
-    if (target.source.sourceRevisionId !== instance.sourceRevisionId || target.source.locator !== adoption.locator) diagnostics.push({ code: 'project.adoption.provenance.mismatch', severity: 'error', message: `Source adoption ${adoption.id} disagrees with exact kernel provenance on ${adoption.target.id}.`, references: [adoption.id, adoption.target.id, adoption.sourceInstanceId] });
+    if (target.source.sourceRevisionId !== snapshot.sourceRevisionId || target.source.locator !== snapshot.locator) diagnostics.push({ code: 'project.adoption.provenance.mismatch', severity: 'error', message: `Source adoption ${adoption.id} disagrees with exact kernel provenance on ${adoption.target.id}.`, references: [adoption.id, adoption.target.id, snapshot.sourceInstanceId] });
   }
 
   for (const representation of representationDocuments) diagnostics.push(...validateRepresentationProjectReferences(representation, rigById, instanceById, sourceById));

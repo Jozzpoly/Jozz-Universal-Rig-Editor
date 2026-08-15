@@ -48,7 +48,11 @@ function projectFixture() {
       { id: 'instance.chassis', name: 'Chassis', sourceRevisionId: sourceB.id, pose: pose() },
     ],
     consumerReferences: [{ id: 'reference.jv', label: 'JV', consumer: { id: 'jv-web', revision: 'abc123' }, payloadLocator: 'reference/jv.json', payloadSha256: 'c'.repeat(64) }],
-    sourceAdoptions: [{ id: 'adopt.wheel', sourceInstanceId: 'instance.wheel', locator: 'gltf2.node:1', target: { documentId: rig.documentId, kind: 'element', id: 'element.wheel' } }],
+    sourceAdoptions: [{
+      id: 'adopt.wheel',
+      source: { sourceInstanceId: 'instance.wheel', sourceRevisionId: sourceA.id, sourceInstancePose: pose(1, 0, 0), locator: 'gltf2.node:1' },
+      target: { documentId: rig.documentId, kind: 'element', id: 'element.wheel' },
+    }],
     authoredDocuments: [{ kind: 'rig-representation', document: representation }, { kind: 'rig', document: rig }],
   };
 }
@@ -68,16 +72,20 @@ test('logical project serialization is deterministic across array ordering and r
   assert.equal(serializeJureProjectModel(parsed), once);
 });
 
-test('canonical project save strips unknown fields instead of carrying accidental JSON payload forward', () => {
+test('canonical project save preserves adoption snapshot while stripping accidental fields', () => {
   const project = projectFixture();
   project.sourceRevisions[0].debug = 'drop-me';
   project.sourceInstances[0].pose.position.debug = 'drop-me';
+  project.sourceAdoptions[0].source.debug = 'drop-me';
   const rig = project.authoredDocuments.find((entry) => entry.kind === 'rig').document;
   rig.elements[0].debug = 'drop-me';
   rig.relations[0].debug = 'drop-me';
   const text = serializeJureProjectModel(project);
   assert.equal(text.includes('drop-me'), false);
   assert.equal(text.includes('"debug"'), false);
+  const parsed = parseJureProjectModel(text);
+  assert.deepEqual(parsed.sourceAdoptions[0].source.sourceInstancePose, pose(1, 0, 0));
+  assert.equal(parsed.sourceAdoptions[0].source.sourceRevisionId, sourceA.id);
 });
 
 test('unknown relation type is rejected before canonicalization', () => {
@@ -103,10 +111,19 @@ test('unknown authored document kind is rejected rather than treated as represen
   assert.throws(() => serializeJureProjectModel(project), /project\.authored\.kind\.unsupported/);
 });
 
-test('exact source mismatch blocks serialization and requires explicit rebind', () => {
+test('exact source mismatch blocks live representation and requires explicit rebind', () => {
   const project = projectFixture();
   project.sourceInstances[0] = { ...project.sourceInstances[0], sourceRevisionId: sourceB.id };
   assert.throws(() => serializeJureProjectModel(project), /project\.representation\.source-revision\.mismatch/);
+});
+
+test('historical adoption snapshot remains serializable after live source placement changes', () => {
+  const project = projectFixture();
+  project.sourceInstances[0] = { ...project.sourceInstances[0], pose: pose(9, 8, 7) };
+  const text = serializeJureProjectModel(project);
+  const parsed = parseJureProjectModel(text);
+  assert.deepEqual(parsed.sourceInstances[0].pose, pose(9, 8, 7));
+  assert.deepEqual(parsed.sourceAdoptions[0].source.sourceInstancePose, pose(1, 0, 0));
 });
 
 test('project parser rejects malformed top-level shapes', () => {

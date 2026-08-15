@@ -19,10 +19,16 @@ export interface ConsumerReferenceSnapshot {
   payloadSha256: string;
 }
 
+export interface SourceAdoptionSourceSnapshot {
+  sourceInstanceId: string;
+  sourceRevisionId: string;
+  sourceInstancePose: RigidPose;
+  locator: string;
+}
+
 export interface SourceAdoptionRecord {
   id: string;
-  sourceInstanceId: string;
-  locator: string;
+  source: SourceAdoptionSourceSnapshot;
   target: {
     documentId: string;
     kind: 'element' | 'frame';
