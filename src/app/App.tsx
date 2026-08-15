@@ -127,7 +127,9 @@ export function App() {
     ? linkedSourceRuntimeForInstance(sourceRuntime, project, activeSourceInstance.id)
     : null;
   const sourceSelection = sourceRuntime.selection;
-  const selectedSourceLocator = sourceSelection?.sourceInstanceId === activeSourceInstance?.id
+  const selectedSourceLocator = sourceSelection !== null
+    && activeSourceInstance !== null
+    && sourceSelection.sourceInstanceId === activeSourceInstance.id
     ? sourceSelection.locator
     : null;
   const selectedSourceNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
