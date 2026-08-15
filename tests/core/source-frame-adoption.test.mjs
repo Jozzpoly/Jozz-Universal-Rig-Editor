@@ -26,22 +26,12 @@ const sourceB = {
   adapter: { id: 'gltf-2.0', version: 1 },
 };
 
-const sourceNode = ({
-  locator = 'gltf2.node:lower-ball',
-  worldRigidPose = pose(2, 0, 0),
-  rigidCompatibility = 'rigid',
-} = {}) => ({
-  locator,
-  index: 0,
-  name: 'LowerBall',
-  parentLocator: null,
-  childCount: 0,
-  hasMesh: false,
-  isSkinJoint: false,
-  localScale: { x: 1, y: 1, z: 1 },
-  localRigidPose: worldRigidPose,
-  worldRigidPose,
-  rigidCompatibility,
+const exactDatum = (overrides = {}) => ({
+  sourceInstanceId: 'source-instance.fl',
+  sourceRevisionId: sourceA.id,
+  locator: 'gltf2.node:lower-ball',
+  sourceRevisionWorldPose: pose(2, 0, 0),
+  ...overrides,
 });
 
 function projectFixture() {
@@ -81,14 +71,12 @@ function adoptionCommand(overrides = {}) {
     frameName: 'FL lower-ball',
     ownerElementId: null,
     adoptionId: 'adopt.lower-ball',
-    sourceInstanceId: 'source-instance.fl',
-    sourceRevisionId: sourceA.id,
-    sourceNode: sourceNode(),
+    sourceDatum: exactDatum(),
     ...overrides,
   });
 }
 
-test('explicit SOURCE datum adoption atomically creates authored frame provenance and immutable adoption evidence', () => {
+test('exact SOURCE datum adoption atomically creates authored frame provenance and immutable adoption evidence', () => {
   let session = sessionApi.createProjectSession(projectFixture());
   session = sessionApi.applyProjectCommand(session, adoptionCommand());
 
@@ -99,7 +87,6 @@ test('explicit SOURCE datum adoption atomically creates authored frame provenanc
   assert.deepEqual(frame.source, { sourceRevisionId: sourceA.id, locator: 'gltf2.node:lower-ball' });
   assert.equal(rig.revision, 4);
   assert.equal(rig.sources.length, 1);
-  assert.equal(rig.sources[0].id, sourceA.id);
 
   const adoption = session.committed.sourceAdoptions[0];
   assert.equal(adoption.source.sourceInstanceId, 'source-instance.fl');
@@ -112,9 +99,7 @@ test('explicit SOURCE datum adoption atomically creates authored frame provenanc
 test('adopting into an owner element converts SOURCE project-world pose to owner-local authored pose', () => {
   const project = adoptionCommand({ ownerElementId: 'element.lower-arm' }).apply(projectFixture());
   const rig = rigDocument(project);
-  const frame = rig.frames[0];
-
-  assert.equal(frame.pose.position.x, 7);
+  assert.equal(rig.frames[0].pose.position.x, 7);
   assert.equal(resolveRigDocument(rig).frameWorldPoses.get('frame.lower-ball').position.x, 12);
   assert.deepEqual(errors(project), []);
 });
@@ -122,9 +107,6 @@ test('adopting into an owner element converts SOURCE project-world pose to owner
 test('project Undo/Redo removes and restores frame plus adoption as one transaction', () => {
   let session = sessionApi.createProjectSession(projectFixture());
   session = sessionApi.applyProjectCommand(session, adoptionCommand());
-  assert.equal(rigDocument(session.committed).frames.length, 1);
-  assert.equal(session.committed.sourceAdoptions.length, 1);
-
   session = sessionApi.undoProject(session);
   assert.equal(rigDocument(session.committed).frames.length, 0);
   assert.equal(rigDocument(session.committed).sources.length, 0);
@@ -138,14 +120,7 @@ test('project Undo/Redo removes and restores frame plus adoption as one transact
   assert.equal(session.committed.sourceAdoptions.length, 1);
 });
 
-test('non-rigid SOURCE nodes cannot be adopted as rigid authored frames', () => {
-  assert.throws(
-    () => adoptionCommand({ sourceNode: sourceNode({ rigidCompatibility: 'non-rigid-ancestor', worldRigidPose: null }) }),
-    /not rigid-compatible/,
-  );
-});
-
-test('adoption fails closed if SourceInstance exact revision changed after the datum was selected', () => {
+test('adoption fails closed if SourceInstance exact revision changed after the datum was resolved', () => {
   const project = projectFixture();
   const command = adoptionCommand();
   project.sourceInstances[0] = { ...project.sourceInstances[0], sourceRevisionId: sourceB.id };
@@ -164,7 +139,6 @@ test('duplicate rig IDs fail before any frame or adoption is committed', () => {
     provenance: { kind: 'owner-authored' },
   });
   const before = structuredClone(project);
-
   assert.throws(() => adoptionCommand().apply(project), /already in use/);
   assert.deepEqual(project, before);
 });

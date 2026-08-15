@@ -1,7 +1,7 @@
 import { composePose, normalizeQuat, relativePose } from '../kernel/math.js';
 import type { RigidPose, RigFrame, SourceRevision } from '../kernel/types.js';
-import type { SourceNodeInspection } from '../source/types.js';
 import { createSourceAdoptionRecord } from './source-adoption.js';
+import type { ExactPlacedSourceDatum } from './source-datum.js';
 import type { JureProjectCommand } from './session.js';
 
 export interface AdoptSourceDatumAsFrameInput {
@@ -10,9 +10,7 @@ export interface AdoptSourceDatumAsFrameInput {
   frameName: string;
   ownerElementId: string | null;
   adoptionId: string;
-  sourceInstanceId: string;
-  sourceRevisionId: string;
-  sourceNode: SourceNodeInspection;
+  sourceDatum: ExactPlacedSourceDatum;
 }
 
 function cloneNormalizedPose(pose: RigidPose): RigidPose {
@@ -30,10 +28,9 @@ function sameExactSourceRevision(a: SourceRevision, b: SourceRevision): boolean 
 }
 
 export function adoptSourceDatumAsFrame(input: AdoptSourceDatumAsFrameInput): JureProjectCommand {
-  if (input.sourceNode.rigidCompatibility !== 'rigid' || !input.sourceNode.worldRigidPose) throw new Error(`SOURCE datum ${input.sourceNode.locator} is not rigid-compatible and cannot be adopted as a RigFrame.`);
-  if (input.sourceNode.locator.trim().length === 0) throw new Error('SOURCE datum locator must be non-empty.');
-  const sourceDatumRevisionWorldPose = cloneNormalizedPose(input.sourceNode.worldRigidPose);
-  const locator = input.sourceNode.locator;
+  if (input.sourceDatum.locator.trim().length === 0) throw new Error('SOURCE datum locator must be non-empty.');
+  const sourceDatumRevisionWorldPose = cloneNormalizedPose(input.sourceDatum.sourceRevisionWorldPose);
+  const locator = input.sourceDatum.locator;
 
   return {
     label: `Adopt SOURCE datum as frame: ${input.frameId}`,
@@ -46,11 +43,11 @@ export function adoptSourceDatumAsFrame(input: AdoptSourceDatumAsFrameInput): Ju
         throw new Error(`Project ID ${input.adoptionId} is already in use.`);
       }
 
-      const sourceRevision = project.sourceRevisions.find((source) => source.id === input.sourceRevisionId);
-      if (!sourceRevision) throw new Error(`SourceRevision ${input.sourceRevisionId} not found in project.`);
-      const sourceInstance = project.sourceInstances.find((instance) => instance.id === input.sourceInstanceId);
-      if (!sourceInstance) throw new Error(`SourceInstance ${input.sourceInstanceId} not found in project.`);
-      if (sourceInstance.sourceRevisionId !== input.sourceRevisionId) throw new Error(`SourceInstance ${input.sourceInstanceId} no longer uses exact revision ${input.sourceRevisionId}. Re-select the SOURCE datum.`);
+      const sourceRevision = project.sourceRevisions.find((source) => source.id === input.sourceDatum.sourceRevisionId);
+      if (!sourceRevision) throw new Error(`SourceRevision ${input.sourceDatum.sourceRevisionId} not found in project.`);
+      const sourceInstance = project.sourceInstances.find((instance) => instance.id === input.sourceDatum.sourceInstanceId);
+      if (!sourceInstance) throw new Error(`SourceInstance ${input.sourceDatum.sourceInstanceId} not found in project.`);
+      if (sourceInstance.sourceRevisionId !== input.sourceDatum.sourceRevisionId) throw new Error(`SourceInstance ${input.sourceDatum.sourceInstanceId} no longer uses exact revision ${input.sourceDatum.sourceRevisionId}. Re-select the SOURCE datum.`);
 
       let targetRigFound = false;
       let adoptedFrame: RigFrame | null = null;

@@ -1,4 +1,6 @@
+import { normalizeQuat } from '../../kernel/math.js';
 import type { JureProjectModel } from '../../project/types.js';
+import type { ExactPlacedSourceDatum } from '../../project/source-datum.js';
 import type { SourceInspection } from '../../source/types.js';
 
 export interface LinkedProjectSourceAsset {
@@ -77,6 +79,30 @@ export function linkedSourceRuntimeForInstance(
   return state.linkedAssets.find((asset) => asset.sourceRevisionId === instance.sourceRevisionId) ?? null;
 }
 
+export function resolveExactPlacedSourceDatum(
+  state: ProjectSourceRuntimeState,
+  project: JureProjectModel,
+  sourceInstanceId: string,
+  locator: string,
+): ExactPlacedSourceDatum {
+  const instance = project.sourceInstances.find((candidate) => candidate.id === sourceInstanceId);
+  if (!instance) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
+  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
+  if (!asset) throw new Error(`SourceRevision ${instance.sourceRevisionId} is not linked to runtime bytes.`);
+  const node = asset.inspection.nodes.find((candidate) => candidate.locator === locator);
+  if (!node) throw new Error(`SOURCE locator ${locator} is not present in linked revision ${instance.sourceRevisionId}.`);
+  if (node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) throw new Error(`SOURCE datum ${locator} is not rigid-compatible.`);
+  return {
+    sourceInstanceId,
+    sourceRevisionId: instance.sourceRevisionId,
+    locator,
+    sourceRevisionWorldPose: {
+      position: { ...node.worldRigidPose.position },
+      rotation: normalizeQuat(node.worldRigidPose.rotation),
+    },
+  };
+}
+
 export function selectProjectSourceDatum(
   state: ProjectSourceRuntimeState,
   project: JureProjectModel,
@@ -84,11 +110,7 @@ export function selectProjectSourceDatum(
   locator: string | null,
 ): ProjectSourceRuntimeState {
   if (locator === null) return { ...state, selection: null };
-  const instance = project.sourceInstances.find((candidate) => candidate.id === sourceInstanceId);
-  if (!instance) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
-  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
-  if (!asset) throw new Error(`SourceRevision ${instance.sourceRevisionId} is not linked to runtime bytes.`);
-  if (!asset.inspection.nodes.some((node) => node.locator === locator)) throw new Error(`SOURCE locator ${locator} is not present in linked revision ${instance.sourceRevisionId}.`);
+  resolveExactPlacedSourceDatum(state, project, sourceInstanceId, locator);
   return { ...state, selection: { sourceInstanceId, locator } };
 }
 
@@ -97,9 +119,10 @@ export function reconcileProjectSourceRuntimeState(
   project: JureProjectModel,
 ): ProjectSourceRuntimeState {
   if (!state.selection) return state;
-  const instance = project.sourceInstances.find((candidate) => candidate.id === state.selection?.sourceInstanceId);
-  if (!instance) return { ...state, selection: null };
-  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
-  if (!asset || !asset.inspection.nodes.some((node) => node.locator === state.selection?.locator)) return { ...state, selection: null };
-  return state;
+  try {
+    resolveExactPlacedSourceDatum(state, project, state.selection.sourceInstanceId, state.selection.locator);
+    return state;
+  } catch {
+    return { ...state, selection: null };
+  }
 }
