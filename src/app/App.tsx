@@ -126,8 +126,9 @@ export function App() {
   const sourceAsset = activeSourceInstance
     ? linkedSourceRuntimeForInstance(sourceRuntime, project, activeSourceInstance.id)
     : null;
-  const selectedSourceLocator = sourceRuntime.selection?.sourceInstanceId === activeSourceInstance?.id
-    ? sourceRuntime.selection.locator
+  const sourceSelection = sourceRuntime.selection;
+  const selectedSourceLocator = sourceSelection?.sourceInstanceId === activeSourceInstance?.id
+    ? sourceSelection.locator
     : null;
   const selectedSourceNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
   const sourceSelectionPose = activeSourceInstance && selectedSourceNode?.worldRigidPose
@@ -144,8 +145,9 @@ export function App() {
   }, [activeSourceInstance?.id, sourceAsset?.sourceRevisionId]);
 
   const adoptionPreview: SourceAdoptionPreviewView | null = useMemo(() => {
-    if (authoring.activeOperation?.kind !== 'source-frame-adoption') return null;
-    const frame = document.frames.find((candidate) => candidate.id === authoring.activeOperation?.frameId);
+    const operation = authoring.activeOperation;
+    if (operation?.kind !== 'source-frame-adoption') return null;
+    const frame = document.frames.find((candidate) => candidate.id === operation.frameId);
     if (!frame) return null;
     const owner = frame.ownerElementId ? document.elements.find((element) => element.id === frame.ownerElementId) ?? null : null;
     return { frameName: frame.name, ownerName: owner?.name ?? 'rig root' };
