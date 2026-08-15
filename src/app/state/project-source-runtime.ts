@@ -1,7 +1,7 @@
 import { normalizeQuat } from '../../kernel/math.js';
 import type { JureProjectModel } from '../../project/types.js';
 import type { ExactPlacedSourceDatum } from '../../project/source-datum.js';
-import type { SourceInspection } from '../../source/types.js';
+import type { SourceInspection, SourceNodeInspection } from '../../source/types.js';
 
 export interface LinkedProjectSourceAsset {
   sourceRevisionId: string;
@@ -94,26 +94,36 @@ export function linkedSourceRuntimeForInstance(
   return state.linkedAssets.find((asset) => asset.sourceRevisionId === instance.sourceRevisionId) ?? null;
 }
 
-export function resolveExactPlacedSourceDatum(
+function selectedSourceNode(
   state: ProjectSourceRuntimeState,
   project: JureProjectModel,
   sourceInstanceId: string,
   locator: string,
-): ExactPlacedSourceDatum {
+): { sourceRevisionId: string; node: SourceNodeInspection } {
   const instance = project.sourceInstances.find((candidate) => candidate.id === sourceInstanceId);
   if (!instance) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
   const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
   if (!asset) throw new Error(`SourceRevision ${instance.sourceRevisionId} is not linked to runtime bytes.`);
   const node = asset.inspection.nodes.find((candidate) => candidate.locator === locator);
   if (!node) throw new Error(`SOURCE locator ${locator} is not present in linked revision ${instance.sourceRevisionId}.`);
-  if (node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) throw new Error(`SOURCE datum ${locator} is not rigid-compatible.`);
+  return { sourceRevisionId: instance.sourceRevisionId, node };
+}
+
+export function resolveExactPlacedSourceDatum(
+  state: ProjectSourceRuntimeState,
+  project: JureProjectModel,
+  sourceInstanceId: string,
+  locator: string,
+): ExactPlacedSourceDatum {
+  const resolved = selectedSourceNode(state, project, sourceInstanceId, locator);
+  if (resolved.node.rigidCompatibility !== 'rigid' || !resolved.node.worldRigidPose) throw new Error(`SOURCE datum ${locator} is not rigid-compatible.`);
   return {
     sourceInstanceId,
-    sourceRevisionId: instance.sourceRevisionId,
+    sourceRevisionId: resolved.sourceRevisionId,
     locator,
     sourceRevisionWorldPose: {
-      position: { ...node.worldRigidPose.position },
-      rotation: normalizeQuat(node.worldRigidPose.rotation),
+      position: { ...resolved.node.worldRigidPose.position },
+      rotation: normalizeQuat(resolved.node.worldRigidPose.rotation),
     },
   };
 }
@@ -125,7 +135,7 @@ export function selectProjectSourceDatum(
   locator: string | null,
 ): ProjectSourceRuntimeState {
   if (locator === null) return { ...state, activeSourceInstanceId: sourceInstanceId, selection: null };
-  resolveExactPlacedSourceDatum(state, project, sourceInstanceId, locator);
+  selectedSourceNode(state, project, sourceInstanceId, locator);
   return { ...state, activeSourceInstanceId: sourceInstanceId, selection: { sourceInstanceId, locator } };
 }
 
@@ -137,11 +147,11 @@ export function reconcileProjectSourceRuntimeState(
     ? state.activeSourceInstanceId
     : null;
   if (!state.selection) return activeSourceInstanceId === state.activeSourceInstanceId ? state : { ...state, activeSourceInstanceId };
-  const instance = project.sourceInstances.find((candidate) => candidate.id === state.selection?.sourceInstanceId);
-  if (!instance) return { ...state, activeSourceInstanceId, selection: null };
-  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
-  if (!asset) return { ...state, activeSourceInstanceId, selection: null };
-  const node = asset.inspection.nodes.find((candidate) => candidate.locator === state.selection?.locator);
-  if (!node || node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) return { ...state, activeSourceInstanceId, selection: null };
+
+  const selectedInstance = project.sourceInstances.find((instance) => instance.id === state.selection?.sourceInstanceId);
+  if (!selectedInstance) return { ...state, activeSourceInstanceId, selection: null };
+  const linkedAsset = state.linkedAssets.find((asset) => asset.sourceRevisionId === selectedInstance.sourceRevisionId);
+  if (!linkedAsset) return { ...state, activeSourceInstanceId, selection: null };
+  if (!linkedAsset.inspection.nodes.some((node) => node.locator === state.selection?.locator)) return { ...state, activeSourceInstanceId, selection: null };
   return activeSourceInstanceId === state.activeSourceInstanceId ? state : { ...state, activeSourceInstanceId };
 }

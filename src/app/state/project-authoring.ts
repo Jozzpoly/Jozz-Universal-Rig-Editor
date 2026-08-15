@@ -13,6 +13,7 @@ import {
   undoProject,
   updateProjectPreview,
   visibleProject,
+  type JureProjectCommand,
   type ProjectSession,
 } from '../../project/session.js';
 import { applyRigCommandToProject, setSourceInstancePose } from '../../project/commands.js';
@@ -55,6 +56,12 @@ function initialRigTarget(document: RigDocument): TransformTarget | null {
   return element ? { kind: 'element', id: element.id } : null;
 }
 
+function reconcileRigSelection(state: ProjectAuthoringState): ProjectAuthoringState {
+  const document = rigDocument(visibleProject(state.session), state.rigDocumentId);
+  if (targetExists(document, state.selectedRigTarget)) return state;
+  return { ...state, selectedRigTarget: initialRigTarget(document) };
+}
+
 function assertNoOtherOperation(state: ProjectAuthoringState, expected?: ProjectAuthoringOperation): void {
   if (!state.activeOperation) return;
   if (expected?.kind === 'rig-transform' && state.activeOperation.kind === 'rig-transform' && sameTarget(expected.target, state.activeOperation.target)) return;
@@ -63,11 +70,7 @@ function assertNoOtherOperation(state: ProjectAuthoringState, expected?: Project
   throw new Error('Another project authoring operation is already active. Commit or cancel it first.');
 }
 
-export function createProjectAuthoringState(
-  project: JureProjectModel,
-  rigDocumentId: string,
-  selectedRigTarget?: TransformTarget | null,
-): ProjectAuthoringState {
+export function createProjectAuthoringState(project: JureProjectModel, rigDocumentId: string, selectedRigTarget?: TransformTarget | null): ProjectAuthoringState {
   const rig = rigDocument(project, rigDocumentId);
   const selected = selectedRigTarget === undefined ? initialRigTarget(rig) : selectedRigTarget;
   if (!targetExists(rig, selected)) throw new Error(`Initial rig target ${selected?.id ?? '<none>'} is not present in ${rigDocumentId}.`);
@@ -86,6 +89,11 @@ export function visibleProjectAuthoringRig(state: ProjectAuthoringState): RigDoc
   return rigDocument(visibleProjectAuthoringProject(state), state.rigDocumentId);
 }
 
+export function applyProjectAuthoringCommand(state: ProjectAuthoringState, command: JureProjectCommand): ProjectAuthoringState {
+  if (state.activeOperation) throw new Error('Cannot apply a durable project command while another project authoring operation is active.');
+  return reconcileRigSelection({ ...state, session: applyProjectCommand(state.session, command) });
+}
+
 export function selectProjectRigTarget(state: ProjectAuthoringState, target: TransformTarget | null): ProjectAuthoringState {
   if (!targetExists(visibleProjectAuthoringRig(state), target)) throw new Error(`Selected rig target ${target?.id ?? '<none>'} is not present in ${state.rigDocumentId}.`);
   return { ...state, selectedRigTarget: target };
@@ -96,12 +104,7 @@ export function beginProjectRigTransform(state: ProjectAuthoringState, target: T
   assertNoOtherOperation(state, expected);
   if (state.activeOperation) return state;
   if (!targetExists(visibleProjectAuthoringRig(state), target)) throw new Error(`Rig target ${target.id} is not present in ${state.rigDocumentId}.`);
-  return {
-    ...state,
-    selectedRigTarget: target,
-    activeOperation: expected,
-    session: beginProjectPreview(state.session, `Transform ${target.kind} ${target.id}`),
-  };
+  return { ...state, selectedRigTarget: target, activeOperation: expected, session: beginProjectPreview(state.session, `Transform ${target.kind} ${target.id}`) };
 }
 
 export function previewProjectRigTransform(state: ProjectAuthoringState, target: TransformTarget, worldPose: RigidPose): ProjectAuthoringState {
@@ -109,20 +112,12 @@ export function previewProjectRigTransform(state: ProjectAuthoringState, target:
   assertNoOtherOperation(startedState, { kind: 'rig-transform', target });
   const baselineRig = rigDocument(startedState.session.preview?.baseline ?? startedState.session.committed, state.rigDocumentId);
   const authoredPose = worldPoseToAuthoredPose(baselineRig, target, worldPose);
-  return {
-    ...startedState,
-    selectedRigTarget: target,
-    session: updateProjectPreview(startedState.session, applyRigCommandToProject(state.rigDocumentId, setTransformTargetPose(target, authoredPose))),
-  };
+  return { ...startedState, selectedRigTarget: target, session: updateProjectPreview(startedState.session, applyRigCommandToProject(state.rigDocumentId, setTransformTargetPose(target, authoredPose))) };
 }
 
 export function commitProjectRigPose(state: ProjectAuthoringState, target: TransformTarget, authoredPose: RigidPose): ProjectAuthoringState {
   if (state.activeOperation) throw new Error('Cannot commit a numeric rig pose while another project authoring operation is active.');
-  return {
-    ...state,
-    selectedRigTarget: target,
-    session: applyProjectCommand(state.session, applyRigCommandToProject(state.rigDocumentId, setTransformTargetPose(target, authoredPose))),
-  };
+  return reconcileRigSelection({ ...state, selectedRigTarget: target, session: applyProjectCommand(state.session, applyRigCommandToProject(state.rigDocumentId, setTransformTargetPose(target, authoredPose))) });
 }
 
 export function beginProjectSourceInstanceTransform(state: ProjectAuthoringState, sourceInstanceId: string): ProjectAuthoringState {
@@ -130,11 +125,7 @@ export function beginProjectSourceInstanceTransform(state: ProjectAuthoringState
   assertNoOtherOperation(state, expected);
   if (state.activeOperation) return state;
   if (!visibleProjectAuthoringProject(state).sourceInstances.some((instance) => instance.id === sourceInstanceId)) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
-  return {
-    ...state,
-    activeOperation: expected,
-    session: beginProjectPreview(state.session, `Transform SOURCE instance ${sourceInstanceId}`),
-  };
+  return { ...state, activeOperation: expected, session: beginProjectPreview(state.session, `Transform SOURCE instance ${sourceInstanceId}`) };
 }
 
 export function previewProjectSourceInstanceTransform(state: ProjectAuthoringState, sourceInstanceId: string, worldPose: RigidPose): ProjectAuthoringState {
@@ -149,21 +140,17 @@ export function beginProjectSourceFrameAdoption(state: ProjectAuthoringState, in
   assertNoOtherOperation(state, expected);
   if (state.activeOperation) return state;
   const started = beginProjectPreview(state.session, `Adopt SOURCE datum as frame ${input.frameId}`);
-  return {
-    ...state,
-    activeOperation: expected,
-    session: updateProjectPreview(started, adoptSourceDatumAsFrame(input)),
-  };
+  return { ...state, activeOperation: expected, session: updateProjectPreview(started, adoptSourceDatumAsFrame(input)) };
 }
 
 export function commitProjectAuthoringOperation(state: ProjectAuthoringState): ProjectAuthoringState {
   if (!state.activeOperation) return state;
-  return { ...state, activeOperation: null, session: commitProjectPreview(state.session) };
+  return reconcileRigSelection({ ...state, activeOperation: null, session: commitProjectPreview(state.session) });
 }
 
 export function cancelProjectAuthoringOperation(state: ProjectAuthoringState): ProjectAuthoringState {
   if (!state.activeOperation) return state;
-  return { ...state, activeOperation: null, session: cancelProjectPreview(state.session) };
+  return reconcileRigSelection({ ...state, activeOperation: null, session: cancelProjectPreview(state.session) });
 }
 
 export const commitProjectAuthoringTransform = commitProjectAuthoringOperation;
@@ -171,12 +158,12 @@ export const cancelProjectAuthoringTransform = cancelProjectAuthoringOperation;
 
 export function undoProjectAuthoring(state: ProjectAuthoringState): ProjectAuthoringState {
   if (state.activeOperation) return state;
-  return { ...state, session: undoProject(state.session) };
+  return reconcileRigSelection({ ...state, session: undoProject(state.session) });
 }
 
 export function redoProjectAuthoring(state: ProjectAuthoringState): ProjectAuthoringState {
   if (state.activeOperation) return state;
-  return { ...state, session: redoProject(state.session) };
+  return reconcileRigSelection({ ...state, session: redoProject(state.session) });
 }
 
 export function canUndoProjectAuthoring(state: ProjectAuthoringState): boolean {
