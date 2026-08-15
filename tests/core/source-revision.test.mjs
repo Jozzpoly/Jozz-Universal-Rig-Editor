@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const { createJureRigProject } = await import('../../.core-dist/project/create.js');
-const { registerSourceRevision, findExactSourceRevision } = await import('../../.core-dist/project/source-revision.js');
+const sessionApi = await import('../../.core-dist/project/session.js');
+const { registerSourceRevision, findExactSourceRevision, addSourceRevisionWithInstance } = await import('../../.core-dist/project/source-revision.js');
 
 const pose = () => ({ position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
 const rig = {
@@ -37,4 +38,22 @@ test('reusing a source ID for different exact bytes fails closed', () => {
     () => registerSourceRevision({ ...sourceA, sha256: 'b'.repeat(64) }).apply(project),
     /different exact bytes or adapter identity/,
   );
+});
+
+test('register revision plus first placed instance is one durable owner action and one Undo', () => {
+  let session = sessionApi.createProjectSession(createJureRigProject('project.source', rig));
+  session = sessionApi.applyProjectCommand(session, addSourceRevisionWithInstance(sourceA, {
+    id: 'source-instance.fl', name: 'FL source', sourceRevisionId: sourceA.id, pose: pose(),
+  }));
+
+  assert.equal(session.committed.sourceRevisions.length, 1);
+  assert.equal(session.committed.sourceInstances.length, 1);
+  assert.equal(session.past.length, 1);
+
+  session = sessionApi.undoProject(session);
+  assert.equal(session.committed.sourceRevisions.length, 0);
+  assert.equal(session.committed.sourceInstances.length, 0);
+  session = sessionApi.redoProject(session);
+  assert.equal(session.committed.sourceRevisions.length, 1);
+  assert.equal(session.committed.sourceInstances.length, 1);
 });

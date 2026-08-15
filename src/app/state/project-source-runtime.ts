@@ -18,6 +18,7 @@ export interface ProjectSourceDatumSelection {
 
 export interface ProjectSourceRuntimeState {
   linkedAssets: LinkedProjectSourceAsset[];
+  activeSourceInstanceId: string | null;
   selection: ProjectSourceDatumSelection | null;
 }
 
@@ -29,7 +30,21 @@ export interface SourceRuntimeAssetCandidate {
 }
 
 export function createProjectSourceRuntimeState(): ProjectSourceRuntimeState {
-  return { linkedAssets: [], selection: null };
+  return { linkedAssets: [], activeSourceInstanceId: null, selection: null };
+}
+
+export function activateProjectSourceInstance(
+  state: ProjectSourceRuntimeState,
+  project: JureProjectModel,
+  sourceInstanceId: string | null,
+): ProjectSourceRuntimeState {
+  if (sourceInstanceId === null) return { ...state, activeSourceInstanceId: null, selection: null };
+  if (!project.sourceInstances.some((instance) => instance.id === sourceInstanceId)) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
+  return {
+    ...state,
+    activeSourceInstanceId: sourceInstanceId,
+    selection: state.selection?.sourceInstanceId === sourceInstanceId ? state.selection : null,
+  };
 }
 
 export function linkExactSourceRuntimeAsset(
@@ -66,7 +81,7 @@ export function unlinkSourceRuntimeAsset(
   if (!state.selection) return { ...state, linkedAssets };
   const selectedInstance = project.sourceInstances.find((instance) => instance.id === state.selection?.sourceInstanceId);
   const selection = selectedInstance?.sourceRevisionId === sourceRevisionId ? null : state.selection;
-  return { linkedAssets, selection };
+  return { ...state, linkedAssets, selection };
 }
 
 export function linkedSourceRuntimeForInstance(
@@ -109,21 +124,24 @@ export function selectProjectSourceDatum(
   sourceInstanceId: string,
   locator: string | null,
 ): ProjectSourceRuntimeState {
-  if (locator === null) return { ...state, selection: null };
+  if (locator === null) return { ...state, activeSourceInstanceId: sourceInstanceId, selection: null };
   resolveExactPlacedSourceDatum(state, project, sourceInstanceId, locator);
-  return { ...state, selection: { sourceInstanceId, locator } };
+  return { ...state, activeSourceInstanceId: sourceInstanceId, selection: { sourceInstanceId, locator } };
 }
 
 export function reconcileProjectSourceRuntimeState(
   state: ProjectSourceRuntimeState,
   project: JureProjectModel,
 ): ProjectSourceRuntimeState {
-  if (!state.selection) return state;
+  const activeSourceInstanceId = state.activeSourceInstanceId && project.sourceInstances.some((instance) => instance.id === state.activeSourceInstanceId)
+    ? state.activeSourceInstanceId
+    : null;
+  if (!state.selection) return activeSourceInstanceId === state.activeSourceInstanceId ? state : { ...state, activeSourceInstanceId };
   const instance = project.sourceInstances.find((candidate) => candidate.id === state.selection?.sourceInstanceId);
-  if (!instance) return { ...state, selection: null };
+  if (!instance) return { ...state, activeSourceInstanceId, selection: null };
   const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
-  if (!asset) return { ...state, selection: null };
+  if (!asset) return { ...state, activeSourceInstanceId, selection: null };
   const node = asset.inspection.nodes.find((candidate) => candidate.locator === state.selection?.locator);
-  if (!node || node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) return { ...state, selection: null };
-  return state;
+  if (!node || node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) return { ...state, activeSourceInstanceId, selection: null };
+  return activeSourceInstanceId === state.activeSourceInstanceId ? state : { ...state, activeSourceInstanceId };
 }

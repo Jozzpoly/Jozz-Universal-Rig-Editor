@@ -1,6 +1,7 @@
 import type { SourceAdapterRef, SourceRevision } from '../kernel/types.js';
+import { addSourceInstance } from './commands.js';
 import type { JureProjectCommand } from './session.js';
-import type { JureProjectModel } from './types.js';
+import type { JureProjectModel, SourceInstance } from './types.js';
 
 function cloneSourceRevision(source: SourceRevision): SourceRevision {
   return {
@@ -39,11 +40,7 @@ function projectHasTopLevelIdOutsideSources(project: JureProjectModel, id: strin
     || project.authoredDocuments.some((authored) => authored.document.documentId === id);
 }
 
-export function findExactSourceRevision(
-  project: JureProjectModel,
-  sha256: string,
-  adapter: SourceAdapterRef,
-): SourceRevision | null {
+export function findExactSourceRevision(project: JureProjectModel, sha256: string, adapter: SourceAdapterRef): SourceRevision | null {
   const normalizedHash = sha256.toLowerCase();
   return project.sourceRevisions.find((source) => source.sha256.toLowerCase() === normalizedHash
     && source.adapter.id === adapter.id
@@ -65,6 +62,19 @@ export function registerSourceRevision(source: SourceRevision): JureProjectComma
       if (existingExact) throw new Error(`Exact SOURCE revision is already registered as ${existingExact.id}. Reuse that revision instead of creating ${snapshot.id}.`);
       if (projectHasTopLevelIdOutsideSources(project, snapshot.id)) throw new Error(`Project ID ${snapshot.id} is already in use.`);
       return { ...project, sourceRevisions: [...project.sourceRevisions, cloneSourceRevision(snapshot)] };
+    },
+  };
+}
+
+export function addSourceRevisionWithInstance(source: SourceRevision, instance: SourceInstance): JureProjectCommand {
+  if (instance.sourceRevisionId !== source.id) throw new Error(`SourceInstance ${instance.id} must reference SourceRevision ${source.id} for atomic add.`);
+  const register = registerSourceRevision(source);
+  const addInstance = addSourceInstance(instance);
+  return {
+    label: `Add SOURCE instance: ${instance.id}`,
+    apply(project) {
+      const withRevision = register.apply(project);
+      return addInstance.apply(withRevision);
     },
   };
 }
