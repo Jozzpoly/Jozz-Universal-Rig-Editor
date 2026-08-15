@@ -119,10 +119,11 @@ export function reconcileProjectSourceRuntimeState(
   project: JureProjectModel,
 ): ProjectSourceRuntimeState {
   if (!state.selection) return state;
-  try {
-    resolveExactPlacedSourceDatum(state, project, state.selection.sourceInstanceId, state.selection.locator);
-    return state;
-  } catch {
-    return { ...state, selection: null };
-  }
+  const instance = project.sourceInstances.find((candidate) => candidate.id === state.selection?.sourceInstanceId);
+  if (!instance) return { ...state, selection: null };
+  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
+  if (!asset) return { ...state, selection: null };
+  const node = asset.inspection.nodes.find((candidate) => candidate.locator === state.selection?.locator);
+  if (!node || node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) return { ...state, selection: null };
+  return state;
 }

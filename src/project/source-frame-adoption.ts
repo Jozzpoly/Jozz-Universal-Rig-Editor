@@ -13,7 +13,16 @@ export interface AdoptSourceDatumAsFrameInput {
   sourceDatum: ExactPlacedSourceDatum;
 }
 
+function nonEmpty(value: string): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function poseFinite(pose: RigidPose): boolean {
+  return [pose.position.x, pose.position.y, pose.position.z, pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w].every(Number.isFinite);
+}
+
 function cloneNormalizedPose(pose: RigidPose): RigidPose {
+  if (!poseFinite(pose)) throw new Error('SOURCE datum pose must be finite.');
   return {
     position: { ...pose.position },
     rotation: normalizeQuat(pose.rotation),
@@ -28,7 +37,9 @@ function sameExactSourceRevision(a: SourceRevision, b: SourceRevision): boolean 
 }
 
 export function adoptSourceDatumAsFrame(input: AdoptSourceDatumAsFrameInput): JureProjectCommand {
-  if (input.sourceDatum.locator.trim().length === 0) throw new Error('SOURCE datum locator must be non-empty.');
+  if (!nonEmpty(input.rigDocumentId) || !nonEmpty(input.frameId) || !nonEmpty(input.adoptionId)) throw new Error('Adoption requires non-empty rig, frame and adoption IDs.');
+  if (!nonEmpty(input.frameName)) throw new Error('Adopted RigFrame name must be non-empty.');
+  if (!nonEmpty(input.sourceDatum.sourceInstanceId) || !nonEmpty(input.sourceDatum.sourceRevisionId) || !nonEmpty(input.sourceDatum.locator)) throw new Error('Exact SOURCE datum identity is incomplete.');
   const sourceDatumRevisionWorldPose = cloneNormalizedPose(input.sourceDatum.sourceRevisionWorldPose);
   const locator = input.sourceDatum.locator;
 
@@ -66,9 +77,7 @@ export function adoptSourceDatumAsFrame(input: AdoptSourceDatumAsFrameInput): Ju
         if (input.ownerElementId !== null && !ownerElement) throw new Error(`Owner element ${input.ownerElementId} not found in ${input.rigDocumentId}.`);
 
         const sourceDatumProjectWorldPose = composePose(sourceInstance.pose, sourceDatumRevisionWorldPose);
-        const authoredPose = ownerElement
-          ? relativePose(ownerElement.pose, sourceDatumProjectWorldPose)
-          : sourceDatumProjectWorldPose;
+        const authoredPose = ownerElement ? relativePose(ownerElement.pose, sourceDatumProjectWorldPose) : sourceDatumProjectWorldPose;
 
         adoptedFrame = {
           id: input.frameId,
