@@ -2,7 +2,9 @@
 
 A small local web workbench for authoring rig intent without making source assets, renderer state, or runtime state the authored truth.
 
-Current foundation candidate supports first-class rigid `RigElement` and local `RigFrame` authoring through one selection/preview/commit interaction path, one `origin-coincident` relation, undo/redo, deterministic RigDocument serialization, guarded local save, and an optional local glTF/GLB **SOURCE-only** reference layer with deterministic read-only node inspection.
+Current owner-tested baseline supports first-class rigid `RigElement` and local `RigFrame` authoring through one selection/preview/commit interaction path, one `origin-coincident` relation, undo/redo, deterministic RigDocument serialization, guarded local save, a local glTF/GLB read-only SOURCE reference/inspection layer, and a viewport-first resizable workspace.
+
+The current `work/binding-foundation-a` branch also contains **BIND-00**, a deliberately transient representation-binding proof. It demonstrates that one exact glTF skin joint can be driven by an authored `RigElement` while SOURCE remains fixed, but it intentionally stores only one binding and is not a final/persistent representation model. See `docs/STATUS.md` before continuing this branch.
 
 ## Run
 
