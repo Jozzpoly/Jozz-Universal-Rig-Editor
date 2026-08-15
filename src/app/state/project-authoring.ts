@@ -23,7 +23,7 @@ import type { JureProjectModel } from '../../project/types.js';
 export type ProjectAuthoringOperation =
   | { kind: 'rig-transform'; target: TransformTarget }
   | { kind: 'source-instance-transform'; sourceInstanceId: string }
-  | { kind: 'source-frame-adoption'; frameId: string; adoptionId: string };
+  | { kind: 'source-frame-adoption'; frameId: string; adoptionId: string; previousSelection: TransformTarget | null };
 
 export interface ProjectAuthoringState {
   session: ProjectSession;
@@ -95,6 +95,11 @@ export function applyProjectAuthoringCommand(state: ProjectAuthoringState, comma
 }
 
 export function selectProjectRigTarget(state: ProjectAuthoringState, target: TransformTarget | null): ProjectAuthoringState {
+  // A SOURCE->frame adoption preview is an atomic proposal. Authored selection is
+  // deliberately frozen until the owner commits or cancels that proposal so the
+  // viewport cannot expose a conflicting rig transform while another operation owns
+  // the ProjectSession preview.
+  if (state.activeOperation?.kind === 'source-frame-adoption') return state;
   if (!targetExists(visibleProjectAuthoringRig(state), target)) throw new Error(`Selected rig target ${target?.id ?? '<none>'} is not present in ${state.rigDocumentId}.`);
   return { ...state, selectedRigTarget: target };
 }
@@ -136,11 +141,21 @@ export function previewProjectSourceInstanceTransform(state: ProjectAuthoringSta
 
 export function beginProjectSourceFrameAdoption(state: ProjectAuthoringState, input: AdoptSourceDatumAsFrameInput): ProjectAuthoringState {
   if (input.rigDocumentId !== state.rigDocumentId) throw new Error(`Adoption targets ${input.rigDocumentId}, but the active rig is ${state.rigDocumentId}.`);
-  const expected: ProjectAuthoringOperation = { kind: 'source-frame-adoption', frameId: input.frameId, adoptionId: input.adoptionId };
+  const expected: ProjectAuthoringOperation = {
+    kind: 'source-frame-adoption',
+    frameId: input.frameId,
+    adoptionId: input.adoptionId,
+    previousSelection: state.selectedRigTarget,
+  };
   assertNoOtherOperation(state, expected);
   if (state.activeOperation) return state;
   const started = beginProjectPreview(state.session, `Adopt SOURCE datum as frame ${input.frameId}`);
-  return { ...state, activeOperation: expected, session: updateProjectPreview(started, adoptSourceDatumAsFrame(input)) };
+  return {
+    ...state,
+    selectedRigTarget: null,
+    activeOperation: expected,
+    session: updateProjectPreview(started, adoptSourceDatumAsFrame(input)),
+  };
 }
 
 export function commitProjectAuthoringOperation(state: ProjectAuthoringState): ProjectAuthoringState {
@@ -149,8 +164,12 @@ export function commitProjectAuthoringOperation(state: ProjectAuthoringState): P
 }
 
 export function cancelProjectAuthoringOperation(state: ProjectAuthoringState): ProjectAuthoringState {
-  if (!state.activeOperation) return state;
-  return reconcileRigSelection({ ...state, activeOperation: null, session: cancelProjectPreview(state.session) });
+  const operation = state.activeOperation;
+  if (!operation) return state;
+  const selectedRigTarget = operation.kind === 'source-frame-adoption'
+    ? operation.previousSelection
+    : state.selectedRigTarget;
+  return reconcileRigSelection({ ...state, selectedRigTarget, activeOperation: null, session: cancelProjectPreview(state.session) });
 }
 
 export const commitProjectAuthoringTransform = commitProjectAuthoringOperation;
