@@ -22,6 +22,11 @@ interface InspectorPanelProps {
 const AXES = ['x', 'y', 'z'] as const;
 type Axis = typeof AXES[number];
 
+// BIND-00 remains historical proof code, but its transient representation UI is
+// deliberately hidden from the active RU-1 owner workflow. SOURCE -> AUTHORED
+// adoption is the only current owner-facing crossing.
+const SHOW_LEGACY_BINDING_PREVIEW = false;
+
 function commitOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
   if (event.key === 'Enter') event.currentTarget.blur();
 }
@@ -225,13 +230,15 @@ export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, s
           <div className="selection-pair"><span className="selection-mark authored" />Authored <span className="pair-connector">+</span><span className="selection-mark source" />Source <span className="pair-note">independent selections</span></div>
         ) : null}
         <SourceInspector selectedSourceNode={selectedSourceNode} selectedSourceWorldPose={selectedSourceWorldPose} sourceInstanceName={sourceInstanceName} onFocusSource={onFocusSource} />
-        <BindingPreviewAction
-          selectedElement={selectedElement}
-          selectedSourceNode={selectedSourceNode}
-          representationBinding={representationBinding}
-          onBindRepresentation={onBindRepresentation}
-          onClearRepresentationBinding={onClearRepresentationBinding}
-        />
+        {SHOW_LEGACY_BINDING_PREVIEW ? (
+          <BindingPreviewAction
+            selectedElement={selectedElement}
+            selectedSourceNode={selectedSourceNode}
+            representationBinding={representationBinding}
+            onBindRepresentation={onBindRepresentation}
+            onClearRepresentationBinding={onClearRepresentationBinding}
+          />
+        ) : null}
       </div>
     </div>
   );
