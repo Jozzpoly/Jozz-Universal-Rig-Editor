@@ -26,6 +26,12 @@ function sameExactSourceRevision(a: SourceRevision, b: SourceRevision): boolean 
     && a.adapter.version === b.adapter.version;
 }
 
+function sameExactBytesAndAdapter(a: SourceRevision, b: SourceRevision): boolean {
+  return a.sha256.toLowerCase() === b.sha256.toLowerCase()
+    && a.adapter.id === b.adapter.id
+    && a.adapter.version === b.adapter.version;
+}
+
 function projectHasTopLevelIdOutsideSources(project: JureProjectModel, id: string): boolean {
   return project.sourceInstances.some((instance) => instance.id === id)
     || project.consumerReferences.some((reference) => reference.id === id)
@@ -50,11 +56,13 @@ export function registerSourceRevision(source: SourceRevision): JureProjectComma
   return {
     label: `Register SOURCE revision: ${snapshot.id}`,
     apply(project) {
-      const existing = project.sourceRevisions.find((candidate) => candidate.id === snapshot.id);
-      if (existing) {
-        if (sameExactSourceRevision(existing, snapshot)) return project;
+      const existingById = project.sourceRevisions.find((candidate) => candidate.id === snapshot.id);
+      if (existingById) {
+        if (sameExactSourceRevision(existingById, snapshot)) return project;
         throw new Error(`SourceRevision ID ${snapshot.id} already exists with different exact bytes or adapter identity.`);
       }
+      const existingExact = project.sourceRevisions.find((candidate) => sameExactBytesAndAdapter(candidate, snapshot));
+      if (existingExact) throw new Error(`Exact SOURCE revision is already registered as ${existingExact.id}. Reuse that revision instead of creating ${snapshot.id}.`);
       if (projectHasTopLevelIdOutsideSources(project, snapshot.id)) throw new Error(`Project ID ${snapshot.id} is already in use.`);
       return { ...project, sourceRevisions: [...project.sourceRevisions, cloneSourceRevision(snapshot)] };
     },
