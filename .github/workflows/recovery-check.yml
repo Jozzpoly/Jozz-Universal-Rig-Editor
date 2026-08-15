@@ -48,6 +48,14 @@ jobs:
           fi
           echo "Browser probe executable: $CHROME"
           echo "JURE_CHROME_EXECUTABLE=$CHROME" >> "$GITHUB_ENV"
+
+          REAL_SOURCE="/tmp/OneSided_Steering_Suspension_Rig.gltf"
+          curl -fsSL "https://raw.githubusercontent.com/Jozzpoly/Box3d_FunProject/main/assets/source/OneSided_Steering_Suspension_Rig.gltf" -o "$REAL_SOURCE"
+          echo "57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750  $REAL_SOURCE" | sha256sum -c -
+          test "$(wc -c < "$REAL_SOURCE")" -eq 64264
+          echo "JURE_REAL_SOURCE_PATH=$REAL_SOURCE" >> "$GITHUB_ENV"
+          echo "JURE_SOURCE_DATUM_NAME=Chassis_Top" >> "$GITHUB_ENV"
+
           npm install --no-save --package-lock=false playwright-core@1.60.0
 
       - name: Browser adopted-frame transform probe
