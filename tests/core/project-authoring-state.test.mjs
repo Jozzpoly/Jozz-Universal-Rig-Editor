@@ -117,3 +117,47 @@ test('SOURCE datum adoption is a previewable atomic project operation with Commi
   assert.equal(rig(state).frames.some((frame) => frame.id === 'frame.adopted'), true);
   assert.equal(state.session.past.length, 1);
 });
+
+test('a freshly adopted frame can be transformed, undone and redone without breaking adoption evidence', () => {
+  let state = authoring.createProjectAuthoringState(projectFixture(), 'rig.vehicle', { kind: 'element', id: 'element.arm' });
+  const input = {
+    rigDocumentId: 'rig.vehicle',
+    frameId: 'frame.adopted',
+    frameName: 'Adopted datum',
+    ownerElementId: 'element.arm',
+    adoptionId: 'adopt.frame.adopted',
+    sourceDatum: {
+      sourceInstanceId: 'source-instance.fl',
+      sourceRevisionId: source.id,
+      locator: 'gltf2.node:datum',
+      sourceRevisionWorldPose: pose(12, 0, 0),
+    },
+  };
+
+  state = authoring.beginProjectSourceFrameAdoption(state, input);
+  state = authoring.commitProjectAuthoringOperation(state);
+  state = authoring.selectProjectRigTarget(state, { kind: 'frame', id: 'frame.adopted' });
+
+  state = authoring.previewProjectRigTransform(state, { kind: 'frame', id: 'frame.adopted' }, pose(14, 0, 0));
+  const previewFrame = rig(state).frames.find((frame) => frame.id === 'frame.adopted');
+  assert.equal(previewFrame.pose.position.x, 4);
+  assert.deepEqual(previewFrame.source, { sourceRevisionId: source.id, locator: 'gltf2.node:datum' });
+  assert.equal(state.session.committed.sourceAdoptions[0].source.sourceInstancePose.position.x, 0);
+
+  state = authoring.commitProjectAuthoringOperation(state);
+  assert.equal(rig(state).frames.find((frame) => frame.id === 'frame.adopted').pose.position.x, 4);
+  assert.equal(state.session.past.length, 2);
+
+  state = authoring.undoProjectAuthoring(state);
+  assert.equal(rig(state).frames.find((frame) => frame.id === 'frame.adopted').pose.position.x, 2);
+  assert.equal(state.session.committed.sourceAdoptions.length, 1);
+
+  state = authoring.undoProjectAuthoring(state);
+  assert.equal(rig(state).frames.some((frame) => frame.id === 'frame.adopted'), false);
+  assert.equal(state.session.committed.sourceAdoptions.length, 0);
+
+  state = authoring.redoProjectAuthoring(state);
+  assert.equal(rig(state).frames.find((frame) => frame.id === 'frame.adopted').pose.position.x, 2);
+  state = authoring.redoProjectAuthoring(state);
+  assert.equal(rig(state).frames.find((frame) => frame.id === 'frame.adopted').pose.position.x, 4);
+});
