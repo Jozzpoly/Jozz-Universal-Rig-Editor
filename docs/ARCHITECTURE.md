@@ -2,7 +2,7 @@
 
 The durable authority boundary is intentionally explicit:
 
-`SOURCE / CONSUMER REFERENCE -> explicit adoption/edit -> AUTHORED domain document -> resolved view -> representation/evaluation -> display / derived consumer export`
+`SOURCE / CONSUMER REFERENCE -> explicit adoption/edit -> AUTHORED domain documents -> resolved/evaluated views -> display / derived consumer export`
 
 Only an explicit authoring path may change authored truth. SOURCE loading, consumer-reference import, preview state, Three scene state, evaluated motion, and runtime observations never write back automatically.
 
@@ -15,9 +15,9 @@ Current project meanings:
 - `SourceInstance`: one placed use of an exact source revision with its own rigid pose. Several instances may reuse one revision.
 - `ConsumerReferenceSnapshot`: exact external consumer evidence. Its payload remains reference material, not authored kernel truth.
 - `SourceAdoptionRecord`: project-level evidence of which placed source instance + revision-local locator was explicitly used to produce an authored element/frame. Kernel provenance stays revision-local and does not depend on workspace state.
-- authored domain documents: currently `RigDocument`; future real tools may add another explicit domain kind without expanding `RigDocument` into a god schema.
+- authored domain documents: currently `RigDocument` and `RigRepresentationDocument`. Future real tools may add another explicit document kind without expanding either existing document into a god schema.
 
-Changing a source revision or re-registering an instance must fail closed against existing adoption/provenance claims. Moving a `SourceInstance` never moves authored rig data automatically.
+Changing a source revision or re-registering an instance must fail closed against existing adoption/provenance/representation claims. Moving a `SourceInstance` never moves authored rig data automatically.
 
 ## Rig kernel
 
@@ -40,17 +40,36 @@ The first real-consumer vocabulary is deliberately small:
 
 For axis-bearing `revolute` and `prismatic` relations, each participating `RigFrame` is the full joint datum: its origin is the anchor and local **+Z** is the primary DOF axis. Local X/Y retain the remaining orientation/reference basis. The axis is therefore derived from frame rotation rather than duplicated as another vector field.
 
+Authored neutral is the zero coordinate for revolute/prismatic intent. Optional limits are interpreted relative to that neutral, never relative to a transient runtime state.
+
 The kernel does not store masses, inertia, friction, spring Hertz/damping, motor/servo forces, tire/contact behavior, solver settings, or Box3D IDs. Those are consumer/runtime dynamics unless a later real authoring requirement proves otherwise.
 
 A separate `fixed` relation is intentionally absent for now: rigidly co-moving authored datums can live on one `RigElement`. Add a new relation type only when a real mechanism cannot be expressed cleanly with the existing vocabulary.
 
-## SOURCE and representation
+## SOURCE and authored representation
 
 Opening glTF/GLB creates independently inspectable, read-only SOURCE evidence. SOURCE selection is separate from authored selection.
 
-Source provenance, placed source instances, project-level adoption context, and representation binding are different semantics. A real assembly can require multiple representation mappings at once, including rigid parts and length-changing/deforming visuals such as springs, dampers, rods and cardans. Do not put representation scale/stretch into `RigElement` or `RigFrame` rigid pose.
+Source provenance, placed source instances, project-level adoption context, and authored representation are different semantics. Do not put visual scale/stretch/deformation into `RigElement` or `RigFrame` rigid pose.
 
-BIND-00 remains prototype evidence only. Its one-global-binding state and its exact skin-joint mapping are not a persistent representation contract.
+`RigRepresentationDocument` is a separate authored document tied to one `RigDocument`. It is project-contextual by design because representation connects authored rig datums to exact placed source data.
+
+Every representation target captures:
+- `sourceInstanceId` — which placed use is being represented;
+- `sourceRevisionId` — the exact revision against which locators are meaningful;
+- `targetLocator` — the exact source object/node to drive.
+
+The initial representation vocabulary is geometric correspondence rather than renderer behavior copied from JV:
+- `rigid`: one exact source datum corresponds to one authored `RigElement` or `RigFrame`; the exact source asset supplies the target<->datum rest relationship;
+- `aim`: a source anchor/aim pair corresponds to two authored frames and is transformed rigidly, suitable for endpoint pieces that must point at the other end without changing length;
+- `span`: a source start/end pair corresponds to two authored frames and permits representation-only axial deformation between them;
+- optional roll correspondence supplies a third source datum + authored frame when two points are insufficient to determine orientation, as in roll-pinned wishbone cases.
+
+These mappings can coexist arbitrarily; there is no singleton representation slot. Exact locator existence and non-rigid source compatibility are source-adapter/evaluation concerns, not reasons to import glTF/Three ontology into the kernel.
+
+BIND-00 remains prototype evidence only. Its successful exact skin-joint drive is covered conceptually by `rigid`; its one-global-binding storage model remains falsified.
+
+New deformation types may be added to the representation domain when a real asset requires them (for example a non-affine spring/skin deformation) without changing `RigDocument`, the project authority model, or consumer physics semantics.
 
 ## Editor and evaluation
 
@@ -68,7 +87,7 @@ The first motion path is kinematic. Test/evaluation must be resettable without m
 
 ## Display / consumer boundary
 
-`authored domain document -> resolved view -> representation/evaluated poses -> Three / consumer adapter`
+`authored domain documents -> resolved/evaluated views -> representation output -> Three / consumer adapter`
 
 Three is an adapter. Renderer objects are disposable and contain no authored authority. Camera/navigation is inspection infrastructure and must not inherit gameplay camera clamps.
 
