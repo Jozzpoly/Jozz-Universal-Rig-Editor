@@ -83,15 +83,32 @@ Result: **KEEP logical layered bundle; CHANGE project layer; DEFER physical cont
 
 ### FC-2 — project / authority contract / ACTIVE
 
-The next implementation slice must be smaller than a package system. Define and test only the project-layer identities required by FC-1:
+Slice A is implemented on commit `61d3d42897196333acef7372568c28a1e01cd7a6` as a pure `src/project` model with no React, Three or browser dependency.
 
-1. exact `SourceRevision` identity remains immutable evidence;
-2. add a distinct placed `SourceInstance` concept outside renderer state;
-3. represent consumer-reference snapshot identity without treating its payload as authored kernel data;
-4. define a minimal project manifest that references authored domain documents rather than absorbing them;
-5. keep physical bundle storage and representation-binding persistence out of this slice.
+Implemented:
+- `JureProjectModel` remains a logical in-memory/project contract, not a physical archive format;
+- exact `SourceRevision` records are project-level evidence;
+- `SourceInstance` gives each placed use independent identity + rigid pose while reusing an exact revision;
+- `ConsumerReferenceSnapshot` identifies external consumer evidence without importing its payload into the authored rig kernel;
+- authored project documents are currently an explicit `kind: 'rig'` union member, leaving future real domains to extend the union rather than adding generic `unknown` payloads;
+- project validation cross-checks authored RigDocument source records against project exact revision identity and fails closed on missing/changed revisions.
 
-FC-2 exit gate: a pure data-model test must represent one source revision placed four times, a provisional JV reference snapshot, and one authored `RigDocument`; replacing the source revision must not silently retarget any instance/provenance claim. No React/Three/browser dependency is allowed in this contract.
+Synthetic validation for slice A:
+- isolated TypeScript compile: PASS (available environment TypeScript 5.8.3; repository canonical dependency is TypeScript 7.0.2, so this is not the canonical full typecheck);
+- 4 project-contract tests: PASS;
+  1. one exact source revision backs four independent placed instances;
+  2. replacing the revision ID leaves existing instances/authored provenance unresolved rather than retargeted;
+  3. changing exact bytes under the same source ID is rejected against authored provenance;
+  4. consumer REFERENCE can coexist without becoming part of RigDocument.
+- full repository `npm run check`: NOT CLAIMED in the current execution environment because canonical repo dependencies are not installed here.
+
+New FC-2 design pressure discovered by the multi-instance case:
+- current kernel `SourceBinding { sourceRevisionId, locator }` identifies exact source datum provenance but cannot distinguish *which placed SourceInstance* was used when the same revision exists several times;
+- do not add `sourceInstanceId` blindly. First test explicit source-instance -> authored-frame adoption/rebind semantics, because instance placement may belong in project-level adoption evidence rather than every kernel provenance record.
+
+Result so far: **KEEP project layer + exact fail-closed identity; KEEP FC-2 OPEN for instance-aware provenance/adoption semantics.**
+
+Next FC-2 gate: design two minimal provenance/adoption alternatives (kernel binding becomes instance-aware vs project-level adoption record preserves instance context), run both through four-wheel reuse + source re-registration/rebind, then implement only the smaller model that preserves exact recovery without coupling RigDocument to workspace/render state.
 
 ## BIND-00 result
 
