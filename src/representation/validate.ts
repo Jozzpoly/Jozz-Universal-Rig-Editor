@@ -35,6 +35,10 @@ export function validateRigRepresentationDocument(document: RigRepresentationDoc
       locator(binding.sourceEndLocator, binding.id, 'source end locator');
       if (!nonEmpty(binding.rigStartFrameId) || !nonEmpty(binding.rigEndFrameId)) diagnostics.push({ code: 'representation.rig-span.invalid', severity: 'error', message: `Span representation ${binding.id} has incomplete rig frame correspondence.`, references: [binding.id] });
       if (binding.roll && (!nonEmpty(binding.roll.sourceLocator) || !nonEmpty(binding.roll.rigFrameId))) diagnostics.push({ code: 'representation.roll.invalid', severity: 'error', message: `Span representation ${binding.id} has incomplete roll correspondence.`, references: [binding.id] });
+    } else {
+      const unknown = binding as unknown as { id?: unknown; type?: unknown };
+      const id = typeof unknown.id === 'string' ? unknown.id : '<unknown>';
+      diagnostics.push({ code: 'representation.binding.type.unsupported', severity: 'error', message: `Representation binding ${id} has unsupported type ${String(unknown.type)}.`, references: id === '<unknown>' ? [] : [id] });
     }
   }
   return diagnostics;

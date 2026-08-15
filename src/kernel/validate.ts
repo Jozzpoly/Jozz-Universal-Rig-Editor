@@ -67,6 +67,12 @@ export function validateRigDocument(doc: RigDocument): Diagnostic[] {
       case 'distance-range':
         if (!Number.isFinite(relation.minLengthM) || !Number.isFinite(relation.maxLengthM) || relation.minLengthM < 0 || relation.minLengthM > relation.maxLengthM) diagnostics.push({ code: 'relation.distance-range.limits.invalid', severity: 'error', message: `Distance-range relation ${relation.id} has invalid length limits.`, references: [relation.id] });
         break;
+      default: {
+        const unknown = relation as unknown as { id?: unknown; type?: unknown };
+        const id = typeof unknown.id === 'string' ? unknown.id : '<unknown>';
+        diagnostics.push({ code: 'relation.type.unsupported', severity: 'error', message: `Relation ${id} has unsupported type ${String(unknown.type)}.`, references: id === '<unknown>' ? [] : [id] });
+        break;
+      }
     }
   }
   return diagnostics;
