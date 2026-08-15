@@ -23,4 +23,4 @@ function runNode(args) {
 }
 
 runNode([tscCli, '-p', 'tests/core/tsconfig.json', '--pretty', 'false']);
-runNode(['--test', 'tests/core/core.test.mjs', 'tests/core/representation-binding.test.mjs', 'tests/core/project-contract.test.mjs', 'tests/core/mechanical-relations.test.mjs', 'tests/core/representation-contract.test.mjs', 'tests/core/evaluation-boundary.test.mjs', 'tests/core/roundtrip-contract.test.mjs', 'tests/core/rig-authoring-state.test.mjs', 'tests/core/source-runtime-state.test.mjs']);
+runNode(['--test', 'tests/core/core.test.mjs', 'tests/core/representation-binding.test.mjs', 'tests/core/project-contract.test.mjs', 'tests/core/mechanical-relations.test.mjs', 'tests/core/representation-contract.test.mjs', 'tests/core/evaluation-boundary.test.mjs', 'tests/core/roundtrip-contract.test.mjs', 'tests/core/rig-authoring-state.test.mjs', 'tests/core/source-runtime-state.test.mjs', 'tests/core/rig-workspace-state.test.mjs']);
