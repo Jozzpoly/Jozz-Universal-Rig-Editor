@@ -77,13 +77,28 @@ Selection/transform targets are editor concepts: `RigElement | RigFrame`, not ne
 
 An authored drag is `committed -> preview -> commit/cancel`. The gizmo manipulates an ephemeral world-space proxy. Element world pose writes to the element rigid pose; frame world pose is converted back to its owner-local pose. Moving an element therefore moves its resolved frames while preserving their authored local poses.
 
-Workspace state such as selection, camera, panel layout, layers, transient SOURCE preview, loaded external bytes, and future TEST state is not serialized into `RigDocument`.
+Workspace state such as selection, camera, panel layout, layers, transient SOURCE preview, loaded external bytes, and TEST state is not serialized into `RigDocument`.
 
-Future motion testing must preserve:
+Motion testing preserves:
 
 `AUTHORED NEUTRAL != transient EVALUATED motion`
 
-The first motion path is kinematic. Test/evaluation must be resettable without mutating authored neutral truth. JURE should expose a small evaluator boundary rather than grow a generic physics framework without a demonstrated authoring need.
+`RigTestState` and `RigEvaluator` are separate from authored documents. Evaluators return revision-bound transient pose overrides; stale or invalid results fail closed. Reset removes evaluator influence rather than writing neutral poses back into the document. The concrete solver remains replaceable.
+
+## Editor state ownership
+
+The application shell must compose explicit owners rather than become the semantic owner of every subsystem.
+
+Current boundaries:
+- **durable project/authored state** — `JureProjectModel`, `RigDocument`, and `RigRepresentationDocument`; domain truth is validated/serialized outside React;
+- **rig authoring interaction** — `RigAuthoringState` owns `EditorSession`, authored selection, preview/commit/cancel and undo/redo. `App` requests authoring operations but does not implement their mutation semantics;
+- **SOURCE runtime** — `SourceRuntimeState` owns the currently loaded inspectable source and SOURCE selection. Browser object-URL cleanup is lifecycle glue around that runtime state and is never authored truth;
+- **TEST/evaluation** — `RigTestState` is transient and separate from authoring history;
+- **file session** — file handle/baseline hash belongs to IO/session orchestration and is not serialized into authored documents;
+- **presentation/workspace** — camera preset, transform display mode, panel/layout state, layer visibility and fit/focus requests are disposable presentation state;
+- **BIND-00 preview** — legacy transient proof state only. It may remain in the current engineering harness until replacement UI exists, but it is not an owner or extension point for the final representation architecture.
+
+`App.tsx` may coordinate these owners and derive display data, but new domain mutation rules must not be implemented directly in `App`. A future UI redesign may replace the component structure and presentation state wholesale without changing the project/kernel/representation/evaluation contracts.
 
 ## Display / consumer boundary
 
