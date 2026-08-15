@@ -38,3 +38,44 @@ jobs:
 
       - name: Canonical JURE check
         run: npm run check
+
+      - name: Prepare browser owner-path probe
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No system Chrome/Chromium executable is available on this runner."
+            exit 1
+          fi
+          echo "Browser probe executable: $CHROME"
+          echo "JURE_CHROME_EXECUTABLE=$CHROME" >> "$GITHUB_ENV"
+          npm install --no-save --package-lock=false playwright-core@1.60.0
+
+      - name: Browser adopted-frame transform probe
+        continue-on-error: true
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/jure-browser-vite.log 2>&1 &
+          VITE_PID=$!
+          cleanup() {
+            status=$?
+            trap - EXIT
+            kill "$VITE_PID" 2>/dev/null || true
+            echo "--- Vite browser-probe log ---"
+            cat /tmp/jure-browser-vite.log || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "Vite browser probe did not become ready."
+            exit 1
+          fi
+
+          node scripts/browser-owner-path-smoke.mjs
