@@ -79,7 +79,6 @@ export function RigNavigator({ document, selectedTarget, visible, layers, onVisi
         {layerToggle('elements', 'Elements')}
         {layerToggle('frames', 'Frames')}
         {layerToggle('relations', 'Relations')}
-        {layerToggle('bound', 'Bound')}
       </div>
       <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter rig…" />
       <div className="navigator-tree">
