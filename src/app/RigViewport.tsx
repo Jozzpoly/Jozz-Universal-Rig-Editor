@@ -4,12 +4,6 @@ import type { TransformTarget } from '../editor/transform-target.js';
 import type { RigidPose } from '../kernel/types.js';
 import { RigViewportController, type CameraPreset, type SourcePlacementView, type ViewFitTarget } from '../render/rig-viewport-controller.js';
 
-export interface RepresentationBindingView {
-  sourceLocator: string;
-  sourceNodeIndex: number;
-  worldPose: RigidPose;
-}
-
 interface RigViewportProps {
   model: RigDisplayModel;
   rigVisible: boolean;
@@ -22,8 +16,6 @@ interface RigViewportProps {
   sourceGeometryVisible: boolean;
   sourceDatumVisible: boolean;
   sourceSelectionPose: RigidPose | null;
-  representationBinding: RepresentationBindingView | null;
-  boundRepresentationVisible: boolean;
   viewRequest: { id: number; target: ViewFitTarget } | null;
   onSelect(target: TransformTarget | null): void;
   onTransformStart(target: TransformTarget): void;
@@ -57,8 +49,6 @@ export function RigViewport(props: RigViewportProps) {
   useEffect(() => { controllerRef.current?.setSourcePlacement(props.sourcePlacement ?? null); }, [props.sourcePlacement?.sourceInstanceId, props.sourcePlacement?.editActive, props.sourcePlacement?.pose]);
   useEffect(() => { controllerRef.current?.setSourceDatumVisible(props.sourceDatumVisible); }, [props.sourceDatumVisible]);
   useEffect(() => { controllerRef.current?.setSourceSelection(props.sourceSelectionPose); }, [props.sourceSelectionPose]);
-  useEffect(() => { controllerRef.current?.setBoundRepresentationVisible(props.boundRepresentationVisible); }, [props.boundRepresentationVisible]);
-  useEffect(() => { controllerRef.current?.setBoundRepresentationPose(props.representationBinding?.worldPose ?? null); }, [props.representationBinding?.worldPose]);
   useEffect(() => {
     if (props.viewRequest) controllerRef.current?.fitView(props.viewRequest.target);
   }, [props.viewRequest?.id]);
@@ -73,17 +63,6 @@ export function RigViewport(props: RigViewportProps) {
       controller.clearSourceAsset();
     }
   }, [props.sourceAssetUrl]);
-  useEffect(() => {
-    const controller = controllerRef.current;
-    if (!controller) return;
-    if (props.sourceAssetUrl && props.representationBinding) {
-      void controller.showBoundRepresentation(props.sourceAssetUrl, props.representationBinding.sourceNodeIndex).catch((error: unknown) => {
-        console.error('JURE BIND-00 representation load failed', error);
-      });
-    } else {
-      controller.clearBoundRepresentation();
-    }
-  }, [props.sourceAssetUrl, props.representationBinding?.sourceLocator, props.representationBinding?.sourceNodeIndex]);
 
   return <div className="viewport" ref={hostRef} />;
 }
