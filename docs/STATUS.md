@@ -5,9 +5,9 @@
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest validated product SHA:** `d35a80c8498bea96ad30131e6e4a23b9c8abfaa5`;
-- **latest frozen checkpoint:** `checkpoint/real-jv-source-element-origin-2026-08-16@d35a80c8498bea96ad30131e6e4a23b9c8abfaa5`;
-- **checkpoint browser run:** `31953557146` — Linux Chrome PASS + Windows Chrome PASS;
+- **latest validated product SHA:** `4fc36d2b8430bfd699c4699500c7bb273ebe60d7`;
+- **latest frozen checkpoint:** `checkpoint/real-jv-rigid-geometry-construction-points-2026-08-16@4fc36d2b8430bfd699c4699500c7bb273ebe60d7`;
+- **checkpoint browser run:** `31954362885` — Linux Chrome PASS + Windows Chrome PASS;
 - **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`.
 
 The active product line was intentionally created from the exact clean candidate rather than from `main`. `main` remains untouched. PR #2 retains recovery/foundation evidence; PR #3 remains the explicit clean promotion candidate. Neither PR #3 nor PR #4 may be merged merely because CI is green.
@@ -23,28 +23,29 @@ JV/JV-Web is the first real consumer/falsifier. Native JV and later JV/VAW exper
 The active line now demonstrates:
 
 - rigid `RigElement` and owner-local/root `RigFrame` authoring;
-- Owner-facing free `RigElement` creation with deterministic IDs, immediate selection and one chronological Undo/Redo action;
-- **exact SOURCE datum -> new authored `RigElement` origin** as one atomic project operation;
-- immutable `SourceAdoptionRecord(kind: 'element')` plus exact kernel SOURCE provenance on that element;
+- free Owner-facing `RigElement` creation with deterministic IDs, selection and chronological Undo/Redo;
+- exact SOURCE datum -> new authored `RigElement` origin as one atomic project operation;
+- immutable `SourceAdoptionRecord(kind: 'element')` plus exact kernel SOURCE provenance;
 - exact SOURCE datum -> authored `RigFrame` adoption into a selected element;
 - correct conversion from exact SOURCE project-world pose to owner-local authored frame pose;
+- **geometry-derived point construction datums from conservatively recovered rigid skin geometry**;
+- explicit point-only semantics for those construction datums: position is derived, mechanical orientation is not invented;
 - Move/Rotate, world/local and numeric XYZ-degree editing over quaternion storage;
 - one chronological `ProjectSession` history for SOURCE placement and authored project changes;
 - exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
 - deterministic logical project save/open and exact SOURCE relink boundaries;
-- separate provisional mechanical-relation, representation and AUTHOR/TEST domains;
-- viewport-first resizable/collapsible engineering workspace.
+- separate provisional mechanical-relation, representation and AUTHOR/TEST domains.
 
-Canonical validation at `d35a80c...`:
+Canonical validation at `4fc36d2...`:
 
 - Node `24.16.0` / npm `11.17.0`;
 - locked `npm ci`: PASS;
 - TypeScript: PASS;
-- **21 core test files / 108 PASS / 0 FAIL**;
+- **23 core test files / 113 PASS / 0 FAIL**;
 - Vite production build: PASS;
-- Work check run `31953534580`: PASS.
+- Work check run `31954326144`: PASS.
 
-The Vite build still reports the existing >500 kB minified main-chunk warning. It is tracked as a non-blocking presentation/build debt, not a reason to interrupt real rig authoring before measured need.
+The existing >500 kB minified main-chunk warning remains non-blocking build debt; it is not evidence to interrupt current real rig authoring.
 
 ## Exact real-SOURCE rendered evidence
 
@@ -55,54 +56,62 @@ Pinned SOURCE:
 - Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`;
 - SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
 - size: 64,264 bytes;
-- inspected structure used by the current probes: 15 nodes / 14 joints / 1 skinned mesh.
+- current inspection: 15 nodes / 14 joints / 1 skinned mesh.
 
-Checkpoint run `31953557146` protects the same exact owner path on Linux Chrome and Windows Chrome. Both platforms passed:
+Checkpoint run `31954362885` passes on Linux Chrome and Windows Chrome. Both platform logs contain:
 
-1. free Owner `+ Element -> Create -> Undo -> Redo`;
-2. exact SOURCE open and SourceInstance placement -> Undo -> Redo;
-3. select exact `Chassis_Bottom`;
-4. **Create element at datum** -> a new authored element receives the exact SOURCE-derived origin/pose and immutable provenance;
-5. Undo removes that element+adoption atomically and Redo restores them;
-6. select exact child datum `Socket_SingleDamperLower`;
-7. Preview/Commit the datum as an authored frame owned by the SOURCE-derived element;
-8. verify the authored owner-local translation is exactly `[-1.125, 0, -0.8125]`, matching the exact glTF parent-child transform despite prior movement of the whole SourceInstance;
-9. transform the freshly adopted frame and Undo restores the authored pose;
-10. adoption-preview transform-lock regression remains PASS;
-11. runtime fault / `pageerror` / unexpected `console.error` remain fail-closed.
+`REAL_SOURCE_CONSTRUCTION_X_ENDS_PASS`
 
-Both Linux and Windows logs contain:
+with **14 total construction points** and identical exact wishbone-piece X endpoints:
 
-`SOURCE_DERIVED_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`
+```text
+Chassis_Top   X min = [-0.8125, 0.96875, 0]
+Chassis_Top   X max = [ 0.5,    0.96875, 0]
+Chassis_Bottom X min = [-0.8125, 0.03125, 0]
+Chassis_Bottom X max = [ 0.5,    0.03125, 0]
+```
 
-`REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS [ -1.125, 0, -0.8125 ]`
+The construction rows point back to exact SOURCE joint nodes `gltf2.node:3` (`Chassis_Top`) and `gltf2.node:5` (`Chassis_Bottom`) and use versioned derived locators such as:
 
-`BROWSER_REAL_OWNER_PATH_SMOKE_PASS`
+`gltf2.derived:rigid-x-end-v1:gltf2.node%3A5:max`
 
-This is the first exact real-JV proof that JURE can derive a new element origin from SOURCE, preserve SOURCE placement as separate state, and recover an exact child interface as owner-local authored rig truth.
+The workbench deliberately renders these as **read-only geometry-derived construction points**. They are not selectable as authored rigid frames and explicitly state that no authored/mechanical orientation is claimed.
 
-## Durable ownership / cleanup state
+The same checkpoint also preserves all earlier real-owner-path evidence:
 
-The active tree intentionally keeps one current path for each responsibility:
+- `ADOPTION_PREVIEW_TRANSFORM_LOCK_PASS`;
+- `OWNER_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
+- `SOURCE_DERIVED_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
+- `REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS [ -1.125, 0, -0.8125 ]`;
+- `BROWSER_REAL_OWNER_PATH_SMOKE_PASS`.
 
-- `ProjectSession` — single durable preview/Undo/Redo history;
-- `ProjectAuthoringState` — active operation + authored selection orchestration;
-- `ProjectSourceRuntimeState` — exact linked SOURCE bytes, active instance and SOURCE selection;
-- `RigCommand` — pure authored-rig mutation contract, not a second session;
-- `src/features/rig-elements/*` — free element creation mutation;
-- `src/project/source-element-adoption.ts` — atomic exact SOURCE -> element adoption;
-- `src/app/state/rig-element-workflow.ts` — Owner ID allocation and project-level free/SOURCE-derived element creation;
-- `src/project/source-frame-adoption.ts` — exact SOURCE -> frame adoption;
-- representation and evaluation remain outside authored `RigDocument` truth.
+## Why construction points were justified
 
-Historical `EditorSession`, `RigAuthoringState`, singleton SOURCE state, FC-8 workspace state and active BIND-00 runtime/UI remain removed. Do not reconstruct them as alternate APIs.
+Current JV S2 evidence falsified the assumption that the `Chassis_Top` / `Chassis_Bottom` node origins are the real wishbone hinge/end hardpoints. The current source-registration tooling recovers the relevant inboard/outboard points from rigid-part geometry X extremes instead.
+
+That was the concrete missing-datum case required by the JURE plan before adding any construction geometry. JURE therefore implemented only the demonstrated need: deterministic rigid-geometry X-end points. It did **not** add an arbitrary vertex picker or generic CAD/construction subsystem.
+
+The glTF extractor is conservative:
+
+- rigid one-joint skin ownership is accepted;
+- soft/mixed weights do not yield construction datums;
+- mixed-owner triangles do not yield construction datums;
+- external-buffer glTF remains inspectable but does not pretend unavailable geometry-derived points exist.
+
+## Durable semantic boundary
+
+A construction **point** is not a `RigFrame`.
+
+The real wishbone hinge now has evidence for its origin, but a revolute relation requires an oriented frame whose local `+Z` defines its primary axis. JURE must not obtain that orientation by copying an arbitrary node quaternion or assigning identity.
+
+Current JV S2 provides a useful falsifier for the next step: it combines the exact suspension-travel direction with the geometry-derived arm axial direction and forms the wishbone spread/hinge direction by a cross product. That relationship must be independently encoded and validated in JURE before any first real revolute relation is authored.
 
 ## Current product limitations
 
 - UI exposes one active SourceInstance context even though the project model supports multiple placed instances.
-- Element authoring is still intentionally small: create/name/source-derived origin/selection/history; no dedicated rename/delete/reparent information architecture yet.
-- We have proven one exact parent-child component structure from the real JV SOURCE, but **have not yet declared its final mechanical meaning solely from node names or secondary contracts**.
-- There is no arbitrary surface/vertex picking or virtual/derived construction-datum workflow yet.
+- Element authoring remains intentionally small: create/name/source-derived origin/selection/history; no dedicated rename/delete/reparent information architecture yet.
+- Construction points are currently inspection-only; no constructed oriented frame workflow exists yet.
+- There is no arbitrary surface/vertex picking because no current real need justifies it.
 - Mechanical relation enum/axis conventions are provisional.
 - Representation is separated correctly but its exact `rigid/aim/span/...` vocabulary and Owner workflow remain provisional.
 - AUTHOR/TEST separation exists, but no final kinematic evaluator/solver is architecture yet.
@@ -111,28 +120,28 @@ Historical `EditorSession`, `RigAuthoringState`, singleton SOURCE state, FC-8 wo
 
 ## Next falsifier
 
-The next slice is **not** “implement the whole suspension”. The next task is to identify and author the smallest second real component/interface for which the exact SOURCE plus justified owner/secondary evidence supports one mechanical relation.
+Build the **smallest evidence-backed oriented construction frame** needed for the first real wishbone hinge, without yet creating the whole suspension.
 
 Required sequence:
 
-1. inspect the exact SOURCE hierarchy, sockets and axis nodes around `Chassis_Bottom`, `Chassis_Top`, `Socket_ChassisMount_a`, `Socket_ChassisMount_b`, `Socket_WheelCenter` and the suspension-travel axes;
-2. separate exact SOURCE facts from the current JV secondary semantic contract and from provisional M6 runtime assumptions;
-3. choose the smallest pair of authored elements/frames that can support one neutral mechanical relation without inventing missing geometry;
-4. encode that relation through the existing `RigDocument` relation vocabulary only if the real mechanism fits it;
-5. test world/local invariants, project history and validation before adding UI or evaluator behavior;
-6. return to the exact rendered SOURCE only when the relation has a real spatial consequence worth validating.
+1. treat geometry X-end point as hinge-origin evidence only;
+2. derive the arm axial direction from the matching geometry min/max endpoints;
+3. derive the SOURCE up/travel direction from exact `Axis_SuspensionTravel_Bottom -> Axis_SuspensionTravel_Top`;
+4. verify the two directions are finite, non-degenerate and orthogonal within a strict tolerance on the exact real asset;
+5. derive the hinge/spread axis by cross product;
+6. construct one deterministic right-handed rigid frame with explicit component provenance and local `+Z` equal to that hinge axis;
+7. only after core + real-source validation allow that full construction frame to cross into authored `RigFrame` truth;
+8. then test whether one real `revolute` relation genuinely fits the mechanism.
 
-A concrete missing hardpoint is the trigger for virtual/derived construction-datum work. Do not build arbitrary picking or generic construction geometry speculatively.
-
-Do not simultaneously implement final representation, consumer export or kinematic solver. Let the real JV mechanism falsify each abstraction as it is introduced.
+Do not infer final meaning solely from node names, copy the full JV M6 topology, or implement final representation/export/solver in the same slice.
 
 ## Owner/promotion boundary
 
 Useful later Owner checks, not current technical blockers:
 
-- judgement of the `+ Element` and `Create element at datum` interaction in the engineering workspace;
-- `Save As -> reopen -> exact SOURCE relink` with real authored component data;
-- spatial/mechanical judgement once the first relation connects two real components.
+- judgement of free element, SOURCE-derived element and future construction-frame interactions;
+- `Save As -> reopen -> exact SOURCE relink` with real authored mechanism data;
+- spatial/mechanical judgement once the first relation connects real components.
 
 Before any promotion to `main`, independently resolve draft PR #3 and exact `4db04eee...`, compare it with `main`, keep PR #2 as recovery evidence, and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
