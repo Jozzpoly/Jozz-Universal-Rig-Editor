@@ -11,7 +11,11 @@ if (!sourcePath) throw new Error('JURE_REAL_SOURCE_PATH is required.');
 const browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const pageErrors = [];
+const consoleErrors = [];
 page.on('pageerror', (error) => pageErrors.push(error.stack ?? error.message));
+page.on('console', (message) => {
+  if (message.type() === 'error') consoleErrors.push(message.text());
+});
 
 function cameraForViewport(box) {
   const camera = new THREE.PerspectiveCamera(46, box.width / box.height, 0.01, 1000);
@@ -80,6 +84,7 @@ try {
   const fault = await runtimeFault();
   if (fault) throw new Error(`Adoption preview transform attempt crashed the workbench:\n${fault}`);
   if (pageErrors.length > 0) throw new Error(`Adoption preview transform attempt emitted pageerror:\n${pageErrors.join('\n---\n')}`);
+  if (consoleErrors.length > 0) throw new Error(`Adoption preview transform attempt emitted console.error:\n${consoleErrors.join('\n---\n')}`);
   if (!(await page.getByRole('button', { name: 'Commit frame' }).isVisible().catch(() => false))) {
     throw new Error('Adoption preview disappeared after a transform attempt; expected preview to remain safely active.');
   }
