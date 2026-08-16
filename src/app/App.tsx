@@ -53,7 +53,7 @@ import './styles.css';
 
 interface ProjectFileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
 
-const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true, bound: false };
+const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true };
 const DEFAULT_SOURCE_LAYERS: SourceLayerVisibility = { geometry: true, datum: true };
 const INITIAL_PROJECT = createJureRigProject('project.synthetic', SYNTHETIC_RIG);
 
@@ -417,8 +417,6 @@ export function App() {
             sourceGeometryVisible={sourceGeometryVisible}
             sourceDatumVisible={sourceDatumVisible}
             sourceSelectionPose={sourceSelectionPose}
-            representationBinding={null}
-            boundRepresentationVisible={false}
             viewRequest={viewRequest}
             onSelect={handleSelectTarget}
             onTransformStart={handleTransformStart}
