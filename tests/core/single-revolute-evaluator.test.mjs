@@ -35,6 +35,14 @@ function documentFixture({ limits, movingFramePose = pose(-1, 0, 0), fixedFrameP
   };
 }
 
+function rolledNeutralFixture() {
+  const document = documentFixture();
+  document.elements[0].pose = pose();
+  document.frames[0].pose = pose(1, 0, 0, qz(Math.PI / 4));
+  document.frames[1].pose = pose(1, 0, 0);
+  return document;
+}
+
 function close(actual, expected, tolerance = 1e-10) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} != ${expected}`);
 }
@@ -71,6 +79,29 @@ test('single-revolute evaluator applies one transient DOF around fixed hinge +Z 
   assert.deepEqual(relationPrimaryAxisWorld(fixedHinge), { x: 0, y: 0, z: 1 });
   assert.equal(state.result.diagnostics[0].code, 'evaluation.single-revolute.applied');
   assert.equal(JSON.stringify(document), authoredBefore, 'TEST evaluation must not mutate AUTHORED document');
+});
+
+test('single-revolute evaluator preserves a legal neutral frame roll instead of projecting it away', () => {
+  const document = rolledNeutralFixture();
+  const authoredBefore = JSON.stringify(document);
+  const evaluator = createSingleRevoluteEvaluator({ relationId: 'relation.hinge', movingElementId: 'element.arm' });
+
+  const zero = evaluator.evaluate({ document, controls: { 'relation.hinge.angle-rad': 0 } });
+  const zeroView = resolveRigPoseView(document, zero);
+  closePose(zeroView.elementWorldPoses.get('element.arm'), document.elements[0].pose);
+  closePose(zeroView.frameWorldPoses.get('frame.arm.hinge'), document.frames[0].pose);
+
+  const rotated = evaluator.evaluate({ document, controls: { 'relation.hinge.angle-rad': Math.PI / 2 } });
+  const rotatedView = resolveRigPoseView(document, rotated);
+  const movingHinge = rotatedView.frameWorldPoses.get('frame.arm.hinge');
+  const fixedHinge = rotatedView.frameWorldPoses.get('frame.chassis.hinge');
+  close(movingHinge.position.x, fixedHinge.position.x);
+  close(movingHinge.position.y, fixedHinge.position.y);
+  close(movingHinge.position.z, fixedHinge.position.z);
+  closePose(movingHinge, pose(1, 0, 0, qz(3 * Math.PI / 4)));
+  assert.deepEqual(relationPrimaryAxisWorld(movingHinge), { x: 0, y: 0, z: 1 });
+  assert.deepEqual(relationPrimaryAxisWorld(fixedHinge), { x: 0, y: 0, z: 1 });
+  assert.equal(JSON.stringify(document), authoredBefore, 'TEST roll-preservation must not mutate AUTHORED document');
 });
 
 test('zero-angle evaluation reproduces authored pose and Reset removes all evaluator influence', () => {
