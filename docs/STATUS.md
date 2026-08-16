@@ -5,49 +5,53 @@
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest validated product SHA:** `4fc36d2b8430bfd699c4699500c7bb273ebe60d7`;
-- **latest frozen checkpoint:** `checkpoint/real-jv-rigid-geometry-construction-points-2026-08-16@4fc36d2b8430bfd699c4699500c7bb273ebe60d7`;
-- **checkpoint browser run:** `31954362885` — Linux Chrome PASS + Windows Chrome PASS;
-- **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`.
+- **latest fully validated product SHA:** `b94f17e4bc2b89e9dd2c30993d9875039f3bdc4f`;
+- **latest frozen checkpoint:** `checkpoint/real-jv-wishbone-recipe-reresolve-2026-08-16@b94f17e4bc2b89e9dd2c30993d9875039f3bdc4f`;
+- **checkpoint browser run:** `31957259877` — Linux Chrome PASS + Windows Chrome PASS;
+- **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`;
+- **newer work beyond the validated checkpoint:** Owner-facing construction-frame recipe UI; canonical Work check is required and rendered acceptance remains pending until a later checkpoint.
 
-The active product line was intentionally created from the exact clean candidate rather than from `main`. `main` remains untouched. PR #2 retains recovery/foundation evidence; PR #3 remains the explicit clean promotion candidate. Neither PR #3 nor PR #4 may be merged merely because CI is green.
+`main` remains untouched. PR #2 retains full recovery/foundation evidence; PR #3 remains the explicit clean promotion boundary. Neither PR #3 nor PR #4 may be merged merely because CI is green.
+
+A disrupted session briefly wrote PR text that referred to nonexistent `a2a394dd...` / run `31955493157`. Those identifiers are not authority and must not be reused. Live GitHub evidence was reconstructed before continuing.
 
 ## Product purpose
 
-JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express mechanical and representation intent, test a mechanism without mutating authored neutral truth, and hand a small reliable result to a consumer without agent-side coordinate guessing.
+JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express neutral mechanical and representation intent, test mechanisms without mutating authored neutral truth, save/reopen deterministically and export a small reliable result to a consumer without agent-side coordinate guessing.
 
-JV/JV-Web is the first real consumer/falsifier. Native JV and later JV/VAW experiments should remain possible without making JURE vehicle-specific or turning it into a generic framework.
+JV/JV-Web is the first real consumer/falsifier. The architecture must remain useful for later native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs or thrusters without turning JURE into a vehicle-specific editor or generic simulation framework.
 
-## Demonstrated product foundation
+## Demonstrated foundation
 
-The active line now demonstrates:
+The validated line now demonstrates:
 
 - rigid `RigElement` and owner-local/root `RigFrame` authoring;
-- free Owner-facing `RigElement` creation with deterministic IDs, selection and chronological Undo/Redo;
-- exact SOURCE datum -> new authored `RigElement` origin as one atomic project operation;
-- immutable `SourceAdoptionRecord(kind: 'element')` plus exact kernel SOURCE provenance;
-- exact SOURCE datum -> authored `RigFrame` adoption into a selected element;
-- correct conversion from exact SOURCE project-world pose to owner-local authored frame pose;
-- **geometry-derived point construction datums from conservatively recovered rigid skin geometry**;
-- explicit point-only semantics for those construction datums: position is derived, mechanical orientation is not invented;
-- Move/Rotate, world/local and numeric XYZ-degree editing over quaternion storage;
-- one chronological `ProjectSession` history for SOURCE placement and authored project changes;
-- exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
-- deterministic logical project save/open and exact SOURCE relink boundaries;
-- separate provisional mechanical-relation, representation and AUTHOR/TEST domains.
+- Owner-facing free `RigElement` creation with deterministic IDs, selection and chronological Undo/Redo;
+- exact rigid SOURCE datum -> new authored `RigElement` origin with immutable provenance;
+- exact rigid SOURCE datum -> authored owner-local `RigFrame` adoption;
+- geometry-derived **point-only** construction datums recovered conservatively from rigid skin geometry;
+- generic right-handed constructed frames derived from origin point + radial endpoint + independent up span;
+- local `+Z` as the explicit primary axis for current axis-bearing experiments;
+- versioned self-resolving construction-frame locators containing all exact component locators;
+- exact runtime re-resolution of those locators only from linked exact SOURCE bytes;
+- transactional constructed-frame adoption through the existing `ProjectSession` path;
+- deterministic Save/Open preserving the construction locator in `RigFrame.source` and `SourceAdoptionRecord`;
+- exact relink followed by deterministic re-resolution without a parallel recipe database;
+- one chronological `ProjectSession` history for SOURCE placement and authored changes;
+- separate mechanical-relation, representation and AUTHOR/TEST domains.
 
-Canonical validation at `4fc36d2...`:
+Canonical validation at `b94f17e4...`:
 
 - Node `24.16.0` / npm `11.17.0`;
 - locked `npm ci`: PASS;
 - TypeScript: PASS;
-- **23 core test files / 113 PASS / 0 FAIL**;
+- **25 core test files / 122 PASS / 0 FAIL**;
 - Vite production build: PASS;
-- Work check run `31954326144`: PASS.
+- exact checkpoint run `31957259877`: Linux PASS + Windows PASS.
 
-The existing >500 kB minified main-chunk warning remains non-blocking build debt; it is not evidence to interrupt current real rig authoring.
+The existing >500 kB minified main-chunk warning remains non-blocking build debt.
 
-## Exact real-SOURCE rendered evidence
+## Exact real JV SOURCE evidence
 
 Pinned SOURCE:
 
@@ -56,94 +60,89 @@ Pinned SOURCE:
 - Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`;
 - SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
 - size: 64,264 bytes;
-- current inspection: 15 nodes / 14 joints / 1 skinned mesh.
+- inspected structure used by the current probes: 15 nodes / 14 joints / 1 skinned mesh.
 
-Checkpoint run `31954362885` passes on Linux Chrome and Windows Chrome. Both platform logs contain:
-
-`REAL_SOURCE_CONSTRUCTION_X_ENDS_PASS`
-
-with **14 total construction points** and identical exact wishbone-piece X endpoints:
+The exact geometry-derived wishbone points remain:
 
 ```text
-Chassis_Top   X min = [-0.8125, 0.96875, 0]
-Chassis_Top   X max = [ 0.5,    0.96875, 0]
+Chassis_Top    X min = [-0.8125, 0.96875, 0]
+Chassis_Top    X max = [ 0.5,    0.96875, 0]
 Chassis_Bottom X min = [-0.8125, 0.03125, 0]
 Chassis_Bottom X max = [ 0.5,    0.03125, 0]
 ```
 
-The construction rows point back to exact SOURCE joint nodes `gltf2.node:3` (`Chassis_Top`) and `gltf2.node:5` (`Chassis_Bottom`) and use versioned derived locators such as:
+Current JV S2 evidence for this exact unmirrored left fixture establishes max-X as the inboard/chassis end and min-X as the wheel/outboard end. This ordering is **fixture evidence**, not a generic JURE assumption.
 
-`gltf2.derived:rigid-x-end-v1:gltf2.node%3A5:max`
+Using exact `Axis_SuspensionTravel_Bottom -> Axis_SuspensionTravel_Top` as the independent up span, the validated self-resolving recipes reconstruct:
 
-The workbench deliberately renders these as **read-only geometry-derived construction points**. They are not selectable as authored rigid frames and explicitly state that no authored/mechanical orientation is claimed.
+```text
+upper hinge origin = [0.5, 0.96875, 0]
+lower hinge origin = [0.5, 0.03125, 0]
+local +X           = [1, 0, 0]
+local +Y           = [0, 1, 0]
+local +Z           = [0, 0, 1]
+quaternion         = [0, 0, 0, 1]
+orthogonality err = 0
+```
 
-The same checkpoint also preserves all earlier real-owner-path evidence:
+Both Linux and Windows logs for run `31957259877` contain:
+
+`REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS`
+
+The lower hinge recipe is additionally adopted, serialized, reopened, exact-relinked and re-resolved while preserving the same self-describing locator. The same checkpoint preserves earlier browser evidence:
 
 - `ADOPTION_PREVIEW_TRANSFORM_LOCK_PASS`;
+- `REAL_SOURCE_CONSTRUCTION_X_ENDS_PASS`;
 - `OWNER_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
 - `SOURCE_DERIVED_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
 - `REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS [ -1.125, 0, -0.8125 ]`;
 - `BROWSER_REAL_OWNER_PATH_SMOKE_PASS`.
 
-## Why construction points were justified
+## Semantic boundaries
 
-Current JV S2 evidence falsified the assumption that the `Chassis_Top` / `Chassis_Bottom` node origins are the real wishbone hinge/end hardpoints. The current source-registration tooling recovers the relevant inboard/outboard points from rigid-part geometry X extremes instead.
+A construction **point** is not a frame. A constructed frame exists only when independent evidence supplies enough information for a rigid orientation and the complete derivation can be re-resolved from the exact `SourceRevision`.
 
-That was the concrete missing-datum case required by the JURE plan before adding any construction geometry. JURE therefore implemented only the demonstrated need: deterministic rigid-geometry X-end points. It did **not** add an arbitrary vertex picker or generic CAD/construction subsystem.
+The self-resolving recipe locator is subordinate SOURCE evidence, not authored authority and not a new asset database. Once explicitly adopted, the resulting `RigFrame` is Owner-authored truth; SOURCE provenance records where its measured proposal came from and does not create writeback authority.
 
-The glTF extractor is conservative:
-
-- rigid one-joint skin ownership is accepted;
-- soft/mixed weights do not yield construction datums;
-- mixed-owner triangles do not yield construction datums;
-- external-buffer glTF remains inspectable but does not pretend unavailable geometry-derived points exist.
-
-## Durable semantic boundary
-
-A construction **point** is not a `RigFrame`.
-
-The real wishbone hinge now has evidence for its origin, but a revolute relation requires an oriented frame whose local `+Z` defines its primary axis. JURE must not obtain that orientation by copying an arbitrary node quaternion or assigning identity.
-
-Current JV S2 provides a useful falsifier for the next step: it combines the exact suspension-travel direction with the geometry-derived arm axial direction and forms the wishbone spread/hinge direction by a cross product. That relationship must be independently encoded and validated in JURE before any first real revolute relation is authored.
+No real `revolute` is authored yet. The wishbone-side hinge frame is grounded, but the second authored body/frame at the same physical hinge still requires independent justification. Inventing that second side merely to create a relation would weaken the evidence model.
 
 ## Current product limitations
 
-- UI exposes one active SourceInstance context even though the project model supports multiple placed instances.
-- Element authoring remains intentionally small: create/name/source-derived origin/selection/history; no dedicated rename/delete/reparent information architecture yet.
-- Construction points are currently inspection-only; no constructed oriented frame workflow exists yet.
-- There is no arbitrary surface/vertex picking because no current real need justifies it.
-- Mechanical relation enum/axis conventions are provisional.
-- Representation is separated correctly but its exact `rigid/aim/span/...` vocabulary and Owner workflow remain provisional.
-- AUTHOR/TEST separation exists, but no final kinematic evaluator/solver is architecture yet.
-- There is no JURE -> JV-Web consumer export/adapter yet.
-- Current layout is an engineering harness, not final information architecture.
+- UI exposes one active `SourceInstance` context even though the project model supports multiple instances.
+- Element authoring remains intentionally small; rename/delete/reparent information architecture is not final.
+- The validated constructed-frame recipe/re-resolution path is domain/runtime proven; the newer Owner-facing recipe builder still requires rendered browser validation before it becomes a product claim.
+- No arbitrary surface/vertex picker exists because current real work has not justified one.
+- Mechanical relation vocabulary/axis conventions remain provisional.
+- Representation separation is strong, but the exact Owner workflow and `rigid/aim/span/...` vocabulary remain provisional.
+- No final kinematic evaluator/solver architecture exists.
+- No JURE -> JV-Web consumer export/adapter exists yet.
+- Current layout remains an engineering harness, not final information architecture.
 
 ## Next falsifier
 
-Build the **smallest evidence-backed oriented construction frame** needed for the first real wishbone hinge, without yet creating the whole suspension.
+Finish the smallest **Owner-reviewable construction-frame workflow** over the already validated recipe model:
 
-Required sequence:
+1. Owner selects origin point, radial endpoint, exact up-start and exact up-end from one linked exact SOURCE revision;
+2. JURE displays the resulting origin, local axes, algorithm/version and recipe provenance before any authored mutation;
+3. invalid/degenerate/non-orthogonal evidence fails visibly and cannot be previewed;
+4. with one authored `RigElement` selected, explicit Preview enters the existing `source-frame-adoption` operation;
+5. Commit creates the frame + adoption evidence atomically; Cancel creates neither;
+6. rendered browser proof on the real JV SOURCE verifies the lower wishbone recipe and preserves all existing owner-path regressions;
+7. Save/Open/relink semantics remain protected by the already passing core + real-source checkpoint;
+8. only after this Owner workflow is validated should the second body/frame at the hinge be independently grounded;
+9. only then author one real neutral `revolute` and test local `+Z` mechanically.
 
-1. treat geometry X-end point as hinge-origin evidence only;
-2. derive the arm axial direction from the matching geometry min/max endpoints;
-3. derive the SOURCE up/travel direction from exact `Axis_SuspensionTravel_Bottom -> Axis_SuspensionTravel_Top`;
-4. verify the two directions are finite, non-degenerate and orthogonal within a strict tolerance on the exact real asset;
-5. derive the hinge/spread axis by cross product;
-6. construct one deterministic right-handed rigid frame with explicit component provenance and local `+Z` equal to that hinge axis;
-7. only after core + real-source validation allow that full construction frame to cross into authored `RigFrame` truth;
-8. then test whether one real `revolute` relation genuinely fits the mechanism.
+Do not implement the whole suspension, generic CAD/picking, final representation, consumer export or solver in this slice.
 
-Do not infer final meaning solely from node names, copy the full JV M6 topology, or implement final representation/export/solver in the same slice.
+## Owner / promotion boundary
 
-## Owner/promotion boundary
+Useful later Owner judgement:
 
-Useful later Owner checks, not current technical blockers:
+- whether the construction recipe interaction is understandable and spatially useful;
+- `Save As -> reopen -> exact SOURCE relink` with a real authored mechanism;
+- first two-body mechanical relation and motion judgement.
 
-- judgement of free element, SOURCE-derived element and future construction-frame interactions;
-- `Save As -> reopen -> exact SOURCE relink` with real authored mechanism data;
-- spatial/mechanical judgement once the first relation connects real components.
-
-Before any promotion to `main`, independently resolve draft PR #3 and exact `4db04eee...`, compare it with `main`, keep PR #2 as recovery evidence, and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
+Before any promotion to `main`, independently resolve PR #3 and exact `4db04eee...`, compare with `main`, retain PR #2 as recovery evidence and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
 ## Foundation exit criterion
 
@@ -151,6 +150,6 @@ Foundation is complete when the Owner can take a real JV mechanism and, without 
 
 `place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> map representation -> kinematically test/reset -> save/reopen -> export a small consumer-facing result`
 
-After that the permanent rhythm is:
+Permanent rhythm after that:
 
-`real need -> small vertical slice -> targeted test -> owner-visible gate when needed -> next`.
+`real need -> smallest vertical slice -> targeted falsifier -> rendered/Owner gate when useful -> next`.
