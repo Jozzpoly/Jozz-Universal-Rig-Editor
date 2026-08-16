@@ -58,10 +58,11 @@ async function runtimeFaultText() {
   return await page.locator('main pre').textContent();
 }
 
-async function assertNoRuntimeFault(context) {
+async function assertBrowserHealthy(context) {
   const fault = await runtimeFaultText();
   if (fault) throw new Error(`${context}: workbench runtime fault:\n${fault}`);
   if (pageErrors.length > 0) throw new Error(`${context}: browser pageerror:\n${pageErrors.join('\n---\n')}`);
+  if (consoleErrors.length > 0) throw new Error(`${context}: browser console.error:\n${consoleErrors.join('\n---\n')}`);
 }
 
 async function sourceWorldPosition() {
@@ -103,7 +104,7 @@ async function dragWorldXAxisAt(worldPoint, didMove, label) {
     await page.mouse.move(startX + ux * 75, startY + uy * 75, { steps: 8 });
     await page.mouse.up();
     await page.waitForTimeout(110);
-    await assertNoRuntimeFault(`${label} drag at handle distance ${handleDistance}`);
+    await assertBrowserHealthy(`${label} drag at handle distance ${handleDistance}`);
     if (await didMove()) {
       console.log(`${label} transform succeeded with handle distance ${handleDistance}`);
       return;
@@ -149,7 +150,7 @@ async function dragAnyTranslateHandleAt(worldPoint, reselect, didMove, label) {
       await page.mouse.move(startX + direction.ux * 55, startY + direction.uy * 55, { steps: 4 });
       await page.mouse.up();
       await page.waitForTimeout(45);
-      await assertNoRuntimeFault(`${label} handle scan radius ${radius}`);
+      await assertBrowserHealthy(`${label} handle scan radius ${radius}`);
       if (await didMove()) {
         console.log(`${label} transform succeeded at radius ${radius}`, direction);
         return;
@@ -175,11 +176,13 @@ async function installMockPicker(bytes, fileName) {
 try {
   console.log(`browser probe source: ${sourceFileName}; datum: ${sourceDatumName}; real=${Boolean(realSourcePath)}`);
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await assertBrowserHealthy('initial app load');
   await page.getByText('DEMO · fixture.synthetic-linkage', { exact: false }).waitFor();
   await installMockPicker(sourceBytes, sourceFileName);
 
   await page.getByRole('button', { name: 'Open Source' }).click();
   await page.getByText('PROJECT INSTANCE · PLACEMENT EDITABLE', { exact: true }).waitFor();
+  await assertBrowserHealthy('SOURCE open');
 
   const sourceDatumRow = page.locator('.source-row').filter({ hasText: sourceDatumName }).first();
   await sourceDatumRow.waitFor();
@@ -198,7 +201,7 @@ try {
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForTimeout(100);
-  await assertNoRuntimeFault('SOURCE placement Undo');
+  await assertBrowserHealthy('SOURCE placement Undo');
   const sourceUndone = await sourceWorldPosition();
   if (distanceBetween(sourceUndone, sourceBefore) > 2e-4) {
     throw new Error(`SOURCE Undo mismatch. Before=${sourceBefore.toArray()} undone=${sourceUndone.toArray()}`);
@@ -206,7 +209,7 @@ try {
 
   await page.getByRole('button', { name: 'Redo' }).click();
   await page.waitForTimeout(100);
-  await assertNoRuntimeFault('SOURCE placement Redo');
+  await assertBrowserHealthy('SOURCE placement Redo');
   const sourceRedone = await sourceWorldPosition();
   if (distanceBetween(sourceRedone, sourceMoved) > 2e-4) {
     throw new Error(`SOURCE Redo mismatch. Moved=${sourceMoved.toArray()} redone=${sourceRedone.toArray()}`);
@@ -219,9 +222,9 @@ try {
   const adoptedWorldBefore = await sourceWorldPosition();
 
   await page.getByRole('button', { name: 'Preview adopted frame' }).click();
-  await assertNoRuntimeFault('adoption preview');
+  await assertBrowserHealthy('adoption preview');
   await page.getByRole('button', { name: 'Commit frame' }).click();
-  await assertNoRuntimeFault('adoption commit');
+  await assertBrowserHealthy('adoption commit');
 
   const adoptedFrameRow = linkBranch.locator('.nav-row.indent').filter({ hasText: sourceDatumName }).first();
   const selectAdoptedFrame = async () => {
@@ -252,14 +255,14 @@ try {
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForTimeout(100);
-  await assertNoRuntimeFault('adopted frame move Undo');
+  await assertBrowserHealthy('adopted frame move Undo');
   const frameUndone = await readFrameLocalPosition();
   if (distanceBetween(frameUndone, frameBefore) > 1e-5) {
     throw new Error(`Undo did not restore adopted frame transform: expected ${frameBefore.toArray()}, got ${frameUndone.toArray()}.`);
   }
 
+  await assertBrowserHealthy('final owner path state');
   console.log('BROWSER_REAL_OWNER_PATH_SMOKE_PASS');
-  if (consoleErrors.length > 0) console.log('non-fatal console errors observed:', consoleErrors);
 } finally {
   await browser.close();
 }
