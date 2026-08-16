@@ -19,6 +19,21 @@ export interface SourceNodeInspection {
   rigidCompatibility: 'rigid' | 'local-scale' | 'matrix-transform' | 'non-rigid-ancestor';
 }
 
+export interface SourceDerivedPointDatumInspection {
+  locator: string;
+  name: string;
+  sourceNodeLocator: string;
+  sourceNodeName: string | null;
+  sourceRevisionWorldPosition: Vec3;
+  derivation: {
+    algorithm: 'rigid-geometry-x-end-v1';
+    side: 'min' | 'max';
+    boundsMin: Vec3;
+    boundsMax: Vec3;
+    triangleCount: number;
+  };
+}
+
 export interface SourceInspection {
   adapter: SourceAdapterIdentity;
   nodeCount: number;
@@ -26,4 +41,6 @@ export interface SourceInspection {
   skinCount: number;
   jointCount: number;
   nodes: SourceNodeInspection[];
+  /** Optional while older saved/runtime inspection fixtures remain valid. */
+  derivedPointDatums?: SourceDerivedPointDatumInspection[];
 }
