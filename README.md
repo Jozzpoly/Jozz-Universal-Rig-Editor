@@ -5,11 +5,11 @@ JURE is an owner-first local web workbench for authoring rig intent directly on 
 ## Repository authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
-- **active development authority:** `work/real-use-foundation-recovery` through draft PR #2;
-- **latest frozen clean takeover checkpoint:** `checkpoint/foundation-clean-takeover-2026-08-16`;
-- **final promotion-readiness checkpoint:** resolve the current checkpoint named in `docs/STATUS.md` before acting on promotion claims.
+- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` through draft PR #3;
+- **active product work:** `work/real-jv-rig-elements` based exactly on that clean candidate;
+- **latest frozen product checkpoint:** resolve the current checkpoint named in `docs/STATUS.md` before relying on rendered/product claims.
 
-Normal continuation belongs on the active development line until the Owner explicitly promotes PR #2. Do not start a new branch merely because a new conversation started, and do not silently move `main` because CI is green.
+`main` does not move because CI is green. PR #3 remains an explicit Owner promotion decision. PR #2 / `work/real-use-foundation-recovery` retains the full recovery/foundation evidence history and is not the ordinary product-work head.
 
 Closed PR #1, old work branches, recovery packs, chats, JV M5/M6 and BIND-00 are historical evidence only. Current truth comes from the active branch plus the four canonical documents below.
 
@@ -18,12 +18,13 @@ Closed PR #1, old work branches, recovery packs, chats, JV M5/M6 and BIND-00 are
 The active line now has one active project/state/history path:
 
 - rigid `RigElement` and owner-local/root `RigFrame` authoring;
+- Owner-facing creation of authored `RigElement`s with deterministic IDs, immediate selection and one chronological Undo/Redo action;
 - Move/Rotate, world/local, numeric XYZ-degree editing over quaternion storage;
 - preview/commit/cancel;
 - **one chronological `ProjectSession` Undo/Redo history** for SOURCE placement and authored project changes;
 - exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
 - read-only glTF/GLB SOURCE inspection with deterministic locators, marker/axes and independent SOURCE selection;
-- explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical evidence;
+- explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical evidence, including adoption into a freshly Owner-created element;
 - deterministic logical project save/open and exact SOURCE relink boundaries;
 - separate provisional mechanical-relation, representation and AUTHOR/TEST domains;
 - viewport-first resizable/collapsible engineering workspace;
@@ -36,9 +37,11 @@ The current UI is a working engineering harness, not final information architect
 
 ## Current product goal
 
-The next high-value product slice is to stop relying on synthetic pre-existing rig elements and let the Owner begin constructing a real JV mechanism from exact SOURCE evidence:
+The first Owner-created-element slice is now demonstrated. The next high-value product slice is to stop using a generic/synthetic target and begin decomposing the **actual one-sided JV steering/suspension mechanism** into the minimum real authored elements and exact SOURCE-derived frames required by that mechanism.
 
-**create authored `RigElement`s -> add/adopt their frames -> express only the mechanical intent the real mechanism requires.**
+Start from exact existing SOURCE sockets/axes. Add arbitrary geometry picking or virtual/derived construction datums only when a concrete required JV hardpoint cannot be represented by those exact datums.
+
+Do not simultaneously implement the whole suspension, final representation vocabulary, consumer export or a kinematic solver. Each new authored concept must earn its place against the real JV mechanism.
 
 JV/JV-Web is the first real consumer and falsifier. Native JV and later JV/VAW experiments should remain possible without making JURE vehicle-specific or turning it into a generic framework/mini-JES.
 

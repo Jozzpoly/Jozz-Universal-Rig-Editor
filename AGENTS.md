@@ -4,18 +4,21 @@
 
 Before changing code:
 
-1. resolve live refs for `main`, `work/real-use-foundation-recovery`, draft PR #2 and the latest checkpoint named in `docs/STATUS.md`;
-2. read `README.md`, this file, `docs/ARCHITECTURE.md`, then `docs/STATUS.md` from the **active development line**;
+1. resolve live refs for `main`, draft PR #3 / `promotion/foundation-ready-squash-2026-08-16`, the active product work branch named in `docs/STATUS.md`, and the latest checkpoint named there;
+2. read `README.md`, this file, `docs/ARCHITECTURE.md`, then `docs/STATUS.md` from the **active product work line**;
 3. compare the active head with the latest frozen checkpoint so documentation/workflow changes are not confused with new product behavior;
 4. only then choose one small next slice.
 
 Repository authority is deliberately layered:
 
-- `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425` is the accepted baseline until explicit promotion;
-- `work/real-use-foundation-recovery` / draft PR #2 is the active unmerged development authority;
-- the current frozen takeover/promotion-review checkpoint is named in `docs/STATUS.md` and must be resolved live before relying on it.
+- `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425` is the accepted baseline until explicit Owner promotion;
+- `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3 is the clean one-commit foundation candidate, not accepted `main`;
+- `work/real-jv-rig-elements` is the current isolated product-work line based exactly on that clean candidate;
+- the current frozen product checkpoint is named in `docs/STATUS.md` and must be resolved live before relying on it.
 
-Do not create a new branch merely because a new conversation started. Continue the active line unless the task genuinely requires isolation. Do not merge/ready PR #2 or move `main` without explicit Owner promotion.
+PR #2 / `work/real-use-foundation-recovery` retains the full recovery/foundation evidence history. It is no longer the ordinary product-work head; use it when historical evidence is required.
+
+Do not create a new branch merely because a new conversation started. Continue the active line unless the task genuinely requires isolation. Do not merge/ready PR #3, rewrite the recovery evidence, or move `main` without explicit Owner promotion.
 
 Closed PR #1, old branches/chats/handoff packs, JV M5/M6 and BIND-00 are evidence only. Read them only when current code/docs leave a concrete question unanswered.
 
@@ -44,9 +47,11 @@ Current active state paths are intentionally singular:
 - `src/kernel/*` — authored rig types, validation, math, resolution, serialization;
 - `src/project/*` — project authority, SourceRevision/SourceInstance, commands, `ProjectSession`, adoption;
 - `src/editor/rig-command.ts` + `transform-target.ts` — pure rig command/transform contracts only;
+- `src/features/rig-elements/*` — pure authored `RigElement` creation mutations;
 - `src/representation/*` — separate provisional representation domain;
 - `src/evaluation/*` — transient TEST/evaluator boundary;
 - `src/app/state/project-authoring.ts` — active operation + selection + ProjectSession orchestration;
+- `src/app/state/rig-element-workflow.ts` — Owner element ID allocation + project-level creation orchestration;
 - `src/app/state/project-source-runtime.ts` — exact linked SOURCE bytes, active instance and SOURCE selection;
 - `src/app/state/source-workflow.ts` — Open Source planning/identity workflow;
 - `src/io/*` — project/source/legacy-rig browser I/O;

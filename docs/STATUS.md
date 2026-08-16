@@ -3,13 +3,14 @@
 ## Authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
-- **active development authority:** `work/real-use-foundation-recovery` / draft PR #2;
-- **validated structural-clean checkpoint:** `checkpoint/foundation-clean-takeover-2026-08-16` -> `b411f239e70f9a38f89124a8392c94cef9081994`;
-- **final promotion-readiness checkpoint:** `checkpoint/foundation-ready-2026-08-16`.
+- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
+- **active product work:** `work/real-jv-rig-elements@90ce0985e85fe97e174533bd395296e8cda22dfa`;
+- **latest frozen product checkpoint:** `checkpoint/real-jv-owner-element-source-adoption-2026-08-16@90ce0985e85fe97e174533bd395296e8cda22dfa`;
+- **checkpoint browser run:** `31952731062` — Linux Chrome PASS + Windows Chrome PASS.
 
-PR #2 is a fast-forward descendant of `main` but remains draft/unmerged. The structural-clean checkpoint passed locked-independent code semantics before lockfile introduction plus strict real-source browser validation on Linux and Windows. The final checkpoint freezes the same cleaned architecture with the canonical dependency lock enforced through `npm ci`.
+The active product line was intentionally created from the exact clean candidate rather than from `main`, so the validated foundation tree remains an explicit boundary while Owner promotion is still undecided. `main` has not moved.
 
-Promotion to `main` is an explicit Owner decision, not a CI side effect.
+PR #2 / `work/real-use-foundation-recovery` retains the full recovery/foundation evidence history. Draft PR #3 is the clean one-commit promotion candidate. Neither is merged merely because CI is green.
 
 Closed PR #1, FC-9 concept work, BIND-00 branches and older handoff/recovery packs are historical evidence only.
 
@@ -24,28 +25,45 @@ JV/JV-Web is the first real consumer/falsifier. Native JV and later JV/VAW exper
 The active line contains:
 
 - rigid `RigElement` and owner-local/root `RigFrame` authoring;
+- Owner-facing `RigElement` creation in the Rig navigator;
+- deterministic document-wide element ID allocation with collision avoidance;
+- element creation as one durable `ProjectSession` action with immediate selection and Undo/Redo;
 - Move/Rotate, world/local and numeric XYZ-degree editing over quaternion storage;
 - preview/commit/cancel;
 - one chronological `ProjectSession` history for SOURCE placement and authored project changes;
 - exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
 - read-only glTF/GLB SOURCE inspection with deterministic locators, markers/axes and independent SOURCE selection;
 - explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical evidence;
+- adoption of an exact real JV SOURCE datum into a freshly Owner-created `RigElement`;
 - deterministic logical project save/open and exact SOURCE relink boundaries;
 - separate project/source runtime state from durable authored truth;
 - provisional mechanical-relation and representation domains;
 - transient AUTHOR/TEST evaluator boundary;
 - free inspection camera with Focus/Fit and viewport-first resizable/collapsible workspace.
 
-Current core suite after cleanup is **18 files / 94 tests**. It protects the current architecture rather than maintaining superseded state/history/BIND-00 implementations.
+Current canonical core suite is **20 files / 101 tests / 101 PASS / 0 FAIL** at `90ce0985...`. TypeScript and Vite production build also PASS under the canonical Node `24.16.0` / npm `11.17.0` Work check.
 
-Real-source browser evidence protects:
+## Real-source rendered evidence
 
-- SOURCE placement + Undo/Redo;
-- SOURCE datum adoption Preview/Commit;
-- movement + Undo of a freshly committed adopted frame;
+The pinned browser path now protects, on Linux Chrome and Windows Chrome:
+
+- Owner `+ Element -> Create` through the real React workbench;
+- automatic selection of the new authored element;
+- creation Undo removes the element and Redo restores it;
+- exact real SOURCE open and placement + Undo/Redo;
+- selecting the freshly Owner-created element as the adoption target;
+- exact `Chassis_Top` SOURCE datum adoption Preview/Commit into that element;
+- movement + Undo of the freshly committed adopted frame;
 - adoption-preview transform lock regression;
-- runtime fault / `pageerror` / unexpected `console.error` fail-closed behavior;
-- the same owner path on Linux Chrome and Windows Chrome.
+- runtime fault / `pageerror` / unexpected `console.error` fail-closed behavior.
+
+This is the first end-to-end JURE proof where a target element is created during the Owner workflow rather than supplied by the synthetic rig fixture.
+
+The exact validated checkpoint is:
+
+`checkpoint/real-jv-owner-element-source-adoption-2026-08-16@90ce0985e85fe97e174533bd395296e8cda22dfa`
+
+Checkpoint browser gate run `31952731062` completed successfully on both platforms.
 
 ## Fundamental cleanup completed
 
@@ -55,13 +73,14 @@ The active tree intentionally has **one** current path for each core responsibil
 - `ProjectAuthoringState` is the active authoring-operation/selection orchestrator;
 - `ProjectSourceRuntimeState` is the active runtime SOURCE state;
 - `RigCommand` is a pure mutation contract, not a second session;
+- pure `RigElement` creation lives under `src/features/rig-elements` and project orchestration under `src/app/state/rig-element-workflow.ts`;
 - FC-8 `inspect|author|represent|test` workspace state is no longer active code;
 - old rig-only `EditorSession`, `RigAuthoringState` and singleton `SourceRuntimeState` are removed;
 - BIND-00 state/UI/props/helper/tests/CSS/second-GLTF renderer path are removed from the active tree.
 
 BIND-00 remains useful historical evidence: one authored element successfully drove one exact glTF skin joint, and real Owner use immediately falsified singleton binding storage. Do not recreate that prototype as persistent representation architecture.
 
-The adoption-preview black-screen incident remains a durable lesson: one operation owns preview at a time, and UI must not expose a conflicting transform target during SOURCE-adoption preview. Browser regression protects this boundary.
+The adoption-preview black-screen incident remains a durable lesson: one operation owns preview at a time, and UI must not expose a conflicting transform target during SOURCE-adoption preview. Element creation now follows the same rule: the UI disables creation during SOURCE placement/active preview and the domain workflow independently fails closed.
 
 ## Reproducible toolchain and validation
 
@@ -78,12 +97,12 @@ Normal development uses **Work check** on `main` / `work/**`:
 
 `npm ci -> npm run check`
 
-Takeover/promotion-quality rendered evidence uses **Checkpoint browser gate** on `checkpoint/**` (or manual dispatch):
+Takeover/product-checkpoint rendered evidence uses **Checkpoint browser gate** on `checkpoint/**` (or manual dispatch):
 
 - locked canonical install/check;
 - exact pinned real JV SOURCE;
 - adoption-preview regression;
-- real SOURCE placement/adoption owner path;
+- Owner element creation + real SOURCE placement/adoption owner path;
 - Linux Chrome;
 - Windows Chrome;
 - runtime fault, `pageerror` and unexpected `console.error` fail closed.
@@ -102,38 +121,48 @@ Historical fixture SHA `fc1e8bd0...` is a different exact `SourceRevision` despi
 ## Current product limitations — keep them visible
 
 - UI exposes one active SourceInstance context even though the project model supports multiple placed instances.
-- SOURCE datum adoption currently targets an **existing** `RigElement`.
-- There is no Owner-facing creation workflow for real `RigElement`s yet.
+- Owner-facing `RigElement` creation now exists, but it is intentionally minimal: create/name/automatic identity/selection/history only; there is no dedicated rename/delete/reparent information architecture yet.
+- SOURCE datum adoption can target an Owner-created `RigElement`, but current product work has not yet decomposed the actual JV front-corner mechanism into its real authored elements/frames.
 - There is no arbitrary surface/vertex picking or virtual/derived construction-datum workflow yet.
 - Mechanical relation enum/axis conventions are provisional.
 - Representation is correctly separated from `RigDocument`, but the exact `rigid/aim/span/...` vocabulary is provisional and has no final Owner workflow yet.
 - AUTHOR/TEST separation exists, but no final kinematic evaluator/solver is architecture yet.
+- There is no consumer export/adapter from JURE into JV-Web yet.
 - Current layout is an engineering harness, not final information architecture.
 
 These are product/foundation limits, not repository-recovery problems.
 
 ## Next product slice
 
-Highest-leverage real-use work after promotion/readiness review:
+The generic Owner-created-element capability is now demonstrated. The next falsifier is:
 
-**Owner-created authored `RigElement`s plus the frames required by a real SOURCE mechanism.**
+**decompose the first real part of the exact one-sided JV steering/suspension SOURCE into the minimum authored `RigElement`s and exact SOURCE-derived `RigFrame`s required by the mechanism.**
 
-The current path can already inspect/place exact SOURCE and adopt a rigid datum as a frame, but it still relies on synthetic/pre-existing target elements. The next slice should let the Owner start constructing an actual JV mechanism.
+Do not begin by copying the complete synthetic mechanical-corner fixture or the current JV M6 topology. Those are evidence/falsifiers, not authored truth.
 
-Start with exact existing SOURCE sockets/axes. Add arbitrary geometry picking or virtual construction datums only when a concrete required JV hardpoint cannot be represented by existing exact datums.
+Preferred order:
 
-Keep the first slice narrow: element creation + ownership/selection/history semantics. Do not simultaneously implement the whole suspension, final representation system or kinematic solver.
+1. inspect the exact real SOURCE nodes/sockets/axes and choose one mechanically meaningful component whose required datums already exist explicitly in SOURCE;
+2. create that real authored element through the Owner workflow;
+3. adopt only the exact frames required to describe its interfaces;
+4. verify local/world poses, project history and save/reopen semantics;
+5. only then add the smallest mechanical relation needed to connect it to the next real component.
+
+A concrete missing hardpoint is the trigger for virtual/derived construction-datum work. Do not build arbitrary geometry picking before such a real SOURCE deficiency blocks the mechanism.
+
+Do not simultaneously implement the whole suspension, final representation system, consumer export or kinematic solver. The goal is to let the real JV mechanism falsify each abstraction as it is introduced.
 
 ## Owner/promotion boundary
 
-Useful remaining manual checks, not technical blockers:
+Useful remaining manual checks, not technical blockers for the current slice:
 
-- Owner `Commit adopted frame -> move -> mixed multi-step Undo/Redo` on the current cleaned workbench;
-- Owner `Save As -> reopen -> exact SOURCE relink` in the same real workflow.
+- Owner judgement of the new `+ Element` interaction/name flow in the current engineering workspace;
+- Owner `Save As -> reopen -> exact SOURCE relink` after creating/adopting real mechanism data;
+- later spatial judgement of the actual front-corner decomposition and frame meaning.
 
 Do not create another giant diagnostic package merely to force these checks. Automation owns compiler/runtime/browser facts; the Owner is most valuable for spatial/product judgment.
 
-Before promotion, independently resolve `checkpoint/foundation-ready-2026-08-16` and its GitHub checks, compare it with `main`, review PR #2, and decide whether promotion should preserve the long recovery commit history or use a cleaner squash-style boundary. **Do not merge without explicit Owner approval.**
+Before any promotion to `main`, independently resolve draft PR #3 and the exact clean candidate `4db04eee...`, compare it with `main`, keep PR #2 as recovery evidence, and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
 ## Foundation exit criterion
 
