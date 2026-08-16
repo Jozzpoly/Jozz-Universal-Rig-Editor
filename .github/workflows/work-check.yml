@@ -36,8 +36,8 @@ jobs:
           node --version
           npm --version
 
-      - name: Install project dependencies
-        run: npm install
+      - name: Install exact locked dependencies
+        run: npm ci
 
       - name: Canonical JURE check
         run: npm run check
