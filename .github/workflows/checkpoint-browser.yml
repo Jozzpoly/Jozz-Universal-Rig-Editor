@@ -1,0 +1,161 @@
+name: Checkpoint browser gate
+
+on:
+  push:
+    branches:
+      - 'checkpoint/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkpoint-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Use Node 24.16.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+
+      - name: Match canonical npm
+        run: npm install --global npm@11.17.0
+
+      - name: Record toolchain
+        run: |
+          node --version
+          npm --version
+
+      - name: Install project dependencies
+        run: npm install
+
+      - name: Canonical JURE check
+        run: npm run check
+
+      - name: Prepare real-source Chrome probe
+        run: |
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No system Chrome/Chromium executable is available on this runner."
+            exit 1
+          fi
+          echo "JURE_CHROME_EXECUTABLE=$CHROME" >> "$GITHUB_ENV"
+
+          REAL_SOURCE="/tmp/OneSided_Steering_Suspension_Rig.gltf"
+          curl -fsSL "https://raw.githubusercontent.com/Jozzpoly/Box3d_FunProject/959aefb78587ce60cf2b8eb03ff82797a4165142/assets/source/OneSided_Steering_Suspension_Rig.gltf" -o "$REAL_SOURCE"
+          echo "57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750  $REAL_SOURCE" | sha256sum -c -
+          test "$(wc -c < "$REAL_SOURCE")" -eq 64264
+          echo "JURE_REAL_SOURCE_PATH=$REAL_SOURCE" >> "$GITHUB_ENV"
+          echo "JURE_SOURCE_DATUM_NAME=Chassis_Top" >> "$GITHUB_ENV"
+
+          npm install --no-save --package-lock=false playwright-core@1.60.0
+
+      - name: Linux browser owner interaction probes
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/jure-browser-vite.log 2>&1 &
+          VITE_PID=$!
+          cleanup() {
+            status=$?
+            trap - EXIT
+            kill "$VITE_PID" 2>/dev/null || true
+            echo "--- Vite browser-probe log ---"
+            cat /tmp/jure-browser-vite.log || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "Vite browser probe did not become ready."
+            exit 1
+          fi
+
+          node scripts/browser-adoption-preview-lock-smoke.mjs
+          node scripts/browser-owner-path-smoke.mjs
+
+  windows-browser:
+    needs: linux-browser
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Use Node 24.16.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+
+      - name: Match canonical npm
+        run: npm install --global npm@11.17.0
+
+      - name: Install project dependencies
+        run: npm install
+
+      - name: Prepare Windows Chrome real-source probe
+        shell: pwsh
+        run: |
+          $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+          $candidates = @(
+            (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
+            $(if ($programFilesX86) { Join-Path $programFilesX86 'Google\Chrome\Application\chrome.exe' }),
+            (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
+          ) | Where-Object { $_ -and (Test-Path $_) }
+          $chrome = $candidates | Select-Object -First 1
+          if (-not $chrome) { throw 'No installed Google Chrome executable found on windows-latest.' }
+          "JURE_CHROME_EXECUTABLE=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $source = Join-Path $env:RUNNER_TEMP 'OneSided_Steering_Suspension_Rig.gltf'
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Jozzpoly/Box3d_FunProject/959aefb78587ce60cf2b8eb03ff82797a4165142/assets/source/OneSided_Steering_Suspension_Rig.gltf' -OutFile $source
+          $hash = (Get-FileHash -Algorithm SHA256 -Path $source).Hash.ToLowerInvariant()
+          if ($hash -ne '57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750') { throw "Unexpected SOURCE SHA-256: $hash" }
+          if ((Get-Item $source).Length -ne 64264) { throw "Unexpected SOURCE size: $((Get-Item $source).Length)" }
+          "JURE_REAL_SOURCE_PATH=$source" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'JURE_SOURCE_DATUM_NAME=Chassis_Top' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          npm install --no-save --package-lock=false playwright-core@1.60.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Windows browser owner interaction probes
+        shell: pwsh
+        run: |
+          $stdout = Join-Path $env:RUNNER_TEMP 'jure-browser-vite.stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'jure-browser-vite.stderr.log'
+          $vite = Start-Process -FilePath 'npm.cmd' -ArgumentList @('run','dev','--','--host','127.0.0.1','--port','4173','--strictPort') -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              try {
+                $response = Invoke-WebRequest -Uri 'http://127.0.0.1:4173/' -UseBasicParsing -TimeoutSec 1
+                if ($response.StatusCode -eq 200) { $ready = $true; break }
+              } catch {}
+              Start-Sleep -Milliseconds 250
+            }
+            if (-not $ready) { throw 'Vite browser probe did not become ready on Windows.' }
+
+            node scripts/browser-adoption-preview-lock-smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw "Windows adoption-preview lock probe exited with code $LASTEXITCODE" }
+            node scripts/browser-owner-path-smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw "Windows owner-path probe exited with code $LASTEXITCODE" }
+          } finally {
+            Stop-Process -Id $vite.Id -Force -ErrorAction SilentlyContinue
+            Write-Host '--- Windows Vite stdout ---'
+            if (Test-Path $stdout) { Get-Content $stdout }
+            Write-Host '--- Windows Vite stderr ---'
+            if (Test-Path $stderr) { Get-Content $stderr }
+          }
