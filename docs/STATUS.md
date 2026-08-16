@@ -5,157 +5,141 @@
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest fully validated product SHA:** `06d5421efcf9c65f98a774de544e88ae77dba8c1`;
-- **latest frozen checkpoint:** `checkpoint/real-jv-construction-frame-owner-workflow-2026-08-16@06d5421efcf9c65f98a774de544e88ae77dba8c1`;
-- **checkpoint browser run:** `31957914832` — Linux Chrome PASS + Windows Chrome PASS;
+- **latest fully validated product SHA:** `9807ccafb9ca7842ed25a1c4bc3fc3a0372afa4f`;
+- **latest frozen checkpoint:** `checkpoint/real-jv-single-revolute-test-evaluator-2026-08-16@9807ccafb9ca7842ed25a1c4bc3fc3a0372afa4f`;
+- **checkpoint run:** `31959364258` — Linux Chrome PASS + Windows Chrome PASS;
 - **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`.
 
 `main` remains untouched. PR #2 retains full recovery/foundation evidence; PR #3 remains the explicit clean promotion boundary. Neither PR #3 nor PR #4 may be merged merely because CI is green.
 
-A disrupted session briefly wrote PR text that referred to nonexistent `a2a394dd...` / run `31955493157`. Those identifiers are not authority and must not be reused. Live GitHub evidence was reconstructed before continuing.
+A disrupted session briefly wrote PR text referring to nonexistent `a2a394dd...` / run `31955493157`. Those identifiers are not authority and must not be reused.
 
 ## Product purpose
 
 JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express neutral mechanical and representation intent, test mechanisms without mutating authored neutral truth, save/reopen deterministically and export a small reliable result to a consumer without agent-side coordinate guessing.
 
-JV/JV-Web is the first real consumer/falsifier. The architecture must remain useful for later native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs or thrusters without turning JURE into a vehicle-specific editor or generic simulation framework.
+JV/JV-Web is the first real consumer/falsifier. JURE must remain useful for later native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs or thrusters without becoming vehicle-specific or absorbing consumer dynamics.
 
-## Demonstrated foundation
+## Demonstrated real-use chain
 
-The validated line now demonstrates:
+The validated line now demonstrates one complete small mechanism path:
 
-- rigid `RigElement` and owner-local/root `RigFrame` authoring;
-- Owner-facing free `RigElement` creation with deterministic IDs, selection and chronological Undo/Redo;
-- exact rigid SOURCE datum -> new authored `RigElement` origin with immutable provenance;
-- exact rigid SOURCE datum -> authored owner-local `RigFrame` adoption;
-- geometry-derived **point-only** construction datums recovered conservatively from rigid skin geometry;
-- generic right-handed constructed frames derived from origin point + radial endpoint + independent up span;
-- local `+Z` as the explicit primary axis for current axis-bearing experiments;
-- versioned self-resolving construction-frame locators containing all exact component locators;
-- exact runtime re-resolution of those locators only from linked exact SOURCE bytes;
-- transactional constructed-frame adoption through the existing `ProjectSession` path;
-- deterministic Save/Open preserving the construction locator in `RigFrame.source` and `SourceAdoptionRecord`;
-- exact relink followed by deterministic re-resolution without a parallel recipe database;
-- **Owner-facing construction-frame recipe builder** showing origin, local axes, algorithm/version and recipe provenance before authored mutation;
-- invalid/degenerate recipe evidence visibly fails closed and cannot enter Preview;
-- valid exact real-JV recipe enters the existing Preview/Commit adoption path and survives Undo/Redo;
-- one chronological `ProjectSession` history for SOURCE placement and authored changes;
-- separate mechanical-relation, representation and AUTHOR/TEST domains.
+`exact SOURCE -> authored bodies -> authored hinge frames -> neutral revolute -> geometric diagnostic -> transient TEST motion -> Reset -> exact AUTHORED`
 
-Canonical validation at `06d5421...`:
+Specifically:
 
-- Node `24.16.0` / npm `11.17.0`;
-- locked `npm ci`: PASS;
-- TypeScript: PASS;
-- **25 core test files / 122 PASS / 0 FAIL**;
-- Vite production build: PASS;
-- exact checkpoint run `31957914832`: Linux PASS + Windows PASS.
+- Owner-facing free and exact-SOURCE-derived `RigElement` creation;
+- exact SOURCE datum -> owner-local `RigFrame` adoption;
+- conservative geometry-derived point datums that do not invent orientation;
+- right-handed constructed frames from origin point + radial endpoint + independent up span;
+- versioned self-resolving construction-frame locators with all exact component locators;
+- exact runtime re-resolution, Save/Open and exact relink without a side recipe database;
+- Owner-facing construction recipe builder with visible origin, local axes and provenance;
+- one physical lower-wishbone hinge authored on two distinct bodies using the same recipe while preserving independent owner-local frame poses;
+- first neutral `revolute` relation containing only geometric/mechanical intent, no consumer dynamics or solver configuration;
+- revolute diagnostics measuring origin residual and signed `+Z` axis residual without projecting/mutating authored truth;
+- first replaceable single-revolute TEST evaluator with explicit TEST-only `movingElementId` rather than durable parent/child semantics;
+- zero-angle TEST reproducing AUTHORED exactly;
+- transient `+30°` lower-arm motion around the real hinge while hinge origin and primary `+Z` remain fixed/aligned;
+- Reset removing all evaluator influence and returning exactly to AUTHORED;
+- legal neutral frame roll around the revolute axis is preserved rather than projected away;
+- one chronological `ProjectSession` remains the only durable project history.
 
-The existing >500 kB minified main-chunk warning remains non-blocking build debt.
+Canonical `npm run check` passes at the validated checkpoint. The exact checkpoint run `31959364258` passed on Linux and Windows, including the exact real-JV probes and all existing Owner/browser regression paths. The existing >500 kB minified main-chunk warning remains non-blocking build debt.
 
-## Exact real JV SOURCE evidence
+## Exact real JV evidence
 
-Pinned SOURCE:
+Pinned fixture:
 
 `Jozzpoly/Box3d_FunProject@959aefb78587ce60cf2b8eb03ff82797a4165142/assets/source/OneSided_Steering_Suspension_Rig.gltf`
 
 - Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`;
 - SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
-- size: 64,264 bytes;
-- inspected structure used by the current probes: 15 nodes / 14 joints / 1 skinned mesh.
+- size: 64,264 bytes.
 
-The exact geometry-derived wishbone points remain:
+Validated lower-wishbone construction evidence:
 
 ```text
-Chassis_Top    X min = [-0.8125, 0.96875, 0]
-Chassis_Top    X max = [ 0.5,    0.96875, 0]
 Chassis_Bottom X min = [-0.8125, 0.03125, 0]
 Chassis_Bottom X max = [ 0.5,    0.03125, 0]
+travel up             = Axis_SuspensionTravel_Bottom -> Axis_SuspensionTravel_Top
+hinge origin          = [0.5, 0.03125, 0]
+local +X              = [1, 0, 0]
+local +Y              = [0, 1, 0]
+local +Z              = [0, 0, 1]
 ```
 
-Current JV S2 evidence for this exact unmirrored left fixture establishes max-X as the inboard/chassis end and min-X as the wheel/outboard end. This ordering is **fixture evidence**, not a generic JURE assumption.
+For this exact unmirrored left fixture, current JV S2 evidence establishes max-X as the chassis/inboard end and min-X as the wheel/outboard end. That ordering is fixture evidence, not generic JURE semantics.
 
-Using exact `Axis_SuspensionTravel_Bottom -> Axis_SuspensionTravel_Top` as the independent up span, the validated self-resolving recipes reconstruct:
+The same physical lower-hinge locator is authored on:
 
-```text
-upper hinge origin = [0.5, 0.96875, 0]
-lower hinge origin = [0.5, 0.03125, 0]
-local +X           = [1, 0, 0]
-local +Y           = [0, 1, 0]
-local +Z           = [0, 0, 1]
-quaternion         = [0, 0, 0, 1]
-orthogonality err = 0
-```
+- exact-SOURCE-derived lower-arm body;
+- explicit Owner chassis-reference body.
 
-Both Linux and Windows logs for run `31957914832` contain:
+The two authored frames have different local poses but resolve to the same world hinge and aligned signed `+Z`. Their neutral `revolute` persists through Save/Open.
+
+Checkpoint evidence includes markers:
 
 - `REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS`;
+- `REAL_JV_TWO_BODY_HINGE_OWNERSHIP_PASS`;
+- `REAL_JV_LOWER_WISHBONE_REVOLUTE_PASS`;
+- `REAL_JV_REVOLUTE_DIAGNOSTIC_PASS`;
+- `REAL_JV_SINGLE_REVOLUTE_EVALUATOR_PASS`;
 - `CONSTRUCTION_FRAME_INVALID_RECIPE_FAIL_CLOSED_PASS`;
-- `CONSTRUCTION_FRAME_RECIPE_PREVIEW_READOUT_PASS`;
-- `BROWSER_REAL_CONSTRUCTION_FRAME_AUTHORING_PASS`.
-
-The Owner browser flow proves on the exact fixture:
-
-`create authored owner -> open exact SOURCE -> choose four recipe components -> reject degenerate recipe -> inspect origin/+Z/locator -> Preview -> Commit -> Undo -> Redo`.
-
-The same checkpoint preserves earlier browser evidence:
-
-- `ADOPTION_PREVIEW_TRANSFORM_LOCK_PASS`;
-- `REAL_SOURCE_CONSTRUCTION_X_ENDS_PASS`;
-- `OWNER_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
-- `SOURCE_DERIVED_RIG_ELEMENT_CREATE_UNDO_REDO_PASS`;
-- `REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS [ -1.125, 0, -0.8125 ]`;
-- `BROWSER_REAL_OWNER_PATH_SMOKE_PASS`.
+- `CONSTRUCTION_FRAME_RECIPE_PRESERVED_AFTER_COMMIT_PASS`;
+- `BROWSER_REAL_TWO_BODY_HINGE_AUTHORING_PASS`;
+- all earlier SOURCE placement/adoption/Undo/Redo browser regressions.
 
 ## Semantic boundaries
 
-A construction **point** is not a frame. A constructed frame exists only when independent evidence supplies enough information for a rigid orientation and the complete derivation can be re-resolved from the exact `SourceRevision`.
+SOURCE evidence proposes measurements; explicit adoption creates authored truth. Moving/relinking SOURCE never moves authored rig truth.
 
-The self-resolving recipe locator is subordinate SOURCE evidence, not authored authority and not a new asset database. Once explicitly adopted, the resulting `RigFrame` is Owner-authored truth; SOURCE provenance records where its measured proposal came from and does not create writeback authority.
+A construction point is not a frame. A constructed frame exists only when independent evidence supplies an orientation and the derivation can be re-resolved from the exact `SourceRevision`.
 
-No real `revolute` is authored yet. The wishbone-side hinge frame is grounded. The next missing evidence is **body ownership on both sides of the same physical hinge**, not a second geometric hardpoint. A neutral revolute should use coincident hinge frames owned by two distinct authored bodies; those body assignments must be explicit and independently justified.
+A `revolute` currently expresses only two authored frames and optional geometric limits. It does not contain mass, inertia, friction, damping, spring laws, motors, solver configuration or Box3D/native runtime identity.
 
-## Current product limitations
+The first TEST evaluator is deliberately not architecture for a general solver. Its TEST-only configuration explicitly selects which authored element moves. Durable `RigRelation` still does not encode parent/child hierarchy.
 
+`AUTHORED NEUTRAL != transient EVALUATED motion`. TEST results are revision-bound pose overlays and Reset removes them entirely.
+
+## Current product gaps
+
+- Owner can author both real hinge frames in the workbench, but **cannot yet create the `revolute` relation through the UI**; relation creation is domain/exact-source proven only.
+- The single-revolute TEST evaluator is domain/exact-source proven, but **there is no Owner TEST control/slider yet**.
 - UI exposes one active `SourceInstance` context even though the project model supports multiple instances.
-- Element authoring remains intentionally small; rename/delete/reparent information architecture is not final.
-- The recipe builder currently needs to preserve its disposable recipe while Preview/Commit temporarily takes over project authoring so that one physical hinge can be explicitly adopted onto the second body without re-entering the recipe.
 - No arbitrary surface/vertex picker exists because current real work has not justified one.
-- Mechanical relation vocabulary/axis conventions remain provisional.
-- Representation separation is strong, but the exact Owner workflow and `rigid/aim/span/...` vocabulary remain provisional.
-- No final kinematic evaluator/solver architecture exists.
+- Mechanical relation vocabulary and future limit conventions remain provisional.
+- Representation remains correctly separate, but final Owner mapping workflow is still provisional.
 - No JURE -> JV-Web consumer export/adapter exists yet.
 - Current layout remains an engineering harness, not final information architecture.
 
 ## Next falsifier
 
-Build the smallest **two-body lower-wishbone hinge** without importing the whole JV topology:
+Close the remaining Owner gap for the already-proven mechanism before adding more mechanism types:
 
-1. preserve the already validated construction recipe in disposable UI state across Preview/Cancel/Commit;
-2. make committed frame SOURCE provenance visible in the Inspector;
-3. explicitly ground one authored lower-arm body from the exact `Chassis_Bottom` SOURCE part;
-4. explicitly ground one authored chassis body using exact/Owner/secondary evidence without pretending the chosen chassis element origin is the hinge itself;
-5. adopt the **same lower-hinge construction recipe** as a frame on both bodies;
-6. prove the two resolved world frames coincide and their local `+Z` axes agree while their owner-local poses remain independently authored;
-7. persist both frames/provenance through Save/Open/relink;
-8. only after that add one minimal neutral `revolute` command and validate it through the existing single `ProjectSession` history;
-9. then consider a tiny replaceable kinematic evaluator slice.
+1. add a minimal Owner-facing `revolute` authoring flow over existing authored frames;
+2. preview current neutral diagnostics (`originResidualM`, signed-axis angle) before commit;
+3. create the relation through the existing `ProjectSession` as one Undo/Redo action;
+4. rendered exact-JV browser proof must create the relation from the two already-authored lower-hinge sides and preserve prior regressions;
+5. then add a minimal TEST control for one selected revolute with explicit disposable moving-element choice;
+6. prove `0° -> +30° -> Reset` in the workbench while project history and AUTHORED remain unchanged by TEST controls;
+7. only after that consider a tiny consumer-facing neutral export for one corner and validate it privately in JV-Web before touching Friends alpha.
 
-Do not implement the whole suspension, generic CAD/picking, final representation, consumer export or solver in this slice.
+Do not implement the whole suspension, generic CAD/picking, a general solver, consumer dynamics or final representation in the same slice.
 
 ## Owner / promotion boundary
 
 Useful later Owner judgement:
 
-- whether the construction recipe interaction is understandable and spatially useful;
-- `Save As -> reopen -> exact SOURCE relink` with a real two-body authored mechanism;
-- first real revolute and motion judgement.
+- whether relation creation and TEST motion are understandable and spatially trustworthy;
+- Save/Open/relink with the real authored mechanism;
+- whether the first actual joint motion matches the intended physical interpretation.
 
 Before any promotion to `main`, independently resolve PR #3 and exact `4db04eee...`, compare with `main`, retain PR #2 as recovery evidence and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
 ## Foundation exit criterion
 
-Foundation is complete when the Owner can take a real JV mechanism and, without agent-side coordinate guessing:
+Foundation is complete when the Owner can take a real mechanism and, without agent-side coordinate guessing:
 
 `place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> map representation -> kinematically test/reset -> save/reopen -> export a small consumer-facing result`
 
