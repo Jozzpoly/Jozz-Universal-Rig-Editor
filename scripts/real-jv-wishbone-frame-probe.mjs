@@ -13,6 +13,7 @@ import { adoptSourceDatumAsElement } from '../.core-dist/project/source-element-
 import { adoptSourceDatumAsFrame } from '../.core-dist/project/source-frame-adoption.js';
 import { applyRigCommandToProject } from '../.core-dist/project/commands.js';
 import { createRigElement } from '../.core-dist/features/rig-elements/command.js';
+import { createRevoluteRelation } from '../.core-dist/features/rig-relations/create-revolute.js';
 import { resolveRigDocument } from '../.core-dist/kernel/resolve.js';
 import { relationPrimaryAxisWorld } from '../.core-dist/kernel/relation-frame.js';
 import { parseJureProjectModel, serializeJureProjectModel } from '../.core-dist/project/serialize.js';
@@ -233,7 +234,7 @@ twoBodyProject = adoptSourceDatumAsFrame({
   sourceDatum: twoBodyHingeDatum,
 }).apply(twoBodyProject);
 
-const twoBodyRig = rig(twoBodyProject);
+let twoBodyRig = rig(twoBodyProject);
 const armFrame = twoBodyRig.frames.find((frame) => frame.id === 'frame.lower-arm.hinge');
 const chassisFrame = twoBodyRig.frames.find((frame) => frame.id === 'frame.chassis.lower-hinge');
 if (!armFrame || !chassisFrame) throw new Error('Two-body real JV proof lost one authored hinge frame.');
@@ -250,11 +251,11 @@ closePose(chassisWorld, lower.sourceRevisionWorldPose, 'chassis world hinge');
 closeVec(relationPrimaryAxisWorld(armWorld), { x: 0, y: 0, z: 1 }, 'lower-arm +Z');
 closeVec(relationPrimaryAxisWorld(chassisWorld), { x: 0, y: 0, z: 1 }, 'chassis +Z');
 
-const reopenedTwoBody = parseJureProjectModel(serializeJureProjectModel(twoBodyProject));
-const reopenedTwoBodyRig = rig(reopenedTwoBody);
-const persistedHingeFrames = reopenedTwoBodyRig.frames.filter((frame) => frame.source?.locator === lowerLocator);
+const twoBodyBeforeRelation = parseJureProjectModel(serializeJureProjectModel(twoBodyProject));
+const twoBodyBeforeRelationRig = rig(twoBodyBeforeRelation);
+const persistedHingeFrames = twoBodyBeforeRelationRig.frames.filter((frame) => frame.source?.locator === lowerLocator);
 if (persistedHingeFrames.length !== 2) throw new Error(`Expected two persisted authored sides of one physical hinge; received ${persistedHingeFrames.length}.`);
-if (reopenedTwoBody.sourceAdoptions.filter((entry) => entry.source.locator === lowerLocator).length !== 2) throw new Error('Two-body hinge adoption evidence did not survive Save/Open.');
+if (twoBodyBeforeRelation.sourceAdoptions.filter((entry) => entry.source.locator === lowerLocator).length !== 2) throw new Error('Two-body hinge adoption evidence did not survive Save/Open.');
 
 console.log('REAL_JV_TWO_BODY_HINGE_OWNERSHIP_PASS', JSON.stringify({
   locator: lowerLocator,
@@ -262,4 +263,45 @@ console.log('REAL_JV_TWO_BODY_HINGE_OWNERSHIP_PASS', JSON.stringify({
   chassisLocalPose: chassisFrame.pose,
   worldPose: armWorld,
   primaryAxis: relationPrimaryAxisWorld(armWorld),
+}));
+
+// Mechanical intent only after both sides of the exact physical hinge are independently
+// authored. This does not add forces, a motor, damping, solver state or Box3D identity.
+twoBodyProject = applyRigCommandToProject('rig.real-jv-probe', createRevoluteRelation({
+  id: 'relation.lower-wishbone.chassis-hinge',
+  frameA: armFrame.id,
+  frameB: chassisFrame.id,
+})).apply(twoBodyProject);
+twoBodyRig = rig(twoBodyProject);
+const revolute = twoBodyRig.relations.find((relation) => relation.id === 'relation.lower-wishbone.chassis-hinge');
+if (!revolute || revolute.type !== 'revolute') throw new Error('Real JV lower wishbone revolute was not authored.');
+if (revolute.frameA !== armFrame.id || revolute.frameB !== chassisFrame.id) throw new Error('Real JV lower wishbone revolute targets the wrong authored frames.');
+if ('limits' in revolute && revolute.limits) throw new Error('First real lower wishbone revolute must remain neutral/unlimited until Owner evidence justifies limits.');
+
+const relationJson = JSON.stringify(revolute).toLowerCase();
+for (const forbidden of ['mass', 'inertia', 'friction', 'damping', 'hertz', 'motor', 'servo', 'solver', 'box3d']) {
+  if (relationJson.includes(forbidden)) throw new Error(`Real JV neutral revolute leaked consumer dynamics field ${forbidden}.`);
+}
+
+const reopenedWithRelation = parseJureProjectModel(serializeJureProjectModel(twoBodyProject));
+const reopenedWithRelationRig = rig(reopenedWithRelation);
+const persistedRevolute = reopenedWithRelationRig.relations.find((relation) => relation.id === revolute.id);
+if (!persistedRevolute || persistedRevolute.type !== 'revolute') throw new Error('Real JV lower wishbone revolute did not survive Save/Open.');
+const persistedArmFrame = reopenedWithRelationRig.frames.find((frame) => frame.id === armFrame.id);
+const persistedChassisFrame = reopenedWithRelationRig.frames.find((frame) => frame.id === chassisFrame.id);
+if (!persistedArmFrame || !persistedChassisFrame) throw new Error('Real JV revolute lost one of its authored hinge frames after Save/Open.');
+if (persistedArmFrame.source?.locator !== lowerLocator || persistedChassisFrame.source?.locator !== lowerLocator) throw new Error('Real JV revolute frame provenance changed after Save/Open.');
+const persistedResolved = resolveRigDocument(reopenedWithRelationRig);
+const persistedArmWorld = persistedResolved.frameWorldPoses.get(persistedArmFrame.id);
+const persistedChassisWorld = persistedResolved.frameWorldPoses.get(persistedChassisFrame.id);
+if (!persistedArmWorld || !persistedChassisWorld) throw new Error('Real JV revolute frames did not resolve after Save/Open.');
+closePose(persistedArmWorld, persistedChassisWorld, 'revolute persisted world coincidence');
+closeVec(relationPrimaryAxisWorld(persistedArmWorld), { x: 0, y: 0, z: 1 }, 'revolute persisted arm +Z');
+closeVec(relationPrimaryAxisWorld(persistedChassisWorld), { x: 0, y: 0, z: 1 }, 'revolute persisted chassis +Z');
+
+console.log('REAL_JV_LOWER_WISHBONE_REVOLUTE_PASS', JSON.stringify({
+  relation: persistedRevolute,
+  locator: lowerLocator,
+  worldPose: persistedArmWorld,
+  primaryAxis: relationPrimaryAxisWorld(persistedArmWorld),
 }));
