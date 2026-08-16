@@ -28,7 +28,7 @@ There is deliberately no generic element hierarchy, ECS, physics-body schema, Bo
 - `SourceRevision` — one immutable exact SOURCE identity. Operational identity is exact bytes (`sha256`) plus source adapter identity/version; its revision ID is the stable project address for that exact revision.
 - `SourceInstance` — one independently placed use of a `SourceRevision` with a rigid project/world pose. Multiple instances may reuse one exact revision.
 - `ConsumerReferenceSnapshot` — external consumer evidence. It can guide decisions but is never authored kernel truth.
-- `SourceAdoptionRecord` — immutable historical evidence that an explicit SOURCE datum produced an authored target at a specific placed-source state.
+- `SourceAdoptionRecord` — immutable historical evidence that explicit SOURCE evidence produced an authored target at a specific placed-source state.
 
 Filename, label, URI and visual similarity are not source identity. Different bytes are a different `SourceRevision`; relink of an existing revision fails closed unless exact SHA-256 + adapter identity agree.
 
@@ -64,32 +64,45 @@ Only one authoring operation owns preview at a time. A rig transform, SOURCE pla
 
 The viewport gizmo may operate in project/world space. `RigFrame` world edits are converted back to owner-local authored pose. `SourceInstance` placement remains a project transform and is never disguised as a `RigElement`.
 
-## 4. Runtime SOURCE boundary
+## 4. Runtime SOURCE and evidence boundary
 
 `ProjectSourceRuntimeState` owns disposable browser-session SOURCE availability and SOURCE selection.
 
 - linked bytes are keyed by exact `SourceRevision`;
 - active viewport SOURCE context is a `SourceInstance`;
-- SOURCE datum selection is `sourceInstanceId + locator`;
+- SOURCE node selection is `sourceInstanceId + locator`;
 - relink verifies exact SHA-256 + adapter before installing runtime bytes;
 - one linked exact revision may serve multiple placed instances;
 - unlink/relink creates no project history.
 
-Any SOURCE node may be inspected. Only a node verified as rigid-compatible may resolve to `ExactPlacedSourceDatum` and cross into rigid authored truth.
+Any SOURCE node may be inspected. A node may cross directly into rigid authoring only when its complete rigid pose is verified as compatible.
 
-SOURCE geometry itself stays read-only. Registration/placement moves the `SourceInstance`, not individual SOURCE nodes.
+Real geometry may also provide **derived SOURCE evidence**. Evidence types are deliberately narrower than authored entities:
+
+- a geometry-derived construction **point** has a deterministic position + derivation provenance, but no rotation and therefore is **not** a `RigFrame`;
+- a constructed rigid **frame candidate** exists only when independent evidence supplies enough non-degenerate directions to determine a full right-handed orientation as well as an origin;
+- unsupported/deformable/external geometry must yield no derived geometry claim rather than a guessed datum.
+
+SOURCE geometry itself stays read-only. Registration/placement moves the `SourceInstance`, not individual SOURCE nodes. Derived evidence is computed from one exact revision and remains subordinate to its exact identity.
 
 ## 5. SOURCE -> AUTHORED crossing
 
-Adoption is explicit and transactional:
+Adoption is explicit and transactional.
 
-`verified ExactPlacedSourceDatum -> candidate authored target + immutable adoption evidence -> Preview -> Commit | Cancel`
+Current direct crossings include:
 
-For the current RU-1 slice the target is an owned `RigFrame`.
+- verified exact rigid SOURCE node -> new authored `RigElement` origin + immutable element-adoption evidence;
+- verified exact rigid SOURCE node -> candidate owned `RigFrame` + immutable frame-adoption evidence -> Preview -> Commit | Cancel.
 
-Commit creates the authored frame and its adoption evidence as one durable history action. Cancel creates neither. The frame is owner-authored; provenance records where its measurement came from, not who controls it afterward.
+Commit creates authored truth and its adoption evidence as one durable history action. Cancel creates neither. Authored data remains Owner-owned afterward; provenance records where the measurement came from, not who controls it.
 
-This crossing must remain a small explicit boundary. Future geometry picking/construction datums may produce additional exact/derived evidence types, but must not create an implicit SOURCE-writeback path.
+Derived evidence has an additional gate:
+
+`exact SOURCE -> deterministic derived evidence -> complete/re-resolvable construction recipe -> explicit authored adoption`
+
+A point-only datum may never be promoted to a rigid authored frame by assigning identity or copying an unrelated SOURCE quaternion. A constructed frame may cross into authored truth only when its full pose is evidence-backed **and its recipe/provenance can be persisted or deterministically re-resolved from the exact SourceRevision**.
+
+This crossing must remain small and explicit. Construction geometry must not create an implicit SOURCE-writeback path.
 
 ## 6. Mechanical intent is separate from consumer dynamics
 
@@ -140,6 +153,7 @@ Domain truth stays outside React. Active ownership is intentionally singular:
 - `src/project/*` — logical project, exact SOURCE identity, project commands, `ProjectSession`, adoption;
 - `src/editor/rig-command.ts` — pure authored-rig mutation contract with no history;
 - `src/editor/transform-target.ts` — spatial transform target/space conversion contract;
+- `src/source/*` — SOURCE inspection/adapters plus conservative exact/derived evidence and construction math;
 - `src/representation/*` — provisional authored representation domain;
 - `src/evaluation/*` — transient TEST/evaluator boundary;
 - `src/app/state/project-authoring.ts` — one active authoring operation, selection and ProjectSession orchestration;
