@@ -5,11 +5,10 @@
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest fully validated product SHA:** `b94f17e4bc2b89e9dd2c30993d9875039f3bdc4f`;
-- **latest frozen checkpoint:** `checkpoint/real-jv-wishbone-recipe-reresolve-2026-08-16@b94f17e4bc2b89e9dd2c30993d9875039f3bdc4f`;
-- **checkpoint browser run:** `31957259877` — Linux Chrome PASS + Windows Chrome PASS;
-- **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`;
-- **newer work beyond the validated checkpoint:** Owner-facing construction-frame recipe UI; canonical Work check is required and rendered acceptance remains pending until a later checkpoint.
+- **latest fully validated product SHA:** `06d5421efcf9c65f98a774de544e88ae77dba8c1`;
+- **latest frozen checkpoint:** `checkpoint/real-jv-construction-frame-owner-workflow-2026-08-16@06d5421efcf9c65f98a774de544e88ae77dba8c1`;
+- **checkpoint browser run:** `31957914832` — Linux Chrome PASS + Windows Chrome PASS;
+- **active product review boundary:** draft PR #4 targeting the clean foundation candidate, not `main`.
 
 `main` remains untouched. PR #2 retains full recovery/foundation evidence; PR #3 remains the explicit clean promotion boundary. Neither PR #3 nor PR #4 may be merged merely because CI is green.
 
@@ -37,17 +36,20 @@ The validated line now demonstrates:
 - transactional constructed-frame adoption through the existing `ProjectSession` path;
 - deterministic Save/Open preserving the construction locator in `RigFrame.source` and `SourceAdoptionRecord`;
 - exact relink followed by deterministic re-resolution without a parallel recipe database;
+- **Owner-facing construction-frame recipe builder** showing origin, local axes, algorithm/version and recipe provenance before authored mutation;
+- invalid/degenerate recipe evidence visibly fails closed and cannot enter Preview;
+- valid exact real-JV recipe enters the existing Preview/Commit adoption path and survives Undo/Redo;
 - one chronological `ProjectSession` history for SOURCE placement and authored changes;
 - separate mechanical-relation, representation and AUTHOR/TEST domains.
 
-Canonical validation at `b94f17e4...`:
+Canonical validation at `06d5421...`:
 
 - Node `24.16.0` / npm `11.17.0`;
 - locked `npm ci`: PASS;
 - TypeScript: PASS;
 - **25 core test files / 122 PASS / 0 FAIL**;
 - Vite production build: PASS;
-- exact checkpoint run `31957259877`: Linux PASS + Windows PASS.
+- exact checkpoint run `31957914832`: Linux PASS + Windows PASS.
 
 The existing >500 kB minified main-chunk warning remains non-blocking build debt.
 
@@ -85,11 +87,18 @@ quaternion         = [0, 0, 0, 1]
 orthogonality err = 0
 ```
 
-Both Linux and Windows logs for run `31957259877` contain:
+Both Linux and Windows logs for run `31957914832` contain:
 
-`REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS`
+- `REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS`;
+- `CONSTRUCTION_FRAME_INVALID_RECIPE_FAIL_CLOSED_PASS`;
+- `CONSTRUCTION_FRAME_RECIPE_PREVIEW_READOUT_PASS`;
+- `BROWSER_REAL_CONSTRUCTION_FRAME_AUTHORING_PASS`.
 
-The lower hinge recipe is additionally adopted, serialized, reopened, exact-relinked and re-resolved while preserving the same self-describing locator. The same checkpoint preserves earlier browser evidence:
+The Owner browser flow proves on the exact fixture:
+
+`create authored owner -> open exact SOURCE -> choose four recipe components -> reject degenerate recipe -> inspect origin/+Z/locator -> Preview -> Commit -> Undo -> Redo`.
+
+The same checkpoint preserves earlier browser evidence:
 
 - `ADOPTION_PREVIEW_TRANSFORM_LOCK_PASS`;
 - `REAL_SOURCE_CONSTRUCTION_X_ENDS_PASS`;
@@ -104,13 +113,13 @@ A construction **point** is not a frame. A constructed frame exists only when in
 
 The self-resolving recipe locator is subordinate SOURCE evidence, not authored authority and not a new asset database. Once explicitly adopted, the resulting `RigFrame` is Owner-authored truth; SOURCE provenance records where its measured proposal came from and does not create writeback authority.
 
-No real `revolute` is authored yet. The wishbone-side hinge frame is grounded, but the second authored body/frame at the same physical hinge still requires independent justification. Inventing that second side merely to create a relation would weaken the evidence model.
+No real `revolute` is authored yet. The wishbone-side hinge frame is grounded. The next missing evidence is **body ownership on both sides of the same physical hinge**, not a second geometric hardpoint. A neutral revolute should use coincident hinge frames owned by two distinct authored bodies; those body assignments must be explicit and independently justified.
 
 ## Current product limitations
 
 - UI exposes one active `SourceInstance` context even though the project model supports multiple instances.
 - Element authoring remains intentionally small; rename/delete/reparent information architecture is not final.
-- The validated constructed-frame recipe/re-resolution path is domain/runtime proven; the newer Owner-facing recipe builder still requires rendered browser validation before it becomes a product claim.
+- The recipe builder currently needs to preserve its disposable recipe while Preview/Commit temporarily takes over project authoring so that one physical hinge can be explicitly adopted onto the second body without re-entering the recipe.
 - No arbitrary surface/vertex picker exists because current real work has not justified one.
 - Mechanical relation vocabulary/axis conventions remain provisional.
 - Representation separation is strong, but the exact Owner workflow and `rigid/aim/span/...` vocabulary remain provisional.
@@ -120,17 +129,17 @@ No real `revolute` is authored yet. The wishbone-side hinge frame is grounded, b
 
 ## Next falsifier
 
-Finish the smallest **Owner-reviewable construction-frame workflow** over the already validated recipe model:
+Build the smallest **two-body lower-wishbone hinge** without importing the whole JV topology:
 
-1. Owner selects origin point, radial endpoint, exact up-start and exact up-end from one linked exact SOURCE revision;
-2. JURE displays the resulting origin, local axes, algorithm/version and recipe provenance before any authored mutation;
-3. invalid/degenerate/non-orthogonal evidence fails visibly and cannot be previewed;
-4. with one authored `RigElement` selected, explicit Preview enters the existing `source-frame-adoption` operation;
-5. Commit creates the frame + adoption evidence atomically; Cancel creates neither;
-6. rendered browser proof on the real JV SOURCE verifies the lower wishbone recipe and preserves all existing owner-path regressions;
-7. Save/Open/relink semantics remain protected by the already passing core + real-source checkpoint;
-8. only after this Owner workflow is validated should the second body/frame at the hinge be independently grounded;
-9. only then author one real neutral `revolute` and test local `+Z` mechanically.
+1. preserve the already validated construction recipe in disposable UI state across Preview/Cancel/Commit;
+2. make committed frame SOURCE provenance visible in the Inspector;
+3. explicitly ground one authored lower-arm body from the exact `Chassis_Bottom` SOURCE part;
+4. explicitly ground one authored chassis body using exact/Owner/secondary evidence without pretending the chosen chassis element origin is the hinge itself;
+5. adopt the **same lower-hinge construction recipe** as a frame on both bodies;
+6. prove the two resolved world frames coincide and their local `+Z` axes agree while their owner-local poses remain independently authored;
+7. persist both frames/provenance through Save/Open/relink;
+8. only after that add one minimal neutral `revolute` command and validate it through the existing single `ProjectSession` history;
+9. then consider a tiny replaceable kinematic evaluator slice.
 
 Do not implement the whole suspension, generic CAD/picking, final representation, consumer export or solver in this slice.
 
@@ -139,8 +148,8 @@ Do not implement the whole suspension, generic CAD/picking, final representation
 Useful later Owner judgement:
 
 - whether the construction recipe interaction is understandable and spatially useful;
-- `Save As -> reopen -> exact SOURCE relink` with a real authored mechanism;
-- first two-body mechanical relation and motion judgement.
+- `Save As -> reopen -> exact SOURCE relink` with a real two-body authored mechanism;
+- first real revolute and motion judgement.
 
 Before any promotion to `main`, independently resolve PR #3 and exact `4db04eee...`, compare with `main`, retain PR #2 as recovery evidence and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
