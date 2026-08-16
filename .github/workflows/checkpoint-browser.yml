@@ -90,6 +90,7 @@ jobs:
 
           node scripts/browser-adoption-preview-lock-smoke.mjs
           node scripts/browser-construction-point-smoke.mjs
+          node scripts/browser-construction-frame-authoring-smoke.mjs
           node scripts/browser-owner-path-smoke.mjs
 
   windows-browser:
@@ -165,6 +166,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Windows adoption-preview lock probe exited with code $LASTEXITCODE" }
             node scripts/browser-construction-point-smoke.mjs
             if ($LASTEXITCODE -ne 0) { throw "Windows construction-point probe exited with code $LASTEXITCODE" }
+            node scripts/browser-construction-frame-authoring-smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw "Windows construction-frame authoring probe exited with code $LASTEXITCODE" }
             node scripts/browser-owner-path-smoke.mjs
             if ($LASTEXITCODE -ne 0) { throw "Windows owner-path probe exited with code $LASTEXITCODE" }
           } finally {
