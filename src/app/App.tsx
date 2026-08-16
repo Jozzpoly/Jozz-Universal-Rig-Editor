@@ -150,7 +150,11 @@ export function App() {
     const frame = document.frames.find((candidate) => candidate.id === operation.frameId);
     if (!frame) return null;
     const owner = frame.ownerElementId ? document.elements.find((element) => element.id === frame.ownerElementId) ?? null : null;
-    return { frameName: frame.name, ownerName: owner?.name ?? 'rig root' };
+    return {
+      frameName: frame.name,
+      ownerName: owner?.name ?? 'rig root',
+      sourceLabel: frame.source?.locator.startsWith('source.derived-frame:') ? frame.name : undefined,
+    };
   }, [authoring.activeOperation, document]);
 
   const requestView = useCallback((target: ViewFitTarget) => {
@@ -280,6 +284,28 @@ export function App() {
     }
   }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, selectedElement, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
 
+  const handlePreviewConstructedFrame = useCallback((locator: string, frameName: string) => {
+    if (!activeSourceInstance || !selectedElement || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Select one authored RigElement and finish any active placement/preview before constructing a frame.');
+      return;
+    }
+    try {
+      const sourceDatum = resolveExactPlacedSourceDatum(sourceRuntime, project, activeSourceInstance.id, locator);
+      const ids = allocateFrameAdoptionIds(project, document.documentId, frameName);
+      setAuthoring((current) => beginProjectSourceFrameAdoption(current, {
+        rigDocumentId: document.documentId,
+        frameId: ids.frameId,
+        frameName,
+        ownerElementId: selectedElement.id,
+        adoptionId: ids.adoptionId,
+        sourceDatum,
+      }));
+      setStatus(`Constructed frame preview: ${frameName} → ${selectedElement.name}`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeSourceInstance, selectedElement, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
+
   const handleCommitAdoption = useCallback(() => {
     const operation = authoring.activeOperation;
     if (operation?.kind !== 'source-frame-adoption') return;
@@ -382,7 +408,7 @@ export function App() {
 
   const warningCount = resolved.diagnostics.filter((item) => item.severity === 'warning').length;
   const selectedPose = selectedElement?.pose ?? selectedFrame?.pose ?? null;
-  const adoptionTargetName = !authoring.activeOperation && !sourcePlacementEdit && selectedElement && selectedSourceNode?.worldRigidPose && selectedSourceNode.rigidCompatibility === 'rigid'
+  const adoptionTargetName = !authoring.activeOperation && !sourcePlacementEdit && selectedElement
     ? selectedElement.name
     : null;
 
@@ -425,6 +451,7 @@ export function App() {
           placementEditActive={sourcePlacementEdit}
           placementEditDisabled={Boolean(authoring.activeOperation)}
           elementCreationDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          constructionDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
           adoptionTargetName={adoptionTargetName}
           adoptionPreview={adoptionPreview}
           visible={sourceVisible}
@@ -433,6 +460,7 @@ export function App() {
           onLayerChange={(layer, visible) => setSourceLayers((current) => ({ ...current, [layer]: visible }))}
           onTogglePlacementEdit={handleToggleSourcePlacement}
           onPreviewAdoption={handlePreviewAdoption}
+          onPreviewConstructedFrame={handlePreviewConstructedFrame}
           onCommitAdoption={handleCommitAdoption}
           onCancelAdoption={handleCancelAdoption}
           onCreateElementFromSource={handleCreateElementFromSource}
