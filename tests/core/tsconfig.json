@@ -11,7 +11,7 @@
   "include": [
     "../../src/kernel/**/*.ts",
     "../../src/editor/**/*.ts",
-    "../../src/features/rig-transform/**/*.ts",
+    "../../src/features/**/*.ts",
     "../../src/fixtures/synthetic-rig.ts",
     "../../src/source/**/*.ts",
     "../../src/project/**/*.ts",
