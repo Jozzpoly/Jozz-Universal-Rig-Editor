@@ -1,4 +1,4 @@
-import type { RigCommand } from '../editor/session.js';
+import type { RigCommand } from '../editor/rig-command.js';
 import { normalizeQuat } from '../kernel/math.js';
 import type { RigidPose } from '../kernel/types.js';
 import type { JureProjectCommand } from './session.js';
