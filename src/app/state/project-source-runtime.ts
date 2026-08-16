@@ -1,6 +1,7 @@
 import { normalizeQuat } from '../../kernel/math.js';
 import type { JureProjectModel } from '../../project/types.js';
 import type { ExactPlacedSourceDatum } from '../../project/source-datum.js';
+import { parseOrthogonalCrossAxisFrameLocator, resolveOrthogonalCrossAxisFrameLocator } from '../../source/construction-frame-locator.js';
 import type { SourceInspection, SourceNodeInspection } from '../../source/types.js';
 
 export interface LinkedProjectSourceAsset {
@@ -94,19 +95,28 @@ export function linkedSourceRuntimeForInstance(
   return state.linkedAssets.find((asset) => asset.sourceRevisionId === instance.sourceRevisionId) ?? null;
 }
 
+function linkedSourceContext(
+  state: ProjectSourceRuntimeState,
+  project: JureProjectModel,
+  sourceInstanceId: string,
+): { sourceRevisionId: string; asset: LinkedProjectSourceAsset } {
+  const instance = project.sourceInstances.find((candidate) => candidate.id === sourceInstanceId);
+  if (!instance) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
+  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
+  if (!asset) throw new Error(`SourceRevision ${instance.sourceRevisionId} is not linked to runtime bytes.`);
+  return { sourceRevisionId: instance.sourceRevisionId, asset };
+}
+
 function selectedSourceNode(
   state: ProjectSourceRuntimeState,
   project: JureProjectModel,
   sourceInstanceId: string,
   locator: string,
 ): { sourceRevisionId: string; node: SourceNodeInspection } {
-  const instance = project.sourceInstances.find((candidate) => candidate.id === sourceInstanceId);
-  if (!instance) throw new Error(`SourceInstance ${sourceInstanceId} not found in project.`);
-  const asset = state.linkedAssets.find((candidate) => candidate.sourceRevisionId === instance.sourceRevisionId);
-  if (!asset) throw new Error(`SourceRevision ${instance.sourceRevisionId} is not linked to runtime bytes.`);
-  const node = asset.inspection.nodes.find((candidate) => candidate.locator === locator);
-  if (!node) throw new Error(`SOURCE locator ${locator} is not present in linked revision ${instance.sourceRevisionId}.`);
-  return { sourceRevisionId: instance.sourceRevisionId, node };
+  const context = linkedSourceContext(state, project, sourceInstanceId);
+  const node = context.asset.inspection.nodes.find((candidate) => candidate.locator === locator);
+  if (!node) throw new Error(`SOURCE locator ${locator} is not present in linked revision ${context.sourceRevisionId}.`);
+  return { sourceRevisionId: context.sourceRevisionId, node };
 }
 
 export function resolveExactPlacedSourceDatum(
@@ -115,17 +125,35 @@ export function resolveExactPlacedSourceDatum(
   sourceInstanceId: string,
   locator: string,
 ): ExactPlacedSourceDatum {
-  const resolved = selectedSourceNode(state, project, sourceInstanceId, locator);
-  if (resolved.node.rigidCompatibility !== 'rigid' || !resolved.node.worldRigidPose) throw new Error(`SOURCE datum ${locator} is not rigid-compatible.`);
-  return {
-    sourceInstanceId,
-    sourceRevisionId: resolved.sourceRevisionId,
-    locator,
-    sourceRevisionWorldPose: {
-      position: { ...resolved.node.worldRigidPose.position },
-      rotation: normalizeQuat(resolved.node.worldRigidPose.rotation),
-    },
-  };
+  const context = linkedSourceContext(state, project, sourceInstanceId);
+  const node = context.asset.inspection.nodes.find((candidate) => candidate.locator === locator);
+  if (node) {
+    if (node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) throw new Error(`SOURCE datum ${locator} is not rigid-compatible.`);
+    return {
+      sourceInstanceId,
+      sourceRevisionId: context.sourceRevisionId,
+      locator,
+      sourceRevisionWorldPose: {
+        position: { ...node.worldRigidPose.position },
+        rotation: normalizeQuat(node.worldRigidPose.rotation),
+      },
+    };
+  }
+
+  if (parseOrthogonalCrossAxisFrameLocator(locator)) {
+    const frame = resolveOrthogonalCrossAxisFrameLocator(context.asset.inspection, locator);
+    return {
+      sourceInstanceId,
+      sourceRevisionId: context.sourceRevisionId,
+      locator,
+      sourceRevisionWorldPose: {
+        position: { ...frame.sourceRevisionWorldPose.position },
+        rotation: normalizeQuat(frame.sourceRevisionWorldPose.rotation),
+      },
+    };
+  }
+
+  throw new Error(`SOURCE locator ${locator} is not present or resolvable in linked revision ${context.sourceRevisionId}.`);
 }
 
 export function selectProjectSourceDatum(
