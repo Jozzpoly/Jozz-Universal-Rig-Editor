@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const workspace = await import('../../.core-dist/app/state/rig-workspace.js');
+const workspace = await import('../../.core-dist/experiments/rig-workspace-context.js');
 
 const pose = (x = 0) => ({ position: { x, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 } });
 const rig = {
