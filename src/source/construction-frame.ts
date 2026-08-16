@@ -34,9 +34,30 @@ export interface SourceDerivedFrameDatum {
   };
 }
 
+function canonicalScalar(value: number): number {
+  return Object.is(value, -0) ? 0 : value;
+}
+
+function canonicalVec3(value: Vec3): Vec3 {
+  return {
+    x: canonicalScalar(value.x),
+    y: canonicalScalar(value.y),
+    z: canonicalScalar(value.z),
+  };
+}
+
+function canonicalQuat(value: Quat): Quat {
+  return {
+    x: canonicalScalar(value.x),
+    y: canonicalScalar(value.y),
+    z: canonicalScalar(value.z),
+    w: canonicalScalar(value.w),
+  };
+}
+
 function finiteVec3(value: Vec3, label: string): Vec3 {
   if (![value.x, value.y, value.z].every(Number.isFinite)) throw new Error(`${label} must contain finite coordinates.`);
-  return { x: value.x, y: value.y, z: value.z };
+  return canonicalVec3(value);
 }
 
 function subtract(a: Vec3, b: Vec3): Vec3 {
@@ -58,7 +79,7 @@ function cross(a: Vec3, b: Vec3): Vec3 {
 function normalize(value: Vec3, label: string): Vec3 {
   const length = Math.hypot(value.x, value.y, value.z);
   if (!Number.isFinite(length) || length <= LENGTH_EPSILON) throw new Error(`${label} must have finite non-zero length.`);
-  return { x: value.x / length, y: value.y / length, z: value.z / length };
+  return canonicalVec3({ x: value.x / length, y: value.y / length, z: value.z / length });
 }
 
 function quatFromBasisColumns(x: Vec3, y: Vec3, z: Vec3): Quat {
@@ -81,7 +102,7 @@ function quatFromBasisColumns(x: Vec3, y: Vec3, z: Vec3): Quat {
     const s = Math.sqrt(1 + m22 - m00 - m11) * 2;
     q = { x: (m02 + m20) / s, y: (m12 + m21) / s, z: 0.25 * s, w: (m10 - m01) / s };
   }
-  return normalizeQuat(q);
+  return canonicalQuat(normalizeQuat(q));
 }
 
 function maxBasisError(rotation: Quat, x: Vec3, y: Vec3, z: Vec3): number {
