@@ -42,6 +42,7 @@ import {
   selectProjectSourceDatum,
   type ProjectSourceRuntimeState,
 } from './state/project-source-runtime.js';
+import { createProjectRigElement } from './state/rig-element-workflow.js';
 import { allocateFrameAdoptionIds, planSourceOpen } from './state/source-workflow.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
@@ -159,6 +160,19 @@ export function App() {
   const handleSelectTarget = useCallback((target: TransformTarget | null) => {
     setAuthoring((current) => selectProjectRigTarget(current, target));
   }, []);
+
+  const handleCreateElement = useCallback((name: string) => {
+    if (sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish SOURCE placement and commit/cancel any active preview before creating an authored element.');
+      return;
+    }
+    try {
+      setAuthoring(createProjectRigElement(authoring, name));
+      setStatus(`Created authored element "${name.trim()}" · unsaved`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [authoring, sourcePlacementEdit]);
 
   const handleSelectSourceLocator = useCallback((locator: string) => {
     if (!activeSourceInstance) return;
@@ -378,9 +392,11 @@ export function App() {
           selectedTarget={selectedTarget}
           visible={rigVisible}
           layers={rigLayers}
+          createDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
           onVisibleChange={setRigVisible}
           onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
           onSelect={handleSelectTarget}
+          onCreateElement={handleCreateElement}
         />
       )}
       sourcePane={(

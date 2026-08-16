@@ -13,18 +13,22 @@ interface RigNavigatorProps {
   selectedTarget: TransformTarget | null;
   visible: boolean;
   layers: RigLayerVisibility;
+  createDisabled: boolean;
   onVisibleChange(visible: boolean): void;
   onLayerChange(layer: keyof RigLayerVisibility, visible: boolean): void;
   onSelect(target: TransformTarget): void;
+  onCreateElement(name: string): void;
 }
 
 function matchesFilter(value: string, filter: string): boolean {
   return value.toLocaleLowerCase().includes(filter.toLocaleLowerCase());
 }
 
-export function RigNavigator({ document, selectedTarget, visible, layers, onVisibleChange, onLayerChange, onSelect }: RigNavigatorProps) {
+export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, onVisibleChange, onLayerChange, onSelect, onCreateElement }: RigNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [collapsedElements, setCollapsedElements] = useState<Set<string>>(() => new Set());
+  const [creatingElement, setCreatingElement] = useState(false);
+  const [newElementName, setNewElementName] = useState('');
   const normalizedFilter = filter.trim();
 
   const framesByOwner = useMemo(() => {
@@ -44,6 +48,14 @@ export function RigNavigator({ document, selectedTarget, visible, layers, onVisi
       else next.add(elementId);
       return next;
     });
+  };
+
+  const submitNewElement = () => {
+    const name = newElementName.trim();
+    if (!name || createDisabled) return;
+    onCreateElement(name);
+    setNewElementName('');
+    setCreatingElement(false);
   };
 
   const visibleElements = document.elements.filter((element) => {
@@ -74,12 +86,42 @@ export function RigNavigator({ document, selectedTarget, visible, layers, onVisi
         <span className="pane-count">{document.elements.length} el · {document.frames.length} fr</span>
         <button className={`master-visibility auth ${visible ? 'active' : ''}`} title={visible ? 'Hide authored rig' : 'Show authored rig'} onClick={() => onVisibleChange(!visible)} aria-pressed={visible}>{visible ? 'Hide' : 'Show'}</button>
       </div>
-      <div className="layer-strip" aria-label="Rig display layers">
+      <div className="layer-strip" aria-label="Rig display layers and authoring actions">
         {layerToggle('elements', 'Elements')}
         {layerToggle('frames', 'Frames')}
         {layerToggle('relations', 'Relations')}
+        <button
+          type="button"
+          className={`layer-toggle auth ${creatingElement ? 'active' : ''}`}
+          aria-expanded={creatingElement}
+          disabled={createDisabled}
+          title={createDisabled ? 'Finish the active authoring or SOURCE placement operation first' : 'Create a new authored rigid element'}
+          onClick={() => {
+            setCreatingElement((current) => !current);
+            setNewElementName('');
+          }}
+        >
+          + Element
+        </button>
       </div>
-      <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter rig…" />
+      {creatingElement ? (
+        <form onSubmit={(event) => { event.preventDefault(); submitNewElement(); }}>
+          <input
+            className="navigator-filter"
+            value={newElementName}
+            onChange={(event) => setNewElementName(event.target.value)}
+            placeholder="New element name…"
+            aria-label="New element name"
+            autoFocus
+          />
+          <div className="layer-strip" aria-label="Create authored element">
+            <button type="submit" className="layer-toggle auth active" disabled={createDisabled || !newElementName.trim()}>Create</button>
+            <button type="button" className="layer-toggle" onClick={() => { setCreatingElement(false); setNewElementName(''); }}>Cancel</button>
+          </div>
+        </form>
+      ) : (
+        <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter rig…" />
+      )}
       <div className="navigator-tree">
         {rootFrames.length > 0 ? <div className="tree-section-label">Rig-root frames</div> : null}
         {rootFrames.map((frame) => (
