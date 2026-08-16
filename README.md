@@ -7,29 +7,31 @@ JURE is an owner-first local web workbench for authoring rig intent directly on 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` through draft PR #3;
 - **active product work:** `work/real-jv-rig-elements` based exactly on that clean candidate;
-- **latest frozen product checkpoint:** resolve the current checkpoint named in `docs/STATUS.md` before relying on rendered/product claims.
+- **active product review boundary:** draft PR #4;
+- **latest frozen product checkpoint:** resolve the exact checkpoint named in `docs/STATUS.md` before relying on rendered/product claims.
 
 `main` does not move because CI is green. PR #3 remains an explicit Owner promotion decision. PR #2 / `work/real-use-foundation-recovery` retains the full recovery/foundation evidence history and is not the ordinary product-work head.
 
-Closed PR #1, old work branches, recovery packs, chats, JV M5/M6 and BIND-00 are historical evidence only. Current truth comes from the active branch plus the four canonical documents below.
-
 ## Current foundation
 
-The active line now has one active project/state/history path:
+The active line now has one active project/state/history path and demonstrates:
 
 - rigid `RigElement` and owner-local/root `RigFrame` authoring;
-- Owner-facing creation of authored `RigElement`s with deterministic IDs, immediate selection and one chronological Undo/Redo action;
+- free Owner-facing `RigElement` creation with deterministic identity, immediate selection and chronological Undo/Redo;
+- **exact SOURCE datum -> new authored `RigElement` origin** with immutable source/adoption provenance;
+- exact SOURCE datum -> authored owner-local `RigFrame` adoption;
 - Move/Rotate, world/local, numeric XYZ-degree editing over quaternion storage;
 - preview/commit/cancel;
 - **one chronological `ProjectSession` Undo/Redo history** for SOURCE placement and authored project changes;
 - exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
 - read-only glTF/GLB SOURCE inspection with deterministic locators, marker/axes and independent SOURCE selection;
-- explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical evidence, including adoption into a freshly Owner-created element;
 - deterministic logical project save/open and exact SOURCE relink boundaries;
 - separate provisional mechanical-relation, representation and AUTHOR/TEST domains;
 - viewport-first resizable/collapsible engineering workspace;
 - reproducible npm dependency graph through committed `package-lock.json`;
 - fast automated work validation plus explicit cross-platform real-source checkpoint gates.
+
+The current exact real-JV checkpoint proves on Linux Chrome and Windows Chrome that an element can be created at `Chassis_Bottom`, then exact child `Socket_SingleDamperLower` can be adopted as its frame while preserving the glTF owner-local translation `[-1.125, 0, -0.8125]` even after moving the whole SOURCE instance. See `docs/STATUS.md` for the exact SHA/run evidence.
 
 Historical shadow state/history implementations and the active BIND-00 runtime/UI path have been removed from the current tree. Git retains their evidence; they are not alternative APIs to extend.
 
@@ -37,7 +39,13 @@ The current UI is a working engineering harness, not final information architect
 
 ## Current product goal
 
-The first Owner-created-element slice is now demonstrated. The next high-value product slice is to stop using a generic/synthetic target and begin decomposing the **actual one-sided JV steering/suspension mechanism** into the minimum real authored elements and exact SOURCE-derived frames required by that mechanism.
+The generic Owner-created-element and exact SOURCE-derived element-origin slices are now demonstrated. The next high-value slice is to identify the **smallest second real component/interface in the one-sided JV steering/suspension SOURCE** that supports one justified neutral mechanical relation.
+
+Do not infer final mechanical meaning solely from node names or copy the current JV M6 topology into authored truth. First separate:
+
+- exact SOURCE hierarchy/poses/axes;
+- Owner evidence and current secondary semantic contracts;
+- provisional JV runtime assumptions.
 
 Start from exact existing SOURCE sockets/axes. Add arbitrary geometry picking or virtual/derived construction datums only when a concrete required JV hardpoint cannot be represented by those exact datums.
 
@@ -65,7 +73,7 @@ Use `npm install` only when intentionally changing dependencies/lockfile.
 Targeted core validation accepts filename substrings:
 
 ```bash
-npm run test:core -- project-session source-frame-adoption
+npm run test:core -- project-session source-frame-adoption source-element-adoption
 npm run typecheck
 ```
 
