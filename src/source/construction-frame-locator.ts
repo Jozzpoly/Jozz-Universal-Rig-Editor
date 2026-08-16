@@ -3,6 +3,10 @@ import type { SourceDerivedPointDatumInspection, SourceInspection, SourceNodeIns
 
 const PREFIX = 'source.derived-frame:orthogonal-cross-axis-v1:';
 
+type RigidSourceNodeInspection = SourceNodeInspection & {
+  worldRigidPose: NonNullable<SourceNodeInspection['worldRigidPose']>;
+};
+
 export interface OrthogonalCrossAxisFrameRecipe {
   algorithm: 'orthogonal-cross-axis-frame-v1';
   originPointLocator: string;
@@ -58,11 +62,11 @@ function requirePoint(inspection: SourceInspection, locator: string, label: stri
   return point;
 }
 
-function requireRigidNode(inspection: SourceInspection, locator: string, label: string): SourceNodeInspection {
+function requireRigidNode(inspection: SourceInspection, locator: string, label: string): RigidSourceNodeInspection {
   const node = inspection.nodes.find((candidate) => candidate.locator === locator);
   if (!node) throw new Error(`${label} ${locator} is not present in exact SOURCE node evidence.`);
   if (node.rigidCompatibility !== 'rigid' || !node.worldRigidPose) throw new Error(`${label} ${locator} is not rigid-compatible.`);
-  return node;
+  return node as RigidSourceNodeInspection;
 }
 
 /**
