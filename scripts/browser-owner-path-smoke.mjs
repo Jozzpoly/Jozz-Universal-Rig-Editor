@@ -238,17 +238,16 @@ try {
   }
   console.log('SOURCE placement Undo/Redo PASS');
 
-  const linkBranch = page.locator('.element-branch').filter({ hasText: 'Link' });
-  await linkBranch.locator('.row-main').click();
+  await ownerElementBranch.locator('.row-main').click();
   await sourceDatumRow.click();
   const adoptedWorldBefore = await sourceWorldPosition();
 
   await page.getByRole('button', { name: 'Preview adopted frame' }).click();
-  await assertBrowserHealthy('adoption preview');
+  await assertBrowserHealthy('Owner-created element SOURCE adoption preview');
   await page.getByRole('button', { name: 'Commit frame' }).click();
-  await assertBrowserHealthy('adoption commit');
+  await assertBrowserHealthy('Owner-created element SOURCE adoption commit');
 
-  const adoptedFrameRow = linkBranch.locator('.nav-row.indent').filter({ hasText: sourceDatumName }).first();
+  const adoptedFrameRow = ownerElementBranch.locator('.nav-row.indent').filter({ hasText: sourceDatumName }).first();
   const selectAdoptedFrame = async () => {
     await adoptedFrameRow.waitFor();
     await adoptedFrameRow.click();
@@ -272,12 +271,12 @@ try {
     if (await positionX.count() === 0) return false;
     frameAfter = await readFrameLocalPosition();
     return distanceBetween(frameBefore, frameAfter) > 1e-5;
-  }, 'freshly adopted frame');
+  }, 'freshly adopted frame on Owner-created element');
   console.log(`adopted frame local position ${frameBefore.toArray()} -> ${frameAfter.toArray()}`);
 
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForTimeout(100);
-  await assertBrowserHealthy('adopted frame move Undo');
+  await assertBrowserHealthy('Owner-created element adopted frame move Undo');
   const frameUndone = await readFrameLocalPosition();
   if (distanceBetween(frameUndone, frameBefore) > 1e-5) {
     throw new Error(`Undo did not restore adopted frame transform: expected ${frameBefore.toArray()}, got ${frameUndone.toArray()}.`);
