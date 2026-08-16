@@ -186,14 +186,12 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
               )}
             </div>
           ) : null}
-          {!adoptionPreview ? (
-            <ConstructionFrameBuilder
-              inspection={sourceAsset.inspection}
-              adoptionTargetName={adoptionTargetName}
-              disabled={constructionDisabled}
-              onPreview={onPreviewConstructedFrame}
-            />
-          ) : null}
+          <ConstructionFrameBuilder
+            inspection={sourceAsset.inspection}
+            adoptionTargetName={adoptionTargetName}
+            disabled={constructionDisabled || Boolean(adoptionPreview)}
+            onPreview={onPreviewConstructedFrame}
+          />
           <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter source…" />
           <div className="navigator-tree source-tree">
             {shownNodes.map((node) => (
