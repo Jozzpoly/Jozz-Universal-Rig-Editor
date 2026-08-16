@@ -41,9 +41,7 @@ function resolveSingleRevolute(document: RigDocument, relationId: string, moving
 
   const aMoves = frameA.ownerElementId === movingElementId;
   const bMoves = frameB.ownerElementId === movingElementId;
-  if (aMoves === bMoves) {
-    throw new Error(`TEST moving element ${movingElementId} must own exactly one side of revolute ${relationId}.`);
-  }
+  if (aMoves === bMoves) throw new Error(`TEST moving element ${movingElementId} must own exactly one side of revolute ${relationId}.`);
   const movingFrame = aMoves ? frameA : frameB;
   const fixedFrame = aMoves ? frameB : frameA;
 
@@ -79,7 +77,15 @@ function evaluateSingleRevolute(document: RigDocument, controls: Readonly<Record
     throw new Error(`TEST control ${config.controlId}=${angleRad} rad is outside revolute limits [${resolved.relation.limits.lowerRad}, ${resolved.relation.limits.upperRad}].`);
   }
 
-  const desiredMovingFrameWorld = composePose(resolved.fixedFrameWorld, zRotationPose(angleRad));
+  // A revolute constrains only common origin + signed primary axis. Its authored
+  // neutral frames may legitimately differ by roll around +Z. Preserve that
+  // neutral relative orientation, then add the transient TEST angle to it.
+  const neutralRelative = relativePose(resolved.fixedFrameWorld, resolved.movingFrameWorld);
+  const neutralRollOnly: RigidPose = { position: { x: 0, y: 0, z: 0 }, rotation: { ...neutralRelative.rotation } };
+  const desiredMovingFrameWorld = composePose(
+    composePose(resolved.fixedFrameWorld, zRotationPose(angleRad)),
+    neutralRollOnly,
+  );
   const movingFrameInverse = relativePose(resolved.movingFrame.pose, IDENTITY_POSE);
   const evaluatedMovingElementWorld = composePose(desiredMovingFrameWorld, movingFrameInverse);
   const diagnostics: Diagnostic[] = [{
