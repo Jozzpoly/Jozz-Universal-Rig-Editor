@@ -13,7 +13,7 @@ Repository authority is deliberately layered:
 
 - `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425` is the accepted baseline until explicit promotion;
 - `work/real-use-foundation-recovery` / draft PR #2 is the active unmerged development authority;
-- `checkpoint/foundation-clean-takeover-2026-08-16` is the clean takeover/promotion-review checkpoint once resolved live.
+- the current frozen takeover/promotion-review checkpoint is named in `docs/STATUS.md` and must be resolved live before relying on it.
 
 Do not create a new branch merely because a new conversation started. Continue the active line unless the task genuinely requires isolation. Do not merge/ready PR #2 or move `main` without explicit Owner promotion.
 
@@ -55,6 +55,20 @@ Current active state paths are intentionally singular:
 
 Historical `RigAuthoringState`, singleton `SourceRuntimeState`, FC-8 workspace state, `EditorSession` and active BIND-00 runtime/UI have been removed from the current tree. Do not reconstruct them as convenient alternatives; use Git history only when investigating their historical evidence.
 
+## Dependency/toolchain discipline
+
+`package-lock.json` is generated from the canonical Node 24.16.0 / npm 11.17.0 environment and is part of repository truth.
+
+Normal environment restoration uses:
+
+```bash
+npm ci
+```
+
+Use `npm install` only when intentionally changing dependencies/lockfile. Do not delete/regenerate the lockfile merely to fix a local install problem; first classify whether the toolchain or dependency declaration actually changed.
+
+Minimum supported Node remains `>=22.12.0`; CI is the canonical reproducibility environment.
+
 ## Development loop
 
 Permanent target rhythm:
@@ -78,7 +92,7 @@ Do not weaken tests to preserve an implementation. A failing test may encode a s
 
 Normal `main` / `work/**` pushes run the lightweight GitHub **Work check**:
 
-`npm install -> npm run check`
+`npm ci -> npm run check`
 
 This is the default automation for ordinary development. It deliberately does not run Linux+Windows browser probes on every commit.
 
@@ -94,7 +108,7 @@ For meaningful interaction changes:
 - treat runtime fault, `pageerror` and unexpected `console.error` as failures;
 - keep permanent browser regression only for real recurring invariants/demonstrated bugs.
 
-The GitHub **Checkpoint browser gate** runs on `checkpoint/**` (or manual dispatch). It performs canonical validation plus the pinned real JV SOURCE path on Linux Chrome and Windows Chrome.
+The GitHub **Checkpoint browser gate** runs on `checkpoint/**` (or manual dispatch). It performs locked canonical validation plus the pinned real JV SOURCE path on Linux Chrome and Windows Chrome.
 
 Use an explicit checkpoint when making a takeover/promotion claim or after a meaningful interaction boundary—not after every tiny commit.
 
