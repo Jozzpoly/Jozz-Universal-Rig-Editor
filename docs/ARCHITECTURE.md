@@ -38,7 +38,7 @@ Physical packaging is deferred until real work proves what must travel together.
 
 ## 3. One chronological durable history
 
-`ProjectSession` owns committed/preview project state and one chronological Undo/Redo history for durable project changes.
+`ProjectSession` is the **only active session/history abstraction**. It owns committed/preview project state and one chronological Undo/Redo history for durable project changes.
 
 Examples of durable actions:
 
@@ -59,6 +59,8 @@ Spatial editing follows:
 `committed -> preview -> commit | cancel`
 
 Only one authoring operation owns preview at a time. A rig transform, SOURCE placement transform and SOURCE-adoption preview may not hijack one another.
+
+`RigCommand` is a pure authored-rig mutation embedded inside project-level commands when required. It deliberately owns **no** history, preview or Undo/Redo state. Do not introduce a second `RigDocument`-local session.
 
 The viewport gizmo may operate in project/world space. `RigFrame` world edits are converted back to owner-local authored pose. `SourceInstance` placement remains a project transform and is never disguised as a `RigElement`.
 
@@ -118,7 +120,7 @@ Current representation experiments target exact placed SOURCE identity:
 
 Current mapping vocabulary includes `rigid`, `aim`, `span` and optional roll correspondence. **The separation of representation from `RigDocument` is the strong architectural direction; the exact mapping vocabulary remains provisional.**
 
-Historical BIND-00 is evidence only. It proved one exact skin-joint bridge and falsified singleton binding storage; it is not a persistent architecture contract.
+Historical BIND-00 proved one narrow exact skin-joint bridge and falsified singleton binding storage. Its runtime/UI implementation has been removed from the active tree; Git history preserves the experiment. Do not recreate BIND-00 as a shortcut to persistent representation.
 
 ## 8. AUTHOR and TEST are different meanings
 
@@ -132,23 +134,24 @@ The first real motion workflow is kinematic. A concrete solver/consumer evaluato
 
 ## 9. Application state ownership
 
-Domain truth stays outside React.
-
-Current active ownership:
+Domain truth stays outside React. Active ownership is intentionally singular:
 
 - `src/kernel/*` — authored rig types, math/validation/serialization;
-- `src/project/*` — logical project, exact SOURCE identity, project commands/session/adoption;
+- `src/project/*` — logical project, exact SOURCE identity, project commands, `ProjectSession`, adoption;
+- `src/editor/rig-command.ts` — pure authored-rig mutation contract with no history;
+- `src/editor/transform-target.ts` — spatial transform target/space conversion contract;
 - `src/representation/*` — provisional authored representation domain;
 - `src/evaluation/*` — transient TEST/evaluator boundary;
 - `src/app/state/project-authoring.ts` — one active authoring operation, selection and ProjectSession orchestration;
-- `src/app/state/project-source-runtime.ts` — linked exact SOURCE bytes and SOURCE selection;
-- `src/io/*` — logical project file I/O/session guards;
+- `src/app/state/project-source-runtime.ts` — linked exact SOURCE bytes, active instance and SOURCE selection;
+- `src/app/state/source-workflow.ts` — SOURCE open/relink/register planning;
+- `src/io/*` — logical project/source/legacy-rig browser I/O;
 - `src/render/*` — Three/display interaction bridge;
 - `src/app/workspace/*` — disposable presentation/workspace UI.
 
 `App.tsx` composes these owners and derives display state. New domain mutation rules belong in the relevant project/kernel/state module rather than accumulating in React callbacks.
 
-Older `RigAuthoringState`, singleton `SourceRuntimeState` and BIND-00 code may remain as legacy/harness evidence, but must not become a second active authority/history path.
+Superseded rig-only authoring/history state, singleton SOURCE runtime state, the FC-8 workspace-context experiment and active BIND-00 runtime have been removed from the current tree. Their existence in Git history is evidence, not an invitation to maintain parallel paths.
 
 ## 10. Display and consumer boundary
 
@@ -170,7 +173,7 @@ Exact panel placement/style is not architecture. These interaction requirements 
 - transient operations cannot accidentally become durable truth;
 - real Owner workflow drives information architecture instead of internal enum/module names.
 
-`inspect | author | represent | test` may be useful orchestration vocabulary, but it is not final navigation authority until real workflow proves it.
+`inspect | author | represent | test` may be useful conceptual vocabulary, but it is not final navigation authority until real workflow proves it.
 
 ## 12. Design rule for future slices
 
