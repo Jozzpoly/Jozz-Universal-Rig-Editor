@@ -1,51 +1,188 @@
 # Architecture
 
-The durable boundary is intentionally small:
+JURE's durable authority flow is:
 
-`SOURCE reference -> explicit authored adoption/edit -> RigDocument -> resolved view -> representation/evaluation -> display / consumer runtime`
+`SOURCE / CONSUMER REFERENCE -> explicit authoring -> AUTHORED documents -> resolved/evaluated views -> representation/display -> consumer export`
 
-Only an explicit authoring path may change authored truth. SOURCE loading, preview state, Three scene state, evaluated motion, and runtime observations never write back automatically.
+Only explicit authoring changes authored truth. Loading/relinking SOURCE, inspecting consumer state, manipulating preview, rendering Three objects or evaluating TEST motion never writes back automatically.
 
-## Kernel
+## 1. Authored rig kernel
 
-- `RigElement`: stable authored identity + neutral rigid pose; not a physics body or renderer object.
-- `RigFrame`: local rigid frame owned by a `RigElement` or rig-root. It may describe a mount, pivot, axis datum, sensor frame, hardpoint, etc.; a frame does not require a relation.
-- `RigRelation`: explicit intent between frames. The current foundation implements only `origin-coincident`.
-- `SourceRevision`: exact source identity after explicit adoption/provenance capture. Opaque source locators are meaningful only within the adapter + exact revision that produced them.
-- `RigElement.source` / `RigFrame.source`: optional exact source provenance. They answer where authored data came from; they do **not** define which visual geometry moves with an element.
+`RigDocument` is authored rig truth.
 
-Coordinates are right-handed, Y-up, metres/radians. Frames are authored locally to their owner element. Current rigid poses contain position + rotation only. There is deliberately no generic element hierarchy in the kernel yet.
+- `RigElement` — stable rigid authored thing; not a renderer object or physics body.
+- `RigFrame` — rigid datum local to a `RigElement` or rig root; used for mounts, pivots, axes, hardpoints and virtual reference frames.
+- `RigRelation` — explicit geometric/mechanical intent between authored frames.
+- `RigElement.source` / `RigFrame.source` — exact source provenance only. Provenance is not representation binding and does not give SOURCE authority over authored data.
 
-## SOURCE and representation
+Coordinates are right-handed, Y-up. Distance is metres. Mechanical angles/limits are radians internally. Authored rigid pose is position + quaternion rotation only.
 
-Opening glTF/GLB creates an independently inspectable, read-only SOURCE reference. SOURCE selection is separate from authored selection.
+**Scale/stretch/deformation is not part of rigid mechanical pose.** Visual length change belongs to representation/evaluation semantics.
 
-Source provenance and representation binding are different semantics. A real assembly can require multiple representation mappings at once, including rigid parts and later length-changing/deforming visuals such as springs, dampers, and cardans. Do not put representation scale/stretch into `RigElement` or `RigFrame` rigid pose.
+There is deliberately no generic element hierarchy, ECS, physics-body schema, Box3D identity or renderer ontology in the kernel.
 
-The persistent source-instance/registration and representation-binding model is intentionally **not frozen**. BIND-00 is a prototype/evidence layer, not a kernel contract.
+## 2. Project and SOURCE identity
 
-## Editor and evaluation
+`JureProjectModel` is a thin logical project above authored documents. It is not an asset database and does not imply a final `.jure` archive format.
 
-Selection/transform targets are editor concepts: `RigElement | RigFrame`, not new kernel entities.
+- `SourceRevision` — one immutable exact SOURCE identity. Operational identity is exact bytes (`sha256`) plus source adapter identity/version; its revision ID is the stable project address for that exact revision.
+- `SourceInstance` — one independently placed use of a `SourceRevision` with a rigid project/world pose. Multiple instances may reuse one exact revision.
+- `ConsumerReferenceSnapshot` — external consumer evidence. It can guide decisions but is never authored kernel truth.
+- `SourceAdoptionRecord` — immutable historical evidence that an explicit SOURCE datum produced an authored target at a specific placed-source state.
 
-An authored drag is `committed -> preview -> commit/cancel`. The gizmo manipulates an ephemeral world-space proxy. Element world pose writes to the element rigid pose; frame world pose is converted back to its owner-local pose. Moving an element therefore moves its resolved frames while preserving their authored local poses.
+Filename, label, URI and visual similarity are not source identity. Different bytes are a different `SourceRevision`; relink of an existing revision fails closed unless exact SHA-256 + adapter identity agree.
 
-Workspace state such as selection, camera, panel layout, layers, and transient SOURCE preview is not serialized in `RigDocument`.
+Moving, re-registering or removing a live `SourceInstance` never moves authored rig data automatically and never rewrites historical adoption evidence.
 
-Future motion testing must preserve:
+Physical packaging is deferred until real work proves what must travel together.
+
+## 3. One chronological durable history
+
+`ProjectSession` is the **only active session/history abstraction**. It owns committed/preview project state and one chronological Undo/Redo history for durable project changes.
+
+Examples of durable actions:
+
+- add/remove/re-register/place `SourceInstance`;
+- `RigElement` / `RigFrame` / `RigRelation` edits;
+- explicit SOURCE -> AUTHORED adoption.
+
+Disposable state is outside durable history:
+
+- selection;
+- camera/focus/layout/layer visibility;
+- browser file handles/object URLs and linked runtime SOURCE bytes;
+- representation preview;
+- TEST controls/evaluated result.
+
+Spatial editing follows:
+
+`committed -> preview -> commit | cancel`
+
+Only one authoring operation owns preview at a time. A rig transform, SOURCE placement transform and SOURCE-adoption preview may not hijack one another.
+
+`RigCommand` is a pure authored-rig mutation embedded inside project-level commands when required. It deliberately owns **no** history, preview or Undo/Redo state. Do not introduce a second `RigDocument`-local session.
+
+The viewport gizmo may operate in project/world space. `RigFrame` world edits are converted back to owner-local authored pose. `SourceInstance` placement remains a project transform and is never disguised as a `RigElement`.
+
+## 4. Runtime SOURCE boundary
+
+`ProjectSourceRuntimeState` owns disposable browser-session SOURCE availability and SOURCE selection.
+
+- linked bytes are keyed by exact `SourceRevision`;
+- active viewport SOURCE context is a `SourceInstance`;
+- SOURCE datum selection is `sourceInstanceId + locator`;
+- relink verifies exact SHA-256 + adapter before installing runtime bytes;
+- one linked exact revision may serve multiple placed instances;
+- unlink/relink creates no project history.
+
+Any SOURCE node may be inspected. Only a node verified as rigid-compatible may resolve to `ExactPlacedSourceDatum` and cross into rigid authored truth.
+
+SOURCE geometry itself stays read-only. Registration/placement moves the `SourceInstance`, not individual SOURCE nodes.
+
+## 5. SOURCE -> AUTHORED crossing
+
+Adoption is explicit and transactional:
+
+`verified ExactPlacedSourceDatum -> candidate authored target + immutable adoption evidence -> Preview -> Commit | Cancel`
+
+For the current RU-1 slice the target is an owned `RigFrame`.
+
+Commit creates the authored frame and its adoption evidence as one durable history action. Cancel creates neither. The frame is owner-authored; provenance records where its measurement came from, not who controls it afterward.
+
+This crossing must remain a small explicit boundary. Future geometry picking/construction datums may produce additional exact/derived evidence types, but must not create an implicit SOURCE-writeback path.
+
+## 6. Mechanical intent is separate from consumer dynamics
+
+Current relation candidates are:
+
+`origin-coincident | revolute | prismatic | spherical | distance | distance-range`
+
+For current axis-bearing experiments, relation frame origin is the anchor and frame-local `+Z` is the primary DOF axis. Optional limits are geometric and relative to authored neutral.
+
+The durable architectural rule is what mechanical authored intent **does not** contain:
+
+- mass/inertia;
+- friction/contact/tire model;
+- spring/damper force law;
+- motor force/torque;
+- solver iterations/configuration;
+- Box3D/native runtime IDs.
+
+The exact relation list, datum convention and limit vocabulary remain provisional until full real mechanisms falsify/confirm them.
+
+## 7. Representation is a separate domain
+
+Mechanical authored truth and visual representation have different responsibilities. Real visuals may be rigid, source-hierarchical, aimed between datums or length-changing without adding scale to rigid rig poses.
+
+Current representation experiments target exact placed SOURCE identity:
+
+`sourceInstanceId + sourceRevisionId + locator`
+
+Current mapping vocabulary includes `rigid`, `aim`, `span` and optional roll correspondence. **The separation of representation from `RigDocument` is the strong architectural direction; the exact mapping vocabulary remains provisional.**
+
+Historical BIND-00 proved one narrow exact skin-joint bridge and falsified singleton binding storage. Its runtime/UI implementation has been removed from the active tree; Git history preserves the experiment. Do not recreate BIND-00 as a shortcut to persistent representation.
+
+## 8. AUTHOR and TEST are different meanings
 
 `AUTHORED NEUTRAL != transient EVALUATED motion`
 
-The first motion path is kinematic. Test/evaluation must be resettable without mutating authored neutral truth. JURE should expose a small evaluator boundary rather than grow a generic physics/constraint solver without a real need.
+`RigTestState` and a replaceable `RigEvaluator` boundary remain separate from authored documents. Evaluator output is a revision-bound pose overlay + diagnostics. Stale/invalid output fails closed.
 
-## Display / consumer boundary
+Reset removes evaluator influence. TEST never silently writes evaluated pose back to authored neutral.
 
-`RigDocument -> ResolvedRigView -> representation/evaluated poses -> Three / consumer adapter`
+The first real motion workflow is kinematic. A concrete solver/consumer evaluator is not architecture yet; do not build a generic physics/constraint solver merely to fill this boundary.
 
-Three is an adapter. Renderer objects are disposable and contain no authored authority. Camera/navigation is inspection infrastructure and must not inherit gameplay camera clamps.
+## 9. Application state ownership
 
-JV is the first real consumer/falsifier. JURE should stay neutral enough for later native JV or JV/VAW use, but consumer neutrality must not expand the kernel without evidence.
+Domain truth stays outside React. Active ownership is intentionally singular:
 
-## Testing loop
+- `src/kernel/*` — authored rig types, math/validation/serialization;
+- `src/project/*` — logical project, exact SOURCE identity, project commands, `ProjectSession`, adoption;
+- `src/editor/rig-command.ts` — pure authored-rig mutation contract with no history;
+- `src/editor/transform-target.ts` — spatial transform target/space conversion contract;
+- `src/representation/*` — provisional authored representation domain;
+- `src/evaluation/*` — transient TEST/evaluator boundary;
+- `src/app/state/project-authoring.ts` — one active authoring operation, selection and ProjectSession orchestration;
+- `src/app/state/project-source-runtime.ts` — linked exact SOURCE bytes, active instance and SOURCE selection;
+- `src/app/state/source-workflow.ts` — SOURCE open/relink/register planning;
+- `src/io/*` — logical project/source/legacy-rig browser I/O;
+- `src/render/*` — Three/display interaction bridge;
+- `src/app/workspace/*` — disposable presentation/workspace UI.
 
-Normal feature: targeted tests protecting expensive semantic invariants. Use full `npm run check` and a real browser owner gate for foundation/schema/checkpoint changes or interaction changes that cannot be proved synthetically.
+`App.tsx` composes these owners and derives display state. New domain mutation rules belong in the relevant project/kernel/state module rather than accumulating in React callbacks.
+
+Superseded rig-only authoring/history state, singleton SOURCE runtime state, the FC-8 workspace-context experiment and active BIND-00 runtime have been removed from the current tree. Their existence in Git history is evidence, not an invitation to maintain parallel paths.
+
+## 10. Display and consumer boundary
+
+`authored documents -> resolved/evaluated views -> representation output -> Three / consumer adapter`
+
+Three is disposable display infrastructure. Camera/navigation is inspection infrastructure and remains free of gameplay camera clamps.
+
+JV/JV-Web is the first real consumer and falsifier. Its adapter should combine JURE-authored geometry/intent with JV-owned runtime dynamics rather than importing either product wholesale into the other.
+
+## 11. UX constraints that are architectural enough to preserve
+
+Exact panel placement/style is not architecture. These interaction requirements are:
+
+- viewport-first spatial work;
+- free camera and rapid Focus/Fit;
+- clear SOURCE / AUTHORED / PREVIEW / EVALUATED distinction;
+- direct manipulation plus precise numeric editing;
+- workspace/presentation state remains disposable;
+- transient operations cannot accidentally become durable truth;
+- real Owner workflow drives information architecture instead of internal enum/module names.
+
+`inspect | author | represent | test` may be useful conceptual vocabulary, but it is not final navigation authority until real workflow proves it.
+
+## 12. Design rule for future slices
+
+When a new feature appears, first decide which existing boundary owns it. Add a new durable entity/domain only when a real consumer cannot be represented truthfully by the current boundaries.
+
+Prefer:
+
+`real example -> minimal model -> targeted invariant -> owner-visible falsifier`
+
+over speculative completeness.
+
+Validation procedure belongs in `AGENTS.md`; current evidence and exact fixture/checkpoint identities belong in `docs/STATUS.md`.

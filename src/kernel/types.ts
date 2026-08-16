@@ -45,15 +45,55 @@ export interface RigFrame {
   provenance: FrameProvenance;
 }
 
-export interface OriginCoincidentRelation {
+interface RelationBase {
   id: RigId;
-  type: 'origin-coincident';
   frameA: RigId;
   frameB: RigId;
+}
+
+export interface OriginCoincidentRelation extends RelationBase {
+  type: 'origin-coincident';
   toleranceM: number;
 }
 
-export type RigRelation = OriginCoincidentRelation;
+export interface RevoluteRelation extends RelationBase {
+  type: 'revolute';
+  limits?: {
+    lowerRad: number;
+    upperRad: number;
+  };
+}
+
+export interface PrismaticRelation extends RelationBase {
+  type: 'prismatic';
+  limits?: {
+    lowerM: number;
+    upperM: number;
+  };
+}
+
+export interface SphericalRelation extends RelationBase {
+  type: 'spherical';
+}
+
+export interface DistanceRelation extends RelationBase {
+  type: 'distance';
+  lengthM: number;
+}
+
+export interface DistanceRangeRelation extends RelationBase {
+  type: 'distance-range';
+  minLengthM: number;
+  maxLengthM: number;
+}
+
+export type RigRelation =
+  | OriginCoincidentRelation
+  | RevoluteRelation
+  | PrismaticRelation
+  | SphericalRelation
+  | DistanceRelation
+  | DistanceRangeRelation;
 
 export interface RigDocument {
   schemaVersion: 1;

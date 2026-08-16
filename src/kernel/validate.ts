@@ -48,7 +48,32 @@ export function validateRigDocument(doc: RigDocument): Diagnostic[] {
   for (const relation of doc.relations) {
     register(relation.id, 'relation');
     if (!frameIds.has(relation.frameA) || !frameIds.has(relation.frameB)) diagnostics.push({ code: 'relation.frame.missing', severity: 'error', message: `Relation ${relation.id} references a missing frame.`, references: [relation.id, relation.frameA, relation.frameB] });
-    if (!Number.isFinite(relation.toleranceM) || relation.toleranceM <= 0) diagnostics.push({ code: 'relation.tolerance.invalid', severity: 'error', message: `Relation ${relation.id} tolerance must be finite and positive.`, references: [relation.id] });
+
+    switch (relation.type) {
+      case 'origin-coincident':
+        if (!Number.isFinite(relation.toleranceM) || relation.toleranceM <= 0) diagnostics.push({ code: 'relation.tolerance.invalid', severity: 'error', message: `Relation ${relation.id} tolerance must be finite and positive.`, references: [relation.id] });
+        break;
+      case 'revolute':
+        if (relation.limits && (!Number.isFinite(relation.limits.lowerRad) || !Number.isFinite(relation.limits.upperRad) || relation.limits.lowerRad > relation.limits.upperRad)) diagnostics.push({ code: 'relation.revolute.limits.invalid', severity: 'error', message: `Revolute relation ${relation.id} has invalid angular limits.`, references: [relation.id] });
+        break;
+      case 'prismatic':
+        if (relation.limits && (!Number.isFinite(relation.limits.lowerM) || !Number.isFinite(relation.limits.upperM) || relation.limits.lowerM > relation.limits.upperM)) diagnostics.push({ code: 'relation.prismatic.limits.invalid', severity: 'error', message: `Prismatic relation ${relation.id} has invalid translation limits.`, references: [relation.id] });
+        break;
+      case 'spherical':
+        break;
+      case 'distance':
+        if (!Number.isFinite(relation.lengthM) || relation.lengthM < 0) diagnostics.push({ code: 'relation.distance.length.invalid', severity: 'error', message: `Distance relation ${relation.id} must have a finite non-negative length.`, references: [relation.id] });
+        break;
+      case 'distance-range':
+        if (!Number.isFinite(relation.minLengthM) || !Number.isFinite(relation.maxLengthM) || relation.minLengthM < 0 || relation.minLengthM > relation.maxLengthM) diagnostics.push({ code: 'relation.distance-range.limits.invalid', severity: 'error', message: `Distance-range relation ${relation.id} has invalid length limits.`, references: [relation.id] });
+        break;
+      default: {
+        const unknown = relation as unknown as { id?: unknown; type?: unknown };
+        const id = typeof unknown.id === 'string' ? unknown.id : '<unknown>';
+        diagnostics.push({ code: 'relation.type.unsupported', severity: 'error', message: `Relation ${id} has unsupported type ${String(unknown.type)}.`, references: id === '<unknown>' ? [] : [id] });
+        break;
+      }
+    }
   }
   return diagnostics;
 }

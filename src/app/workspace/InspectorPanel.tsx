@@ -1,6 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Euler, MathUtils, Quaternion } from 'three';
-import type { RepresentationBindingDraft } from '../../editor/representation-binding-draft.js';
 import type { TransformTarget } from '../../editor/transform-target.js';
 import type { RigidPose, RigElement, RigFrame } from '../../kernel/types.js';
 import type { SourceNodeInspection } from '../../source/types.js';
@@ -10,11 +9,10 @@ interface InspectorPanelProps {
   selectedFrame: RigFrame | null;
   selectedPose: RigidPose | null;
   selectedSourceNode: SourceNodeInspection | null;
-  representationBinding: RepresentationBindingDraft | null;
+  selectedSourceWorldPose: RigidPose | null;
+  sourceInstanceName: string | null;
   onCommitPose(target: TransformTarget, pose: RigidPose): void;
   onFocusSource(): void;
-  onBindRepresentation(): void;
-  onClearRepresentationBinding(): void;
 }
 
 const AXES = ['x', 'y', 'z'] as const;
@@ -146,72 +144,42 @@ function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCom
   );
 }
 
-function SourceInspector({ selectedSourceNode, onFocusSource }: Pick<InspectorPanelProps, 'selectedSourceNode' | 'onFocusSource'>) {
+function SourceInspector({ selectedSourceNode, selectedSourceWorldPose, sourceInstanceName, onFocusSource }: Pick<InspectorPanelProps, 'selectedSourceNode' | 'selectedSourceWorldPose' | 'sourceInstanceName' | 'onFocusSource'>) {
   return (
     <section className={`selection-context source-context ${selectedSourceNode ? '' : 'empty-context'}`}>
-      <div className="context-label"><span className="context-dot" />Source · Reference</div>
+      <div className="context-label"><span className="context-dot" />Source · Exact reference</div>
       {selectedSourceNode ? (
         <>
           <div className="inspector-name">{selectedSourceNode.name ?? `Node ${selectedSourceNode.index}`}</div>
           <dl className="meta-list compact-meta">
+            <dt>Instance</dt><dd>{sourceInstanceName ?? '—'}</dd>
             <dt>Locator</dt><dd>{selectedSourceNode.locator}</dd>
             <dt>Kind</dt><dd>{selectedSourceNode.isSkinJoint ? 'joint' : selectedSourceNode.hasMesh ? 'mesh' : 'node'}</dd>
             <dt>Rigid</dt><dd>{selectedSourceNode.rigidCompatibility}</dd>
-            <dt>Truth</dt><dd>read-only source</dd>
+            <dt>Truth</dt><dd>read-only source datum</dd>
           </dl>
-          {selectedSourceNode.worldRigidPose ? (
+          {selectedSourceWorldPose ? (
             <div className="inspector-group source-position-group">
-              <div className="inspector-group-title">Resolved world position · m</div>
+              <div className="inspector-group-title">Placed project-world position · m</div>
               <div className="source-pose-readout">
                 {AXES.map((axis) => (
-                  <div key={axis} className={`axis-readout axis-${axis}`}><span>{axis.toUpperCase()}</span><code>{selectedSourceNode.worldRigidPose!.position[axis].toFixed(6)}</code></div>
+                  <div key={axis} className={`axis-readout axis-${axis}`}><span>{axis.toUpperCase()}</span><code>{selectedSourceWorldPose.position[axis].toFixed(6)}</code></div>
                 ))}
               </div>
               <button className="source-focus-button" onClick={onFocusSource}>Focus source datum</button>
             </div>
           ) : (
-            <div className="context-warning">No rigid world pose exposed. JURE will not invent one from scaled, matrix or non-rigid ancestry.</div>
+            <div className="context-warning">No rigid placed pose exposed. JURE will not invent one from scaled, matrix or non-rigid ancestry.</div>
           )}
         </>
       ) : (
-        <div className="empty-copy">Select a SOURCE node to inspect its exact reference datum.</div>
+        <div className="empty-copy">Select a SOURCE node to inspect its exact datum on the active placed instance.</div>
       )}
     </section>
   );
 }
 
-function BindingPreviewAction({ selectedElement, selectedSourceNode, representationBinding, onBindRepresentation, onClearRepresentationBinding }: Pick<InspectorPanelProps, 'selectedElement' | 'selectedSourceNode' | 'representationBinding' | 'onBindRepresentation' | 'onClearRepresentationBinding'>) {
-  if (!selectedElement || !selectedSourceNode) return null;
-
-  const bindable = Boolean(selectedSourceNode.worldRigidPose && selectedSourceNode.isSkinJoint);
-  const activeForSelection = representationBinding?.elementId === selectedElement.id
-    && representationBinding.sourceLocator === selectedSourceNode.locator;
-
-  return (
-    <section className="binding-preview-card">
-      <div className="binding-preview-head">
-        <strong>Representation preview</strong>
-        <span>transient · not saved</span>
-      </div>
-      <div className="binding-preview-pair">
-        <span className="selection-mark authored" />{selectedElement.name}
-        <span className="binding-arrow">←</span>
-        <span className="selection-mark source" />{selectedSourceNode.name ?? selectedSourceNode.locator}
-      </div>
-      {bindable ? (
-        activeForSelection ? (
-          <button className="binding-preview-button active" onClick={onClearRepresentationBinding}>Clear bound preview</button>
-        ) : (
-          <button className="binding-preview-button" onClick={onBindRepresentation}>{representationBinding ? 'Rebind preview to selection' : 'Bind visual preview'}</button>
-        )
-      ) : (
-        <div className="binding-preview-note">BIND-00 only accepts rigid skin joints. No authored data will be changed.</div>
-      )}
-    </section>
-  );
-}
-
-export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, selectedSourceNode, representationBinding, onCommitPose, onFocusSource, onBindRepresentation, onClearRepresentationBinding }: InspectorPanelProps) {
+export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, selectedSourceNode, selectedSourceWorldPose, sourceInstanceName, onCommitPose, onFocusSource }: InspectorPanelProps) {
   const hasAuthored = Boolean((selectedElement || selectedFrame) && selectedPose);
   return (
     <div className="inspector-panel">
@@ -221,14 +189,7 @@ export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, s
         {hasAuthored && selectedSourceNode ? (
           <div className="selection-pair"><span className="selection-mark authored" />Authored <span className="pair-connector">+</span><span className="selection-mark source" />Source <span className="pair-note">independent selections</span></div>
         ) : null}
-        <SourceInspector selectedSourceNode={selectedSourceNode} onFocusSource={onFocusSource} />
-        <BindingPreviewAction
-          selectedElement={selectedElement}
-          selectedSourceNode={selectedSourceNode}
-          representationBinding={representationBinding}
-          onBindRepresentation={onBindRepresentation}
-          onClearRepresentationBinding={onClearRepresentationBinding}
-        />
+        <SourceInspector selectedSourceNode={selectedSourceNode} selectedSourceWorldPose={selectedSourceWorldPose} sourceInstanceName={sourceInstanceName} onFocusSource={onFocusSource} />
       </div>
     </div>
   );

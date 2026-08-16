@@ -1,72 +1,146 @@
 # Status
 
-## Current state
+## Authority
 
-The owner-tested foundation is usable and the project is intentionally paused before the next fundamental product/design phase.
+- **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
+- **active development authority:** `work/real-use-foundation-recovery` / draft PR #2;
+- **validated structural-clean checkpoint:** `checkpoint/foundation-clean-takeover-2026-08-16` -> `b411f239e70f9a38f89124a8392c94cef9081994`;
+- **final promotion-readiness checkpoint:** `checkpoint/foundation-ready-2026-08-16`.
 
-Accepted baseline:
-- rigid `RigElement` and owner-local `RigFrame` authoring;
-- Move/Rotate, world/local, numeric XYZ degree editing over quaternion storage;
-- preview/commit/cancel, undo/redo, deterministic RigDocument save/open;
-- free inspection camera with Focus/Fit helpers;
-- read-only glTF/GLB SOURCE loading with SHA-256, deterministic locators, datum markers/axes, and independent SOURCE selection;
-- viewport-first resizable/collapsible RIG/SOURCE/Inspector workspace with presentation-layer visibility controls.
+PR #2 is a fast-forward descendant of `main` but remains draft/unmerged. The structural-clean checkpoint passed locked-independent code semantics before lockfile introduction plus strict real-source browser validation on Linux and Windows. The final checkpoint freezes the same cleaned architecture with the canonical dependency lock enforced through `npm ci`.
 
-The current UI is an accepted engineering baseline, not a promise that the final universal rig editor keeps the same information architecture.
+Promotion to `main` is an explicit Owner decision, not a CI side effect.
 
-## BIND-00 result
+Closed PR #1, FC-9 concept work, BIND-00 branches and older handoff/recovery packs are historical evidence only.
 
-BIND-00 is a transient representation-binding prototype tested on the real `OneSided_Steering_Suspension_Rig.gltf`.
+## Product purpose
 
-Exact real SOURCE evidence used for the accepted SOURCE/BIND tests:
-- file: `OneSided_Steering_Suspension_Rig.gltf`;
-- SHA-256: `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
-- self-contained glTF (embedded buffer/texture), 15 nodes / 14 joints / 1 skinned mesh in the tested revision;
-- the asset is not stored canonically in this repo. If reproduction requires it, obtain the exact file from the owner/File Library and verify the SHA before use rather than substituting historical JV geometry.
+JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express mechanical and representation intent, test a mechanism without mutating authored neutral truth, and hand a small reliable result to a consumer without an agent guessing coordinates from screenshots.
 
-What it proved:
-- one authored `RigElement` can drive one exact rigid glTF skin joint through a stable rest offset;
-- the bound visual can follow authored Move/Rotate while the read-only SOURCE reference stays fixed;
-- SOURCE Geometry and Bound visibility can be inspected independently;
-- driving a source skin joint can produce useful real hierarchy/deformation instead of only moving the whole asset rigidly.
+JV/JV-Web is the first real consumer/falsifier. Native JV and later JV/VAW experiments should remain possible without making JURE vehicle-specific or turning it into a generic framework.
 
-What it falsified:
-- the prototype stores one global `representationBinding`; creating a second binding replaces the first, so the previous driven joint returns to its unmodified pose;
-- therefore the singleton binding model is **not** a viable final representation/assembly model.
+## Demonstrated product foundation
 
-BIND-00 is deliberately transient and not serialized. No persistent representation schema was frozen from it.
+The active line contains:
 
-Exact pre-cleanup owner-evidence checkpoint is preserved on:
-`checkpoint/foundation-bind00-owner-tested-2026-08-15`
+- rigid `RigElement` and owner-local/root `RigFrame` authoring;
+- Move/Rotate, world/local and numeric XYZ-degree editing over quaternion storage;
+- preview/commit/cancel;
+- one chronological `ProjectSession` history for SOURCE placement and authored project changes;
+- exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
+- read-only glTF/GLB SOURCE inspection with deterministic locators, markers/axes and independent SOURCE selection;
+- explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical evidence;
+- deterministic logical project save/open and exact SOURCE relink boundaries;
+- separate project/source runtime state from durable authored truth;
+- provisional mechanical-relation and representation domains;
+- transient AUTHOR/TEST evaluator boundary;
+- free inspection camera with Focus/Fit and viewport-first resizable/collapsible workspace.
 
-## Durable conclusions
+Current core suite after cleanup is **18 files / 94 tests**. It protects the current architecture rather than maintaining superseded state/history/BIND-00 implementations.
 
-- `RigElement / RigFrame / RigRelation` remain the small authored kernel unless a real consumer falsifies them.
-- SOURCE reference, source provenance, authored rig, representation binding, transient preview, evaluated motion, and runtime/display state are distinct meanings.
-- A useful JURE must support a complete mechanism with multiple simultaneous representation mappings.
-- Rigid pose stays free of scale; stretch/deformation belongs to representation/evaluation.
-- Motion testing starts kinematic: authored neutral truth must remain unchanged and `Reset` must restore it exactly.
-- Free camera/navigation and direct spatial inspection are product requirements, not optional polish.
-- Do not "fix" BIND-00 by simply replacing the singleton with an array before the next design pass.
+Real-source browser evidence protects:
 
-## Next fundamental phase
+- SOURCE placement + Undo/Redo;
+- SOURCE datum adoption Preview/Commit;
+- movement + Undo of a freshly committed adopted frame;
+- adoption-preview transform lock regression;
+- runtime fault / `pageerror` / unexpected `console.error` fail-closed behavior;
+- the same owner path on Linux Chrome and Windows Chrome.
 
-Design JURE as the owner's practical visual rigging workbench for current projects, with JV/JV-Web as the first real consumer and later native JV / JV+VAW possible without turning the tool into a framework.
+## Fundamental cleanup completed
 
-The design must cover the real end-to-end workflow:
+The active tree intentionally has **one** current path for each core responsibility:
 
-`open/position source -> inspect -> create rig elements/frames/relations -> map real representation -> edit -> diagnose -> kinematic test -> reset/save`
+- `ProjectSession` is the only durable preview/Undo/Redo session;
+- `ProjectAuthoringState` is the active authoring-operation/selection orchestrator;
+- `ProjectSourceRuntimeState` is the active runtime SOURCE state;
+- `RigCommand` is a pure mutation contract, not a second session;
+- FC-8 `inspect|author|represent|test` workspace state is no longer active code;
+- old rig-only `EditorSession`, `RigAuthoringState` and singleton `SourceRuntimeState` are removed;
+- BIND-00 state/UI/props/helper/tests/CSS/second-GLTF renderer path are removed from the active tree.
 
-The first design questions are:
-- minimal `SourceRevision` vs placed source instance/registration semantics;
-- how many real source joints/parts/meshes map to multiple `RigElement`s without importing renderer ontology into the kernel;
-- explicit source datum -> authored frame adoption/rebind;
-- rigid representation vs spring/damper/cardan stretch/deformation;
-- `AUTHOR` vs transient `TEST` interaction and the smallest evaluator boundary;
-- how the workflow scales to the full JV car rig: suspension, steering members, wheels, chassis/body, springs/dampers, cardans, and related hardpoints.
+BIND-00 remains useful historical evidence: one authored element successfully drove one exact glTF skin joint, and real Owner use immediately falsified singleton binding storage. Do not recreate that prototype as persistent representation architecture.
 
-Do not start by implementing all of these. First design the complete workflow critically, then choose the smallest vertical slice that falsifies the design on a real asset.
+The adoption-preview black-screen incident remains a durable lesson: one operation owns preview at a time, and UI must not expose a conflicting transform target during SOURCE-adoption preview. Browser regression protects this boundary.
 
-## Known tooling debt
+## Reproducible toolchain and validation
 
-There is currently no `package-lock.json`. Direct dependencies are exact-pinned in `package.json`, but transitive installs are not fully reproducible yet. Add a lockfile from a canonical successful install when convenient; this is not a reason to block the product/design work.
+Canonical CI toolchain:
+
+- Node `24.16.0`;
+- npm `11.17.0`;
+- committed npm lockfile v3 generated by that environment;
+- direct dependency versions remain exact-pinned.
+
+Normal environment restoration and CI use `npm ci`. `npm install` is reserved for intentional dependency/lockfile changes.
+
+Normal development uses **Work check** on `main` / `work/**`:
+
+`npm ci -> npm run check`
+
+Takeover/promotion-quality rendered evidence uses **Checkpoint browser gate** on `checkpoint/**` (or manual dispatch):
+
+- locked canonical install/check;
+- exact pinned real JV SOURCE;
+- adoption-preview regression;
+- real SOURCE placement/adoption owner path;
+- Linux Chrome;
+- Windows Chrome;
+- runtime fault, `pageerror` and unexpected `console.error` fail closed.
+
+The pinned real SOURCE is:
+
+`Jozzpoly/Box3d_FunProject@959aefb78587ce60cf2b8eb03ff82797a4165142/assets/source/OneSided_Steering_Suspension_Rig.gltf`
+
+- Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`;
+- SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
+- size: 64,264 bytes;
+- structure used by current probes: 15 nodes / 14 joints / 1 skinned mesh.
+
+Historical fixture SHA `fc1e8bd0...` is a different exact `SourceRevision` despite sharing the filename.
+
+## Current product limitations — keep them visible
+
+- UI exposes one active SourceInstance context even though the project model supports multiple placed instances.
+- SOURCE datum adoption currently targets an **existing** `RigElement`.
+- There is no Owner-facing creation workflow for real `RigElement`s yet.
+- There is no arbitrary surface/vertex picking or virtual/derived construction-datum workflow yet.
+- Mechanical relation enum/axis conventions are provisional.
+- Representation is correctly separated from `RigDocument`, but the exact `rigid/aim/span/...` vocabulary is provisional and has no final Owner workflow yet.
+- AUTHOR/TEST separation exists, but no final kinematic evaluator/solver is architecture yet.
+- Current layout is an engineering harness, not final information architecture.
+
+These are product/foundation limits, not repository-recovery problems.
+
+## Next product slice
+
+Highest-leverage real-use work after promotion/readiness review:
+
+**Owner-created authored `RigElement`s plus the frames required by a real SOURCE mechanism.**
+
+The current path can already inspect/place exact SOURCE and adopt a rigid datum as a frame, but it still relies on synthetic/pre-existing target elements. The next slice should let the Owner start constructing an actual JV mechanism.
+
+Start with exact existing SOURCE sockets/axes. Add arbitrary geometry picking or virtual construction datums only when a concrete required JV hardpoint cannot be represented by existing exact datums.
+
+Keep the first slice narrow: element creation + ownership/selection/history semantics. Do not simultaneously implement the whole suspension, final representation system or kinematic solver.
+
+## Owner/promotion boundary
+
+Useful remaining manual checks, not technical blockers:
+
+- Owner `Commit adopted frame -> move -> mixed multi-step Undo/Redo` on the current cleaned workbench;
+- Owner `Save As -> reopen -> exact SOURCE relink` in the same real workflow.
+
+Do not create another giant diagnostic package merely to force these checks. Automation owns compiler/runtime/browser facts; the Owner is most valuable for spatial/product judgment.
+
+Before promotion, independently resolve `checkpoint/foundation-ready-2026-08-16` and its GitHub checks, compare it with `main`, review PR #2, and decide whether promotion should preserve the long recovery commit history or use a cleaner squash-style boundary. **Do not merge without explicit Owner approval.**
+
+## Foundation exit criterion
+
+Foundation is complete when the Owner can take a real JV mechanism and, without agent-side coordinate guessing:
+
+`place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> map representation -> kinematically test/reset -> save/reopen -> export a small consumer-facing result`
+
+After that the permanent rhythm is:
+
+`real need -> small vertical slice -> targeted test -> owner-visible gate when needed -> next`.

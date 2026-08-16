@@ -1,60 +1,105 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
-import { createRepresentationBindingDraft, evaluateRepresentationBindingPose, representationBindingMatchesSource, type RepresentationBindingDraft } from '../editor/representation-binding-draft.js';
-import { applyCommand, beginPreview, cancelPreview, commitPreview, createEditorSession, redo, undo, updatePreview, visibleDocument, type EditorSession } from '../editor/session.js';
-import { worldPoseToAuthoredPose, type TransformTarget } from '../editor/transform-target.js';
-import { setTransformTargetPose } from '../features/rig-transform/command.js';
+import type { TransformTarget } from '../editor/transform-target.js';
 import { SYNTHETIC_RIG } from '../fixtures/synthetic-rig.js';
+import { composePose } from '../kernel/math.js';
 import { resolveRigDocument } from '../kernel/resolve.js';
-import type { RigidPose, RigDocument } from '../kernel/types.js';
-import { openRigFile, saveRigFile, saveRigFileAs } from '../io/rig-file.js';
-import { openSourceAsset, type OpenSourceAsset } from '../io/source-file.js';
+import type { RigidPose } from '../kernel/types.js';
+import { openJureProjectFile, saveJureProjectFile, saveJureProjectFileAs } from '../io/project-file.js';
+import { openRigFile } from '../io/rig-file.js';
+import { openSourceAsset } from '../io/source-file.js';
+import { createJureRigProject } from '../project/create.js';
+import type { JureProjectModel } from '../project/types.js';
 import type { CameraPreset, ViewFitTarget } from '../render/rig-viewport-controller.js';
 import { RigViewport } from './RigViewport.js';
+import {
+  applyProjectAuthoringCommand,
+  beginProjectRigTransform,
+  beginProjectSourceFrameAdoption,
+  beginProjectSourceInstanceTransform,
+  canRedoProjectAuthoring,
+  canUndoProjectAuthoring,
+  cancelProjectAuthoringOperation,
+  commitProjectAuthoringOperation,
+  commitProjectRigPose,
+  createProjectAuthoringState,
+  previewProjectRigTransform,
+  previewProjectSourceInstanceTransform,
+  redoProjectAuthoring,
+  replaceProjectAuthoringProject,
+  selectProjectRigTarget,
+  undoProjectAuthoring,
+  visibleProjectAuthoringProject,
+  visibleProjectAuthoringRig,
+} from './state/project-authoring.js';
+import {
+  activateProjectSourceInstance,
+  createProjectSourceRuntimeState,
+  linkExactSourceRuntimeAsset,
+  linkedSourceRuntimeForInstance,
+  reconcileProjectSourceRuntimeState,
+  resolveExactPlacedSourceDatum,
+  selectProjectSourceDatum,
+  type ProjectSourceRuntimeState,
+} from './state/project-source-runtime.js';
+import { allocateFrameAdoptionIds, planSourceOpen } from './state/source-workflow.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
-import { SourceNavigator, type SourceLayerVisibility } from './workspace/SourceNavigator.js';
+import { SourceNavigator, type SourceAdoptionPreviewView, type SourceLayerVisibility } from './workspace/SourceNavigator.js';
 import { TopBar } from './workspace/TopBar.js';
 import { ViewportChrome } from './workspace/ViewportChrome.js';
 import { WorkspaceShell } from './workspace/WorkspaceShell.js';
 import './styles.css';
-import './binding.css';
 
-interface FileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
+interface ProjectFileState { handle: FileSystemFileHandle; baselineHash: string; name: string }
 
-const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true, bound: true };
+const DEFAULT_RIG_LAYERS: RigLayerVisibility = { elements: true, frames: true, relations: true };
 const DEFAULT_SOURCE_LAYERS: SourceLayerVisibility = { geometry: true, datum: true };
+const INITIAL_PROJECT = createJureRigProject('project.synthetic', SYNTHETIC_RIG);
 
-function initialTransformTarget(document: RigDocument): TransformTarget | null {
-  const frame = document.frames[0];
-  if (frame) return { kind: 'frame', id: frame.id };
-  const element = document.elements[0];
-  return element ? { kind: 'element', id: element.id } : null;
+function firstRigDocumentId(project: JureProjectModel): string {
+  const rig = project.authoredDocuments.find((entry) => entry.kind === 'rig');
+  if (!rig || rig.kind !== 'rig') throw new Error('JURE project contains no authored RigDocument.');
+  return rig.document.documentId;
+}
+
+function revokeRuntimeAssets(runtime: ProjectSourceRuntimeState): void {
+  for (const asset of runtime.linkedAssets) URL.revokeObjectURL(asset.objectUrl);
 }
 
 export function App() {
-  const [session, setSession] = useState<EditorSession>(() => createEditorSession(SYNTHETIC_RIG));
-  const [selectedTarget, setSelectedTarget] = useState<TransformTarget | null>({ kind: 'frame', id: 'frame.link.mount' });
+  const [authoring, setAuthoring] = useState(() => createProjectAuthoringState(INITIAL_PROJECT, SYNTHETIC_RIG.documentId));
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>('perspective');
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [transformSpace, setTransformSpace] = useState<'world' | 'local'>('world');
-  const [fileState, setFileState] = useState<FileState | null>(null);
-  const [sourceAsset, setSourceAsset] = useState<OpenSourceAsset | null>(null);
-  const [selectedSourceLocator, setSelectedSourceLocator] = useState<string | null>(null);
-  const [representationBinding, setRepresentationBinding] = useState<RepresentationBindingDraft | null>(null);
+  const [fileState, setFileState] = useState<ProjectFileState | null>(null);
+  const [sourceRuntime, setSourceRuntime] = useState(createProjectSourceRuntimeState);
+  const sourceRuntimeRef = useRef(sourceRuntime);
+  const [sourcePlacementEdit, setSourcePlacementEdit] = useState(false);
   const [rigVisible, setRigVisible] = useState(true);
   const [rigLayers, setRigLayers] = useState<RigLayerVisibility>(DEFAULT_RIG_LAYERS);
   const [sourceVisible, setSourceVisible] = useState(true);
   const [sourceLayers, setSourceLayers] = useState<SourceLayerVisibility>(DEFAULT_SOURCE_LAYERS);
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
-  const [status, setStatus] = useState('Synthetic fixture · unsaved');
-  const sourceUrlRef = useRef<string | null>(null);
+  const [status, setStatus] = useState('Synthetic project fixture · unsaved');
 
-  useEffect(() => () => {
-    if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
-  }, []);
+  useEffect(() => { sourceRuntimeRef.current = sourceRuntime; }, [sourceRuntime]);
+  useEffect(() => () => revokeRuntimeAssets(sourceRuntimeRef.current), []);
 
-  const document = visibleDocument(session);
+  const project = visibleProjectAuthoringProject(authoring);
+  const document = visibleProjectAuthoringRig(authoring);
+  const selectedTarget = authoring.selectedRigTarget;
+
+  useEffect(() => {
+    setSourceRuntime((current) => {
+      let next = reconcileProjectSourceRuntimeState(current, project);
+      if (!next.activeSourceInstanceId && project.sourceInstances.length === 1) {
+        next = activateProjectSourceInstance(next, project, project.sourceInstances[0].id);
+      }
+      return next;
+    });
+  }, [project]);
+
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
   const displayModel = useMemo(() => buildRigDisplayModel(document, resolved, selectedTarget), [document, resolved, selectedTarget]);
   const visibleDisplayModel = useMemo(() => ({
@@ -71,139 +116,260 @@ export function App() {
   const selectedFrame = selectedTarget?.kind === 'frame'
     ? document.frames.find((frame) => frame.id === selectedTarget.id) ?? null
     : null;
+
+  const activeSourceInstance = sourceRuntime.activeSourceInstanceId
+    ? project.sourceInstances.find((instance) => instance.id === sourceRuntime.activeSourceInstanceId) ?? null
+    : null;
+  const sourceAsset = activeSourceInstance
+    ? linkedSourceRuntimeForInstance(sourceRuntime, project, activeSourceInstance.id)
+    : null;
+  const sourceSelection = sourceRuntime.selection;
+  const selectedSourceLocator = sourceSelection !== null
+    && activeSourceInstance !== null
+    && sourceSelection.sourceInstanceId === activeSourceInstance.id
+    ? sourceSelection.locator
+    : null;
   const selectedSourceNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
-  const sourceSelectionPose = selectedSourceNode?.worldRigidPose ?? null;
+  const sourceSelectionPose = activeSourceInstance && selectedSourceNode?.worldRigidPose
+    ? composePose(activeSourceInstance.pose, selectedSourceNode.worldRigidPose)
+    : null;
   const sourceGeometryVisible = sourceVisible && sourceLayers.geometry;
   const sourceDatumVisible = sourceVisible && sourceLayers.datum;
+  const sourcePlacement = activeSourceInstance && sourceAsset
+    ? { sourceInstanceId: activeSourceInstance.id, pose: activeSourceInstance.pose, editActive: sourcePlacementEdit }
+    : null;
 
-  const activeRepresentationBinding = useMemo(() => {
-    if (!representationBinding || !sourceAsset) return null;
-    if (!representationBindingMatchesSource(representationBinding, sourceAsset.sha256)) return null;
-    const elementWorldPose = resolved.elementWorldPoses.get(representationBinding.elementId);
-    if (!elementWorldPose) return null;
-    return {
-      sourceLocator: representationBinding.sourceLocator,
-      sourceNodeIndex: representationBinding.sourceNodeIndex,
-      worldPose: evaluateRepresentationBindingPose(representationBinding, elementWorldPose),
-    };
-  }, [representationBinding, sourceAsset, resolved]);
+  useEffect(() => {
+    if (!activeSourceInstance || !sourceAsset) setSourcePlacementEdit(false);
+  }, [activeSourceInstance?.id, sourceAsset?.sourceRevisionId]);
+
+  const adoptionPreview: SourceAdoptionPreviewView | null = useMemo(() => {
+    const operation = authoring.activeOperation;
+    if (operation?.kind !== 'source-frame-adoption') return null;
+    const frame = document.frames.find((candidate) => candidate.id === operation.frameId);
+    if (!frame) return null;
+    const owner = frame.ownerElementId ? document.elements.find((element) => element.id === frame.ownerElementId) ?? null : null;
+    return { frameName: frame.name, ownerName: owner?.name ?? 'rig root' };
+  }, [authoring.activeOperation, document]);
 
   const requestView = useCallback((target: ViewFitTarget) => {
     setViewRequest((current) => ({ id: (current?.id ?? 0) + 1, target }));
   }, []);
 
+  const handleSelectTarget = useCallback((target: TransformTarget | null) => {
+    setAuthoring((current) => selectProjectRigTarget(current, target));
+  }, []);
+
+  const handleSelectSourceLocator = useCallback((locator: string) => {
+    if (!activeSourceInstance) return;
+    if (authoring.activeOperation?.kind === 'source-frame-adoption') {
+      setStatus('Commit or cancel the active frame adoption preview before changing SOURCE selection.');
+      return;
+    }
+    try {
+      setSourceRuntime(selectProjectSourceDatum(sourceRuntime, project, activeSourceInstance.id, locator));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeSourceInstance, authoring.activeOperation, project, sourceRuntime]);
+
   const handleTransformStart = useCallback((target: TransformTarget) => {
-    setSession((current) => beginPreview(current, `Transform ${target.kind} ${target.id}`));
+    setAuthoring((current) => beginProjectRigTransform(current, target));
   }, []);
 
   const handleTransformPreview = useCallback((target: TransformTarget, worldPose: RigidPose) => {
-    setSession((current) => {
-      const started = current.preview ? current : beginPreview(current, `Transform ${target.kind} ${target.id}`);
-      const baseline = started.preview?.baseline ?? started.committed;
-      const authoredPose = worldPoseToAuthoredPose(baseline, target, worldPose);
-      return updatePreview(started, setTransformTargetPose(target, authoredPose));
-    });
+    setAuthoring((current) => previewProjectRigTransform(current, target, worldPose));
   }, []);
 
   const handleTransformCommit = useCallback((target: TransformTarget) => {
-    setSession((current) => commitPreview(current));
-    setStatus(`Authored ${target.kind} committed · unsaved`);
+    setAuthoring((current) => commitProjectAuthoringOperation(current));
+    setStatus(`Authored ${target.kind} committed to project history · unsaved`);
   }, []);
 
   const handleTransformCancel = useCallback((target: TransformTarget) => {
-    setSession((current) => cancelPreview(current));
+    setAuthoring((current) => cancelProjectAuthoringOperation(current));
     setStatus(`${target.kind === 'element' ? 'Element' : 'Frame'} transform cancelled`);
   }, []);
 
+  const handleSourceTransformStart = useCallback((sourceInstanceId: string) => {
+    setAuthoring((current) => beginProjectSourceInstanceTransform(current, sourceInstanceId));
+  }, []);
+
+  const handleSourceTransformPreview = useCallback((sourceInstanceId: string, worldPose: RigidPose) => {
+    setAuthoring((current) => previewProjectSourceInstanceTransform(current, sourceInstanceId, worldPose));
+  }, []);
+
+  const handleSourceTransformCommit = useCallback((sourceInstanceId: string) => {
+    setAuthoring((current) => commitProjectAuthoringOperation(current));
+    setStatus(`SOURCE placement ${sourceInstanceId} committed · unsaved`);
+  }, []);
+
+  const handleSourceTransformCancel = useCallback((sourceInstanceId: string) => {
+    setAuthoring((current) => cancelProjectAuthoringOperation(current));
+    setStatus(`SOURCE placement ${sourceInstanceId} cancelled`);
+  }, []);
+
   const commitPose = useCallback((target: TransformTarget, pose: RigidPose) => {
-    setSession((current) => applyCommand(current, setTransformTargetPose(target, pose)));
+    if (sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish SOURCE placement and commit/cancel any active preview before numeric authored editing.');
+      return;
+    }
+    setAuthoring((current) => commitProjectRigPose(current, target, pose));
     setStatus(`Authored ${target.kind} committed · unsaved`);
-  }, []);
+  }, [authoring.activeOperation, sourcePlacementEdit]);
 
-  const handleBindRepresentation = useCallback(() => {
-    if (!sourceAsset || !selectedElement || !selectedSourceNode?.worldRigidPose || !selectedSourceNode.isSkinJoint) return;
-    const elementWorldPose = resolved.elementWorldPoses.get(selectedElement.id);
-    if (!elementWorldPose) return;
+  const handleToggleSourcePlacement = useCallback(() => {
+    if (!activeSourceInstance || !sourceAsset) return;
+    if (authoring.activeOperation) {
+      setStatus('Commit or cancel the active project operation before changing placement edit mode.');
+      return;
+    }
+    setSourcePlacementEdit((current) => !current);
+    setStatus(sourcePlacementEdit ? 'SOURCE placement editing finished' : `SOURCE placement editing: ${activeSourceInstance.name}`);
+  }, [activeSourceInstance, sourceAsset, authoring.activeOperation, sourcePlacementEdit]);
 
-    setRepresentationBinding(createRepresentationBindingDraft({
-      elementId: selectedElement.id,
-      elementWorldPose,
-      sourceSha256: sourceAsset.sha256,
-      sourceLocator: selectedSourceNode.locator,
-      sourceNodeIndex: selectedSourceNode.index,
-      sourceWorldPose: selectedSourceNode.worldRigidPose,
-    }));
-    setStatus(`BIND-00 preview: ${selectedSourceNode.name ?? selectedSourceNode.locator} → ${selectedElement.name} · transient`);
-  }, [sourceAsset, selectedElement, selectedSourceNode, resolved]);
-
-  const handleClearRepresentationBinding = useCallback(() => {
-    setRepresentationBinding(null);
-    setStatus('BIND-00 representation preview cleared');
-  }, []);
-
-  const handleOpenRig = async () => {
+  const handlePreviewAdoption = useCallback(() => {
+    if (!activeSourceInstance || !selectedSourceLocator || !selectedSourceNode || !selectedElement || sourcePlacementEdit || authoring.activeOperation) return;
     try {
-      const opened = await openRigFile();
-      setSession(createEditorSession(opened.document));
+      const sourceDatum = resolveExactPlacedSourceDatum(sourceRuntime, project, activeSourceInstance.id, selectedSourceLocator);
+      const frameName = selectedSourceNode.name ?? `Source node ${selectedSourceNode.index}`;
+      const ids = allocateFrameAdoptionIds(project, document.documentId, frameName);
+      setAuthoring((current) => beginProjectSourceFrameAdoption(current, {
+        rigDocumentId: document.documentId,
+        frameId: ids.frameId,
+        frameName,
+        ownerElementId: selectedElement.id,
+        adoptionId: ids.adoptionId,
+        sourceDatum,
+      }));
+      setStatus(`Frame adoption preview: ${frameName} → ${selectedElement.name}`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, selectedElement, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
+
+  const handleCommitAdoption = useCallback(() => {
+    const operation = authoring.activeOperation;
+    if (operation?.kind !== 'source-frame-adoption') return;
+    setAuthoring((current) => {
+      const committed = commitProjectAuthoringOperation(current);
+      return selectProjectRigTarget(committed, { kind: 'frame', id: operation.frameId });
+    });
+    setStatus(`Adopted SOURCE datum as authored frame ${operation.frameId} · unsaved`);
+  }, [authoring.activeOperation]);
+
+  const handleCancelAdoption = useCallback(() => {
+    if (authoring.activeOperation?.kind !== 'source-frame-adoption') return;
+    setAuthoring((current) => cancelProjectAuthoringOperation(current));
+    setStatus('Frame adoption preview cancelled');
+  }, [authoring.activeOperation]);
+
+  const resetRuntimeForProject = useCallback((nextProject: JureProjectModel) => {
+    revokeRuntimeAssets(sourceRuntimeRef.current);
+    let nextRuntime = createProjectSourceRuntimeState();
+    if (nextProject.sourceInstances.length > 0) nextRuntime = activateProjectSourceInstance(nextRuntime, nextProject, nextProject.sourceInstances[0].id);
+    setSourceRuntime(nextRuntime);
+    setSourcePlacementEdit(false);
+  }, []);
+
+  const handleOpenProject = async () => {
+    if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before opening another project.'); return; }
+    try {
+      const opened = await openJureProjectFile();
+      const rigDocumentId = firstRigDocumentId(opened.project);
+      setAuthoring(replaceProjectAuthoringProject(opened.project, rigDocumentId));
       setFileState({ handle: opened.handle, baselineHash: opened.baselineHash, name: opened.name });
-      setSelectedTarget(initialTransformTarget(opened.document));
-      setRepresentationBinding(null);
-      setStatus(`Opened ${opened.name}`);
+      resetRuntimeForProject(opened.project);
+      setStatus(opened.project.sourceInstances.length > 0
+        ? `Opened ${opened.name} · SOURCE instances restored; exact bytes require relink`
+        : `Opened ${opened.name}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
 
-  const handleSave = async () => {
+  const handleImportRig = async () => {
+    if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before importing another rig.'); return; }
     try {
-      if (!fileState) { await handleSaveAs(); return; }
-      const baselineHash = await saveRigFile(fileState.handle, fileState.baselineHash, session.committed);
-      setFileState({ ...fileState, baselineHash });
-      setStatus(representationBinding
-        ? `Saved ${fileState.name} · BIND-00 preview remains transient / not saved`
-        : `Saved ${fileState.name} · revision ${session.committed.revision}`);
+      const opened = await openRigFile();
+      const nextProject = createJureRigProject(`project.${opened.document.documentId}`, opened.document);
+      setAuthoring(replaceProjectAuthoringProject(nextProject, opened.document.documentId));
+      setFileState(null);
+      resetRuntimeForProject(nextProject);
+      setStatus(`Imported legacy rig ${opened.name} into a new unsaved JURE project`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
 
   const handleSaveAs = async () => {
+    if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before saving.'); return; }
     try {
-      const saved = await saveRigFileAs(session.committed);
+      const saved = await saveJureProjectFileAs(authoring.session.committed);
       setFileState(saved);
-      setStatus(representationBinding
-        ? `Saved ${saved.name} · BIND-00 preview remains transient / not saved`
-        : `Saved ${saved.name} · revision ${session.committed.revision}`);
+      setStatus(`Saved project ${saved.name}`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
+  };
+
+  const handleSave = async () => {
+    if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before saving.'); return; }
+    try {
+      if (!fileState) { await handleSaveAs(); return; }
+      const baselineHash = await saveJureProjectFile(fileState.handle, fileState.baselineHash, authoring.session.committed);
+      setFileState({ ...fileState, baselineHash });
+      setStatus(`Saved project ${fileState.name}`);
     } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
   };
 
   const handleOpenSource = async () => {
+    if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before opening or relinking SOURCE.'); return; }
+    let opened: Awaited<ReturnType<typeof openSourceAsset>> | null = null;
     try {
-      const previousUrl = sourceUrlRef.current;
-      const opened = await openSourceAsset();
-      sourceUrlRef.current = opened.objectUrl;
-      setSourceAsset(opened);
+      opened = await openSourceAsset();
+      const plan = planSourceOpen(authoring.session.committed, sourceRuntime.activeSourceInstanceId, {
+        name: opened.name,
+        sha256: opened.sha256,
+        adapter: opened.inspection.adapter,
+      });
+      const nextAuthoring = plan.command ? applyProjectAuthoringCommand(authoring, plan.command) : authoring;
+      const nextProject = nextAuthoring.session.committed;
+      let nextRuntime = linkExactSourceRuntimeAsset(sourceRuntime, nextProject, plan.revision.id, opened);
+      nextRuntime = activateProjectSourceInstance(nextRuntime, nextProject, plan.sourceInstance.id);
+      const previousAsset = sourceRuntime.linkedAssets.find((asset) => asset.sourceRevisionId === plan.revision.id);
+      if (previousAsset && previousAsset.objectUrl !== opened.objectUrl) URL.revokeObjectURL(previousAsset.objectUrl);
+
+      setAuthoring(nextAuthoring);
+      setSourceRuntime(nextRuntime);
       setSourceVisible(true);
-      setSelectedSourceLocator(null);
-      setRepresentationBinding(null);
-      if (previousUrl) URL.revokeObjectURL(previousUrl);
-      setStatus(`SOURCE only: ${opened.name} · sha256 ${opened.sha256.slice(0, 12)}…`);
-    } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); }
+      setSourcePlacementEdit(false);
+      setStatus(plan.kind === 'relink'
+        ? `Relinked exact SOURCE bytes for ${plan.sourceInstance.name} · project truth unchanged`
+        : `Added SOURCE instance ${plan.sourceInstance.name} · exact ${opened.sha256.slice(0, 12)}… · unsaved`);
+      opened = null;
+    } catch (error) {
+      if (opened) URL.revokeObjectURL(opened.objectUrl);
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
   };
 
   const warningCount = resolved.diagnostics.filter((item) => item.severity === 'warning').length;
   const selectedPose = selectedElement?.pose ?? selectedFrame?.pose ?? null;
+  const adoptionTargetName = !authoring.activeOperation && !sourcePlacementEdit && selectedElement && selectedSourceNode?.worldRigidPose && selectedSourceNode.rigidCompatibility === 'rigid'
+    ? selectedElement.name
+    : null;
 
   return (
     <WorkspaceShell
       topbar={(
         <TopBar
+          projectId={project.projectId}
           documentId={document.documentId}
-          revision={session.committed.revision}
-          canUndo={session.past.length > 0 && !session.preview}
-          canRedo={session.future.length > 0 && !session.preview}
-          onOpenRig={handleOpenRig}
+          revision={document.revision}
+          canUndo={canUndoProjectAuthoring(authoring)}
+          canRedo={canRedoProjectAuthoring(authoring)}
+          onOpenProject={() => void handleOpenProject()}
+          onImportRig={() => void handleImportRig()}
           onSave={() => void handleSave()}
           onSaveAs={() => void handleSaveAs()}
-          onOpenSource={handleOpenSource}
-          onUndo={() => setSession((current) => undo(current))}
-          onRedo={() => setSession((current) => redo(current))}
+          onOpenSource={() => void handleOpenSource()}
+          onUndo={() => setAuthoring((current) => undoProjectAuthoring(current))}
+          onRedo={() => setAuthoring((current) => redoProjectAuthoring(current))}
         />
       )}
       rigPane={(
@@ -214,18 +380,27 @@ export function App() {
           layers={rigLayers}
           onVisibleChange={setRigVisible}
           onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
-          onSelect={setSelectedTarget}
+          onSelect={handleSelectTarget}
         />
       )}
       sourcePane={(
         <SourceNavigator
           sourceAsset={sourceAsset}
+          sourceInstance={activeSourceInstance}
           selectedSourceLocator={selectedSourceLocator}
+          placementEditActive={sourcePlacementEdit}
+          placementEditDisabled={Boolean(authoring.activeOperation)}
+          adoptionTargetName={adoptionTargetName}
+          adoptionPreview={adoptionPreview}
           visible={sourceVisible}
           layers={sourceLayers}
           onVisibleChange={setSourceVisible}
           onLayerChange={(layer, visible) => setSourceLayers((current) => ({ ...current, [layer]: visible }))}
-          onSelect={setSelectedSourceLocator}
+          onTogglePlacementEdit={handleToggleSourcePlacement}
+          onPreviewAdoption={handlePreviewAdoption}
+          onCommitAdoption={handleCommitAdoption}
+          onCancelAdoption={handleCancelAdoption}
+          onSelect={handleSelectSourceLocator}
         />
       )}
       viewport={(
@@ -238,23 +413,26 @@ export function App() {
             transformMode={transformMode}
             transformSpace={transformSpace}
             sourceAssetUrl={sourceAsset?.objectUrl ?? null}
+            sourcePlacement={sourcePlacement}
             sourceGeometryVisible={sourceGeometryVisible}
             sourceDatumVisible={sourceDatumVisible}
             sourceSelectionPose={sourceSelectionPose}
-            representationBinding={activeRepresentationBinding}
-            boundRepresentationVisible={rigVisible && rigLayers.bound}
             viewRequest={viewRequest}
-            onSelect={setSelectedTarget}
+            onSelect={handleSelectTarget}
             onTransformStart={handleTransformStart}
             onTransformPreview={handleTransformPreview}
             onTransformCommit={handleTransformCommit}
             onTransformCancel={handleTransformCancel}
+            onSourceTransformStart={handleSourceTransformStart}
+            onSourceTransformPreview={handleSourceTransformPreview}
+            onSourceTransformCommit={handleSourceTransformCommit}
+            onSourceTransformCancel={handleSourceTransformCancel}
           />
           <ViewportChrome
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
-            hasRig={rigVisible && (visibleDisplayModel.items.length > 0 || Boolean(activeRepresentationBinding && rigLayers.bound))}
+            hasRig={rigVisible && visibleDisplayModel.items.length > 0}
             hasSource={sourceGeometryVisible && Boolean(sourceAsset)}
             hasSourceSelection={sourceDatumVisible && Boolean(sourceSelectionPose)}
             onCameraPreset={setCameraPreset}
@@ -270,19 +448,19 @@ export function App() {
           selectedFrame={selectedFrame}
           selectedPose={selectedPose}
           selectedSourceNode={selectedSourceNode}
-          representationBinding={representationBinding}
+          selectedSourceWorldPose={sourceSelectionPose}
+          sourceInstanceName={activeSourceInstance?.name ?? null}
           onCommitPose={commitPose}
           onFocusSource={() => requestView('source-selection')}
-          onBindRepresentation={handleBindRepresentation}
-          onClearRepresentationBinding={handleClearRepresentationBinding}
         />
       )}
       statusbar={(
         <>
-          <span>doc <strong>{document.documentId}</strong></span>
-          <span>rev <strong>{session.committed.revision}</strong>{session.preview ? ' · PREVIEW' : ''}</span>
+          <span>project <strong>{project.projectId}</strong></span>
+          <span>rig <strong>{document.documentId}</strong> · rev <strong>{document.revision}</strong>{authoring.session.preview ? ' · PREVIEW' : ''}</span>
           <span className={warningCount ? 'warn' : 'ok'}>{warningCount} relation warning{warningCount === 1 ? '' : 's'}</span>
-          {representationBinding ? <span className="binding-status">BIND preview · transient</span> : null}
+          {sourcePlacementEdit && activeSourceInstance ? <span className="binding-status">SOURCE placement · {activeSourceInstance.name}</span> : null}
+          {authoring.activeOperation?.kind === 'source-frame-adoption' ? <span className="binding-status">ADOPTION preview · transient</span> : null}
           <span className="status-message">{status}</span>
         </>
       )}
