@@ -2,6 +2,10 @@
 
 JURE is an owner-first local web workbench for authoring rig intent directly on real spatial assets without making SOURCE files, renderer state, consumer runtime or transient motion the authored truth.
 
+JURE is not intended to be an agent-operated preprocessing utility. Its core product goal is to let the Owner personally carry a supported rig from exact SOURCE inspection through mechanical/representation authoring, direct adjustment, diagnostics, kinematic TEST/Reset, Save/Open and deterministic consumer export. The agent may build the tooling and difficult math, but should not be a required operator for ordinary rig creation or correction.
+
+JV/JV-Web is the first demanding consumer/falsifier and the main near-term product partner. JURE should make it practical to build and repair exact vehicle rigs for JV — including part fit, suspension/steering relationships and moving representation such as dampers/springs — while JV remains responsible for runtime physics, force laws, solver state, controls and rendering integration. The same authoring architecture should remain usable for future vehicle rigs and, when real use justifies it, other mechanisms.
+
 ## Repository authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
@@ -32,6 +36,8 @@ The active architecture now includes:
 - transient real lower-arm rotation around the authored hinge and exact Reset to AUTHORED;
 - deterministic Save/Open/relink and one chronological durable `ProjectSession` history.
 
+These relation/evaluator semantics are currently proven below the final Owner-facing UI boundary. The workbench still lacks direct Owner relation creation and TEST controls; those are the immediate product gaps, not completed UI claims.
+
 Exact SHA/run evidence and the current limitations are in `docs/STATUS.md`.
 
 Historical shadow state/history implementations and the active BIND-00 runtime/UI path remain removed. Git history preserves their evidence; they are not alternative APIs to extend.
@@ -40,21 +46,23 @@ The current UI is a working engineering harness, not final information architect
 
 ## Immediate product goal
 
-Do **not** expand to the whole suspension yet. The next step is to make the already-proven mechanical cycle fully Owner-operable:
+Close the Owner-operability gap for the mechanism already proven underneath the UI before expanding its vocabulary:
 
 1. Owner-facing `revolute` creation over two authored frames, with neutral residual/axis diagnostics visible before commit;
 2. relation creation as one existing `ProjectSession` action with Undo/Redo;
 3. rendered exact-JV proof of that relation flow;
 4. then a small TEST control for one selected revolute with explicit disposable moving-element choice;
-5. rendered `0° -> +30° -> Reset`, with TEST controls never entering project history or AUTHORED truth.
+5. rendered `0° -> +30° -> Reset`, with TEST controls never entering project history or AUTHORED truth;
+6. then extend the same Owner-first pattern to the coherent double-wishbone, including the required spherical relations;
+7. only after that freeze/export the small multi-relation consumer fragment and let private JV-Web become the next falsifier.
 
-Only after this local authoring/test loop is complete should JURE export a small neutral consumer payload and let private JV-Web become the next falsifier. The Friends public alpha remains a later controlled integration target, not the place to develop the authoring contract.
+The Friends public alpha remains a later controlled integration target, not the place to develop the authoring contract.
 
 JURE must remain useful for native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs and thrusters. Do not hardcode current JV topology, Box3D IDs, solver configuration or vehicle-specific dynamics into the authored kernel.
 
 Foundation exits when the Owner can take a real mechanism and, without agent-side coordinate guessing:
 
-`place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> map representation -> kinematically test/reset -> save/reopen -> export a small consumer-facing result`
+`place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> fit/map representation -> kinematically test/reset -> correct -> save/reopen -> export a small consumer-facing result`
 
 ## Development loop
 
