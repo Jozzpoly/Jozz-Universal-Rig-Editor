@@ -16,8 +16,8 @@ node -e "const [M,m]=process.versions.node.split('.').map(Number); process.exit(
 )
 
 if not exist "node_modules\typescript\bin\tsc" (
-  echo Installing JURE dependencies...
-  call npm install --no-audit --no-fund || goto :fail
+  echo Installing exact JURE dependencies from package-lock.json...
+  call npm ci --no-audit --no-fund || goto :fail
 )
 
 echo Starting Jozz Universal Rig Editor...
