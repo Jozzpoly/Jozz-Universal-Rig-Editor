@@ -42,7 +42,7 @@ import {
   selectProjectSourceDatum,
   type ProjectSourceRuntimeState,
 } from './state/project-source-runtime.js';
-import { createProjectRigElement } from './state/rig-element-workflow.js';
+import { createProjectRigElement, createProjectRigElementFromSource } from './state/rig-element-workflow.js';
 import { allocateFrameAdoptionIds, planSourceOpen } from './state/source-workflow.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
@@ -173,6 +173,24 @@ export function App() {
       setStatus(error instanceof Error ? error.message : String(error));
     }
   }, [authoring, sourcePlacementEdit]);
+
+  const handleCreateElementFromSource = useCallback((name: string) => {
+    if (sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish SOURCE placement and commit/cancel any active preview before adopting SOURCE as an authored element.');
+      return;
+    }
+    if (!activeSourceInstance || !selectedSourceLocator || !selectedSourceNode?.worldRigidPose || selectedSourceNode.rigidCompatibility !== 'rigid') {
+      setStatus('Select one rigid exact SOURCE datum before creating an authored element at that datum.');
+      return;
+    }
+    try {
+      const sourceDatum = resolveExactPlacedSourceDatum(sourceRuntime, project, activeSourceInstance.id, selectedSourceLocator);
+      setAuthoring(createProjectRigElementFromSource(authoring, name, sourceDatum));
+      setStatus(`Created authored element "${name.trim()}" at exact SOURCE datum ${selectedSourceNode.name ?? selectedSourceNode.locator} · unsaved`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, sourcePlacementEdit, authoring, sourceRuntime, project]);
 
   const handleSelectSourceLocator = useCallback((locator: string) => {
     if (!activeSourceInstance) return;
@@ -406,6 +424,7 @@ export function App() {
           selectedSourceLocator={selectedSourceLocator}
           placementEditActive={sourcePlacementEdit}
           placementEditDisabled={Boolean(authoring.activeOperation)}
+          elementCreationDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
           adoptionTargetName={adoptionTargetName}
           adoptionPreview={adoptionPreview}
           visible={sourceVisible}
@@ -416,6 +435,7 @@ export function App() {
           onPreviewAdoption={handlePreviewAdoption}
           onCommitAdoption={handleCommitAdoption}
           onCancelAdoption={handleCancelAdoption}
+          onCreateElementFromSource={handleCreateElementFromSource}
           onSelect={handleSelectSourceLocator}
         />
       )}

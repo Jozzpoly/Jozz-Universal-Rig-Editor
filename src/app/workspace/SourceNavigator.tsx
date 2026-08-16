@@ -18,6 +18,7 @@ interface SourceNavigatorProps {
   selectedSourceLocator: string | null;
   placementEditActive: boolean;
   placementEditDisabled?: boolean;
+  elementCreationDisabled?: boolean;
   adoptionTargetName?: string | null;
   adoptionPreview?: SourceAdoptionPreviewView | null;
   visible: boolean;
@@ -28,11 +29,14 @@ interface SourceNavigatorProps {
   onPreviewAdoption?(): void;
   onCommitAdoption?(): void;
   onCancelAdoption?(): void;
+  onCreateElementFromSource?(name: string): void;
   onSelect(locator: string): void;
 }
 
-export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLocator, placementEditActive, placementEditDisabled = false, adoptionTargetName = null, adoptionPreview = null, visible, layers, onVisibleChange, onLayerChange, onTogglePlacementEdit, onPreviewAdoption, onCommitAdoption, onCancelAdoption, onSelect }: SourceNavigatorProps) {
+export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLocator, placementEditActive, placementEditDisabled = false, elementCreationDisabled = false, adoptionTargetName = null, adoptionPreview = null, visible, layers, onVisibleChange, onLayerChange, onTogglePlacementEdit, onPreviewAdoption, onCommitAdoption, onCancelAdoption, onCreateElementFromSource, onSelect }: SourceNavigatorProps) {
   const [filter, setFilter] = useState('');
+  const [creatingElementFromSource, setCreatingElementFromSource] = useState(false);
+  const [elementName, setElementName] = useState('');
   const normalizedFilter = filter.trim().toLocaleLowerCase();
   const filteredNodes = useMemo(() => sourceAsset?.inspection.nodes.filter((node) => {
     if (!normalizedFilter) return true;
@@ -56,7 +60,23 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
   );
 
   const selectedNode = sourceAsset?.inspection.nodes.find((node) => node.locator === selectedSourceLocator) ?? null;
-  const canPreviewAdoption = Boolean(selectedNode?.worldRigidPose && selectedNode.rigidCompatibility === 'rigid' && adoptionTargetName && onPreviewAdoption);
+  const selectedRigidDatum = Boolean(selectedNode?.worldRigidPose && selectedNode.rigidCompatibility === 'rigid');
+  const canPreviewAdoption = Boolean(selectedRigidDatum && adoptionTargetName && onPreviewAdoption);
+  const canOfferElementCreation = Boolean(selectedRigidDatum && onCreateElementFromSource);
+
+  const beginElementCreation = () => {
+    if (!selectedNode || elementCreationDisabled || !onCreateElementFromSource) return;
+    setElementName(selectedNode.name?.trim() || 'Element');
+    setCreatingElementFromSource(true);
+  };
+
+  const submitElementCreation = () => {
+    const name = elementName.trim();
+    if (!name || elementCreationDisabled || !onCreateElementFromSource) return;
+    onCreateElementFromSource(name);
+    setCreatingElementFromSource(false);
+    setElementName('');
+  };
 
   return (
     <div className="navigator-pane">
@@ -107,11 +127,46 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
                 <button type="button" className="binding-preview-button" onClick={onCancelAdoption}>Cancel</button>
               </div>
             </div>
-          ) : canPreviewAdoption ? (
+          ) : selectedRigidDatum && (canPreviewAdoption || canOfferElementCreation) ? (
             <div className="binding-preview-card">
               <div className="binding-preview-head"><strong>Author from SOURCE</strong><span>explicit adoption</span></div>
-              <div className="binding-preview-pair"><span className="selection-mark source" />{selectedNode?.name ?? selectedNode?.locator}<span className="binding-arrow">→</span><span className="selection-mark authored" />new frame on {adoptionTargetName}</div>
-              <button type="button" className="binding-preview-button" onClick={onPreviewAdoption}>Preview adopted frame</button>
+              {creatingElementFromSource ? (
+                <form onSubmit={(event) => { event.preventDefault(); submitElementCreation(); }}>
+                  <div className="binding-preview-pair"><span className="selection-mark source" />{selectedNode?.name ?? selectedNode?.locator}<span className="binding-arrow">→</span><span className="selection-mark authored" />new element origin</div>
+                  <input
+                    className="navigator-filter"
+                    value={elementName}
+                    onChange={(event) => setElementName(event.target.value)}
+                    aria-label="SOURCE-derived element name"
+                    placeholder="Element name…"
+                    autoFocus
+                  />
+                  <div className="topbar-actions">
+                    <button type="submit" className="binding-preview-button active" disabled={elementCreationDisabled || !elementName.trim()}>Create element</button>
+                    <button type="button" className="binding-preview-button" onClick={() => { setCreatingElementFromSource(false); setElementName(''); }}>Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  {canPreviewAdoption ? (
+                    <>
+                      <div className="binding-preview-pair"><span className="selection-mark source" />{selectedNode?.name ?? selectedNode?.locator}<span className="binding-arrow">→</span><span className="selection-mark authored" />new frame on {adoptionTargetName}</div>
+                      <button type="button" className="binding-preview-button" onClick={onPreviewAdoption}>Preview adopted frame</button>
+                    </>
+                  ) : null}
+                  {canOfferElementCreation ? (
+                    <button
+                      type="button"
+                      className="binding-preview-button"
+                      disabled={elementCreationDisabled}
+                      title={elementCreationDisabled ? 'Finish the active placement/preview operation first' : 'Use this exact SOURCE datum as the new authored element origin'}
+                      onClick={beginElementCreation}
+                    >
+                      Create element at datum
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           ) : null}
           <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter source…" />
@@ -121,7 +176,11 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
                 type="button"
                 className={`nav-row source-row ${selectedSourceLocator === node.locator ? 'selected-source' : ''}`}
                 key={node.locator}
-                onClick={() => onSelect(node.locator)}
+                onClick={() => {
+                  setCreatingElementFromSource(false);
+                  setElementName('');
+                  onSelect(node.locator);
+                }}
                 title={node.worldRigidPose ? 'Select exact read-only SOURCE datum on this placed instance' : `Inspect only: ${node.rigidCompatibility}`}
               >
                 <span className="row-bullet source" />
