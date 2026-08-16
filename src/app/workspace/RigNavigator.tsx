@@ -6,7 +6,6 @@ export interface RigLayerVisibility {
   elements: boolean;
   frames: boolean;
   relations: boolean;
-  bound: boolean;
 }
 
 interface RigNavigatorProps {
