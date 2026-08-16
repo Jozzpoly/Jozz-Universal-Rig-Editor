@@ -61,6 +61,9 @@ jobs:
       - name: Linux real-source construction frame probe
         run: node scripts/real-jv-wishbone-frame-probe.mjs
 
+      - name: Linux real-source revolute diagnostic probe
+        run: node scripts/real-jv-revolute-diagnostic-probe.mjs
+
       - name: Linux browser owner interaction probes
         run: |
           npm run dev -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/jure-browser-vite.log 2>&1 &
@@ -144,6 +147,12 @@ jobs:
         run: |
           node scripts/real-jv-wishbone-frame-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw "Windows construction-frame probe exited with code $LASTEXITCODE" }
+
+      - name: Windows real-source revolute diagnostic probe
+        shell: pwsh
+        run: |
+          node scripts/real-jv-revolute-diagnostic-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Windows revolute diagnostic probe exited with code $LASTEXITCODE" }
 
       - name: Windows browser owner interaction probes
         shell: pwsh
