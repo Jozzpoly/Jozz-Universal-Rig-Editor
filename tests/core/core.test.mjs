@@ -7,7 +7,6 @@ const { resolveRigDocument } = await import('../../.core-dist/kernel/resolve.js'
 const { validateRigDocument } = await import('../../.core-dist/kernel/validate.js');
 
 const { composePose, relativePose } = await import('../../.core-dist/kernel/math.js');
-const sessionApi = await import('../../.core-dist/editor/session.js');
 const { worldPoseToAuthoredPose } = await import('../../.core-dist/editor/transform-target.js');
 const { setElementPose, setFramePose, setTransformTargetPose } = await import('../../.core-dist/features/rig-transform/command.js');
 const {
@@ -72,40 +71,12 @@ test('a RigFrame may exist without any RigRelation', () => {
   assert.equal(SYNTHETIC_RIG.relations.some((relation) => relation.frameA === 'frame.link.axis' || relation.frameB === 'frame.link.axis'), false);
 });
 
-test('preview does not mutate committed authored truth until accept', () => {
-  let session = sessionApi.createEditorSession(SYNTHETIC_RIG);
-  session = sessionApi.beginPreview(session, 'Move link mount');
-  session = sessionApi.updatePreview(session, setFramePose('frame.link.mount', {
-    position: { x: -0.30, y: 0.12, z: 0 },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
-  }));
-  assert.notDeepEqual(sessionApi.visibleDocument(session), session.committed);
-  assert.equal(session.committed.revision, 0);
-  session = sessionApi.cancelPreview(session);
-  assert.equal(sessionApi.visibleDocument(session), SYNTHETIC_RIG);
-});
-
-test('commit + undo + redo preserves authored snapshots', () => {
-  let session = sessionApi.createEditorSession(SYNTHETIC_RIG);
-  session = sessionApi.applyCommand(session, setFramePose('frame.link.mount', {
-    position: { x: -0.30, y: 0.12, z: 0 },
-    rotation: { x: 0, y: 0, z: 0, w: 1 },
-  }));
-  assert.equal(session.committed.revision, 1);
-  const committedText = serializeRigDocument(session.committed);
-  session = sessionApi.undo(session);
-  assert.equal(session.committed.revision, 0);
-  session = sessionApi.redo(session);
-  assert.equal(serializeRigDocument(session.committed), committedText);
-});
-
 test('origin-coincident diagnostic reports geometric residual', () => {
   const view = resolveRigDocument(SYNTHETIC_RIG);
   const diagnostic = view.diagnostics.find((item) => item.code === 'relation.origin-coincident.residual');
   assert.ok(diagnostic);
   assert.ok(diagnostic.metrics.residualM > 0.09 && diagnostic.metrics.residualM < 0.11);
 });
-
 
 test('world/local pose conversion round-trips through owner element space', () => {
   const owner = SYNTHETIC_RIG.elements.find((element) => element.id === 'element.link');
@@ -126,13 +97,11 @@ test('moving a RigElement preserves its frame-local authored poses while resolve
     rotation: { x: 0, y: Math.sin(Math.PI / 8), z: 0, w: Math.cos(Math.PI / 8) },
   };
 
-  let session = sessionApi.createEditorSession(SYNTHETIC_RIG);
-  session = sessionApi.applyCommand(session, setElementPose('element.link', nextElementPose));
-
-  const authoredFrame = session.committed.frames.find((frame) => frame.id === 'frame.link.mount');
+  const nextDocument = setElementPose('element.link', nextElementPose).apply(SYNTHETIC_RIG);
+  const authoredFrame = nextDocument.frames.find((frame) => frame.id === 'frame.link.mount');
   assert.deepEqual(authoredFrame.pose, originalFrame.pose);
 
-  const resolved = resolveRigDocument(session.committed);
+  const resolved = resolveRigDocument(nextDocument);
   const worldFrame = resolved.frameWorldPoses.get('frame.link.mount');
   const expectedWorld = composePose(nextElementPose, originalFrame.pose);
   assert.deepEqual(worldFrame, expectedWorld);
@@ -165,27 +134,26 @@ test('world gizmo poses convert to the correct authored space for both elements 
   assert.ok(Math.abs(authored.position.z - desiredLocalFramePose.position.z) < 1e-9);
 });
 
-test('generic transform target command dispatches element and frame edits without parallel session logic', () => {
-  let session = sessionApi.createEditorSession(SYNTHETIC_RIG);
-  session = sessionApi.applyCommand(session, setTransformTargetPose(
+test('generic transform target command dispatches element and frame edits without a second history stack', () => {
+  let document = setTransformTargetPose(
     { kind: 'element', id: 'element.link' },
     {
       position: { x: 0.7, y: 0.2, z: 0 },
       rotation: { x: 0, y: 0, z: 0, w: 2 },
     },
-  ));
-  const element = session.committed.elements.find((entry) => entry.id === 'element.link');
+  ).apply(SYNTHETIC_RIG);
+  const element = document.elements.find((entry) => entry.id === 'element.link');
   assert.equal(element.pose.position.x, 0.7);
   assert.equal(element.pose.rotation.w, 1);
 
-  session = sessionApi.applyCommand(session, setTransformTargetPose(
+  document = setTransformTargetPose(
     { kind: 'frame', id: 'frame.link.axis' },
     {
       position: { x: 0.2, y: 0.01, z: 0 },
       rotation: { x: 0, y: 0, z: 0, w: 1 },
     },
-  ));
-  const frame = session.committed.frames.find((entry) => entry.id === 'frame.link.axis');
+  ).apply(document);
+  const frame = document.frames.find((entry) => entry.id === 'frame.link.axis');
   assert.equal(frame.pose.position.x, 0.2);
   assert.equal(frame.provenance.kind, 'owner-authored');
 });
@@ -263,8 +231,7 @@ test('GLB JSON container uses the same deterministic SOURCE locator contract', (
   assert.equal(inspected.nodes[0].name, 'Socket_WheelCenter');
 });
 
-
-test('source bindings are exact revision + adapter-qualified locators and frame owner edits preserve the binding', () => {
+test('source provenance is exact revision + adapter-qualified and owner edits preserve the source reference', () => {
   const sourceId = 'source.test';
   const withSource = {
     ...SYNTHETIC_RIG,
@@ -281,17 +248,16 @@ test('source bindings are exact revision + adapter-qualified locators and frame 
   };
   assert.equal(validateRigDocument(withSource).filter((entry) => entry.severity === 'error').length, 0);
 
-  let session = sessionApi.createEditorSession(withSource);
-  session = sessionApi.applyCommand(session, setFramePose('frame.link.mount', {
+  const edited = setFramePose('frame.link.mount', {
     position: { x: -0.19, y: 0.03, z: 0 },
     rotation: { x: 0, y: 0, z: 0, w: 1 },
-  }));
-  const frame = session.committed.frames.find((entry) => entry.id === 'frame.link.mount');
+  }).apply(withSource);
+  const frame = edited.frames.find((entry) => entry.id === 'frame.link.mount');
   assert.deepEqual(frame.source, { sourceRevisionId: sourceId, locator: 'gltf2.node:8' });
   assert.equal(frame.provenance.kind, 'owner-authored');
 });
 
-test('source binding validation fails closed for missing revisions or empty locators', () => {
+test('source provenance validation fails closed for missing revisions or empty locators', () => {
   const invalid = {
     ...SYNTHETIC_RIG,
     frames: SYNTHETIC_RIG.frames.map((frame) => frame.id === 'frame.link.mount'
