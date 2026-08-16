@@ -28,6 +28,10 @@ JURE is a practical direct-manipulation spatial rigging workbench for the Owner'
 
 The Owner defines product intent, spatial/mechanical meaning and validates how the tool feels/behaves. The agent owns technical analysis, implementation, math, adapters, diagnostics, tests and repository hygiene. Do not make the Owner reconstruct coordinates or debug compiler/runtime failures that automation can reproduce.
 
+**Owner end-to-end authoring is a product invariant.** JURE must not settle into an agent-operated preprocessing step where the Owner can only describe the desired rig and an agent must repeatedly edit coordinates or consumer code to realize it. For mechanisms JURE claims to support, the Owner should be able to load/inspect exact SOURCE, create and adjust authored parts/frames/relations, fit representation, inspect diagnostics, kinematically test/reset, correct the rig, save/reopen and export the deterministic authored result through JURE itself. The agent may build the tooling, derive difficult math, automate repetition and help investigate failures, but it must not remain a mandatory rig-authoring operator. Repeated difficult rigging operations should become inspectable Owner workflows.
+
+JV and JURE are intentionally complementary. Near-term JURE product work should be driven by the real needs of the JV vehicle rig: exact part fit, suspension/steering mechanisms, representation mappings and moving assemblies such as dampers/springs. JV remains authority for runtime physics, forces, solver state, controls and rendering integration.
+
 ## Durable invariants
 
 - `RigDocument` is authored rig truth. SOURCE assets, Three objects, preview state, evaluated motion and consumer/runtime observations never become authored truth automatically.
