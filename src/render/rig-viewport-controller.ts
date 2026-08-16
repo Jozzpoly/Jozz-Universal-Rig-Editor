@@ -53,7 +53,6 @@ export class RigViewportController {
   private readonly root = new THREE.Group();
   private readonly sourceRoot = new THREE.Group();
   private readonly sourceSelectionRoot = new THREE.Group();
-  private readonly boundRepresentationRoot = new THREE.Group();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly selectable = new Map<THREE.Object3D, TransformTarget>();
@@ -68,14 +67,10 @@ export class RigViewportController {
   private transformCancelRequested = false;
   private transformDragSubject: TransformSubject | null = null;
   private sourceSelectionPose: RigidPose | null = null;
-  private boundRepresentationPose: RigidPose | null = null;
-  private boundRepresentationTarget: THREE.Object3D | null = null;
   private rigVisible = true;
   private sourceGeometryVisible = true;
   private sourceDatumVisible = true;
-  private boundRepresentationVisible = true;
   private sourceLoadGeneration = 0;
-  private boundLoadGeneration = 0;
   private orthographicHalfHeight = 1.05;
 
   constructor(private readonly host: HTMLElement, callbacks: ViewportCallbacks) {
@@ -99,7 +94,7 @@ export class RigViewportController {
     this.transform.setSpace('world');
     this.transform.setSize(0.85);
     this.scene.add(this.transform.getHelper());
-    this.scene.add(this.selectedProxy, this.root, this.sourceRoot, this.sourceSelectionRoot, this.boundRepresentationRoot);
+    this.scene.add(this.selectedProxy, this.root, this.sourceRoot, this.sourceSelectionRoot);
 
     const grid = new THREE.GridHelper(6, 60, 0x3f4852, 0x262d34);
     grid.position.y = -0.35;
@@ -192,16 +187,6 @@ export class RigViewportController {
     this.sourceSelectionRoot.visible = visible;
   }
 
-  setBoundRepresentationVisible(visible: boolean): void {
-    this.boundRepresentationVisible = visible;
-    this.boundRepresentationRoot.visible = visible;
-  }
-
-  setBoundRepresentationPose(pose: RigidPose | null): void {
-    this.boundRepresentationPose = pose;
-    this.applyBoundRepresentationPose();
-  }
-
   setSourceSelection(pose: RigidPose | null): void {
     this.sourceSelectionPose = pose;
     this.disposeChildren(this.sourceSelectionRoot);
@@ -230,10 +215,7 @@ export class RigViewportController {
     }
 
     const box = new THREE.Box3();
-    if (target === 'rig' || target === 'all') {
-      if (this.rigVisible) box.expandByObject(this.root);
-      if (this.boundRepresentationVisible && this.boundRepresentationRoot.children.length > 0) box.expandByObject(this.boundRepresentationRoot);
-    }
+    if ((target === 'rig' || target === 'all') && this.rigVisible) box.expandByObject(this.root);
     if ((target === 'source' || target === 'all') && this.sourceGeometryVisible) box.expandByObject(this.sourceRoot);
     if (box.isEmpty()) return;
 
@@ -358,71 +340,8 @@ export class RigViewportController {
     this.disposeChildren(this.sourceRoot);
   }
 
-  async showBoundRepresentation(objectUrl: string, sourceNodeIndex: number): Promise<void> {
-    const generation = ++this.boundLoadGeneration;
-    this.disposeChildren(this.boundRepresentationRoot);
-    this.boundRepresentationTarget = null;
-
-    const loader = new GLTFLoader();
-    const gltf = await loader.loadAsync(objectUrl).catch((error: unknown) => {
-      if (generation !== this.boundLoadGeneration) return null;
-      throw error;
-    });
-    if (!gltf) return;
-
-    if (generation !== this.boundLoadGeneration) {
-      this.disposeObjectTree(gltf.scene);
-      return;
-    }
-
-    const parser = gltf.parser as unknown as { associations?: Map<unknown, { nodes?: number }> };
-    const associations = parser.associations;
-    let target: THREE.Object3D | null = null;
-    if (associations) {
-      for (const [object, mapping] of associations) {
-        if (object instanceof THREE.Object3D && mapping?.nodes === sourceNodeIndex) {
-          target = object;
-          break;
-        }
-      }
-    }
-
-    if (!target) {
-      this.disposeObjectTree(gltf.scene);
-      throw new Error(`Rendered SOURCE node gltf2.node:${sourceNodeIndex} was not found in GLTFLoader associations.`);
-    }
-
-    gltf.scene.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        const material = new THREE.MeshStandardMaterial({
-          color: 0x69aee8,
-          transparent: true,
-          opacity: 0.62,
-          depthWrite: false,
-          roughness: 0.58,
-          metalness: 0.08,
-        });
-        object.material = material;
-        object.renderOrder = 4;
-      }
-    });
-
-    this.boundRepresentationTarget = target;
-    this.boundRepresentationRoot.visible = this.boundRepresentationVisible;
-    this.boundRepresentationRoot.add(gltf.scene);
-    gltf.scene.updateMatrixWorld(true);
-    this.applyBoundRepresentationPose();
-  }
-
-  clearBoundRepresentation(): void {
-    this.boundLoadGeneration += 1;
-    this.boundRepresentationTarget = null;
-    this.disposeChildren(this.boundRepresentationRoot);
-  }
-
   dispose(): void {
     this.sourceLoadGeneration += 1;
-    this.boundLoadGeneration += 1;
     if (this.transformDragActive) {
       this.transformCancelRequested = true;
       this.transform.reset();
@@ -439,7 +358,6 @@ export class RigViewportController {
     this.disposeChildren(this.root);
     this.disposeChildren(this.sourceRoot);
     this.disposeChildren(this.sourceSelectionRoot);
-    this.disposeChildren(this.boundRepresentationRoot);
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
@@ -482,36 +400,6 @@ export class RigViewportController {
   private applyPose(object: THREE.Object3D, pose: RigidPose): void {
     object.position.set(pose.position.x, pose.position.y, pose.position.z);
     object.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
-  }
-
-  private applyBoundRepresentationPose(): void {
-    if (!this.boundRepresentationTarget || !this.boundRepresentationPose) return;
-    const target = this.boundRepresentationTarget;
-    const parent = target.parent;
-    const desiredWorld = new THREE.Matrix4().compose(
-      new THREE.Vector3(
-        this.boundRepresentationPose.position.x,
-        this.boundRepresentationPose.position.y,
-        this.boundRepresentationPose.position.z,
-      ),
-      new THREE.Quaternion(
-        this.boundRepresentationPose.rotation.x,
-        this.boundRepresentationPose.rotation.y,
-        this.boundRepresentationPose.rotation.z,
-        this.boundRepresentationPose.rotation.w,
-      ).normalize(),
-      new THREE.Vector3(1, 1, 1),
-    );
-
-    if (parent) {
-      parent.updateWorldMatrix(true, false);
-      const local = new THREE.Matrix4().copy(parent.matrixWorld).invert().multiply(desiredWorld);
-      local.decompose(target.position, target.quaternion, target.scale);
-    } else {
-      desiredWorld.decompose(target.position, target.quaternion, target.scale);
-    }
-    target.updateMatrix();
-    target.updateWorldMatrix(false, true);
   }
 
   private cancelActiveTransform(): void {
@@ -566,7 +454,7 @@ export class RigViewportController {
     this.animationFrame = requestAnimationFrame(this.animate);
     this.orbit.update();
     this.renderer.render(this.scene, this.camera);
-  }
+  };
 
   private disposeObjectTree(root: THREE.Object3D): void {
     root.traverse((object) => {
