@@ -64,6 +64,9 @@ jobs:
       - name: Linux real-source revolute diagnostic probe
         run: node scripts/real-jv-revolute-diagnostic-probe.mjs
 
+      - name: Linux exact-JV single-revolute TEST evaluator probe
+        run: node scripts/real-jv-single-revolute-evaluator-probe.mjs
+
       - name: Linux browser owner interaction probes
         run: |
           npm run dev -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/jure-browser-vite.log 2>&1 &
@@ -153,6 +156,12 @@ jobs:
         run: |
           node scripts/real-jv-revolute-diagnostic-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw "Windows revolute diagnostic probe exited with code $LASTEXITCODE" }
+
+      - name: Windows exact-JV single-revolute TEST evaluator probe
+        shell: pwsh
+        run: |
+          node scripts/real-jv-single-revolute-evaluator-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Windows single-revolute TEST evaluator probe exited with code $LASTEXITCODE" }
 
       - name: Windows browser owner interaction probes
         shell: pwsh
