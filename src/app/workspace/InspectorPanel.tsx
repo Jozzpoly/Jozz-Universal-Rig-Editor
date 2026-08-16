@@ -1,6 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { Euler, MathUtils, Quaternion } from 'three';
-import type { RepresentationBindingDraft } from '../../editor/representation-binding-draft.js';
 import type { TransformTarget } from '../../editor/transform-target.js';
 import type { RigidPose, RigElement, RigFrame } from '../../kernel/types.js';
 import type { SourceNodeInspection } from '../../source/types.js';
@@ -12,20 +11,12 @@ interface InspectorPanelProps {
   selectedSourceNode: SourceNodeInspection | null;
   selectedSourceWorldPose: RigidPose | null;
   sourceInstanceName: string | null;
-  representationBinding: RepresentationBindingDraft | null;
   onCommitPose(target: TransformTarget, pose: RigidPose): void;
   onFocusSource(): void;
-  onBindRepresentation(): void;
-  onClearRepresentationBinding(): void;
 }
 
 const AXES = ['x', 'y', 'z'] as const;
 type Axis = typeof AXES[number];
-
-// BIND-00 remains historical proof code, but its transient representation UI is
-// deliberately hidden from the active RU-1 owner workflow. SOURCE -> AUTHORED
-// adoption is the only current owner-facing crossing.
-const SHOW_LEGACY_BINDING_PREVIEW = false;
 
 function commitOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
   if (event.key === 'Enter') event.currentTarget.blur();
@@ -188,38 +179,7 @@ function SourceInspector({ selectedSourceNode, selectedSourceWorldPose, sourceIn
   );
 }
 
-function BindingPreviewAction({ selectedElement, selectedSourceNode, representationBinding, onBindRepresentation, onClearRepresentationBinding }: Pick<InspectorPanelProps, 'selectedElement' | 'selectedSourceNode' | 'representationBinding' | 'onBindRepresentation' | 'onClearRepresentationBinding'>) {
-  if (!selectedElement || !selectedSourceNode) return null;
-
-  const bindable = Boolean(selectedSourceNode.worldRigidPose && selectedSourceNode.isSkinJoint);
-  const activeForSelection = representationBinding?.elementId === selectedElement.id
-    && representationBinding.sourceLocator === selectedSourceNode.locator;
-
-  return (
-    <section className="binding-preview-card">
-      <div className="binding-preview-head">
-        <strong>Representation preview</strong>
-        <span>legacy proof · transient</span>
-      </div>
-      <div className="binding-preview-pair">
-        <span className="selection-mark authored" />{selectedElement.name}
-        <span className="binding-arrow">←</span>
-        <span className="selection-mark source" />{selectedSourceNode.name ?? selectedSourceNode.locator}
-      </div>
-      {bindable ? (
-        activeForSelection ? (
-          <button className="binding-preview-button active" onClick={onClearRepresentationBinding}>Clear bound preview</button>
-        ) : (
-          <button className="binding-preview-button" onClick={onBindRepresentation}>{representationBinding ? 'Rebind preview to selection' : 'Bind visual preview'}</button>
-        )
-      ) : (
-        <div className="binding-preview-note">BIND-00 only accepts rigid skin joints. No authored data will be changed.</div>
-      )}
-    </section>
-  );
-}
-
-export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, selectedSourceNode, selectedSourceWorldPose, sourceInstanceName, representationBinding, onCommitPose, onFocusSource, onBindRepresentation, onClearRepresentationBinding }: InspectorPanelProps) {
+export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, selectedSourceNode, selectedSourceWorldPose, sourceInstanceName, onCommitPose, onFocusSource }: InspectorPanelProps) {
   const hasAuthored = Boolean((selectedElement || selectedFrame) && selectedPose);
   return (
     <div className="inspector-panel">
@@ -230,15 +190,6 @@ export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, s
           <div className="selection-pair"><span className="selection-mark authored" />Authored <span className="pair-connector">+</span><span className="selection-mark source" />Source <span className="pair-note">independent selections</span></div>
         ) : null}
         <SourceInspector selectedSourceNode={selectedSourceNode} selectedSourceWorldPose={selectedSourceWorldPose} sourceInstanceName={sourceInstanceName} onFocusSource={onFocusSource} />
-        {SHOW_LEGACY_BINDING_PREVIEW ? (
-          <BindingPreviewAction
-            selectedElement={selectedElement}
-            selectedSourceNode={selectedSourceNode}
-            representationBinding={representationBinding}
-            onBindRepresentation={onBindRepresentation}
-            onClearRepresentationBinding={onClearRepresentationBinding}
-          />
-        ) : null}
       </div>
     </div>
   );
