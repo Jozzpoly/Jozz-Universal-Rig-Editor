@@ -9,7 +9,12 @@ import {
   linkExactSourceRuntimeAsset,
   resolveExactPlacedSourceDatum,
 } from '../.core-dist/app/state/project-source-runtime.js';
+import { adoptSourceDatumAsElement } from '../.core-dist/project/source-element-adoption.js';
 import { adoptSourceDatumAsFrame } from '../.core-dist/project/source-frame-adoption.js';
+import { applyRigCommandToProject } from '../.core-dist/project/commands.js';
+import { createRigElement } from '../.core-dist/features/rig-elements/command.js';
+import { resolveRigDocument } from '../.core-dist/kernel/resolve.js';
+import { relationPrimaryAxisWorld } from '../.core-dist/kernel/relation-frame.js';
 import { parseJureProjectModel, serializeJureProjectModel } from '../.core-dist/project/serialize.js';
 
 const sourcePath = process.env.JURE_REAL_SOURCE_PATH;
@@ -63,6 +68,12 @@ function projectFixture() {
   };
 }
 
+function rig(project) {
+  const document = project.authoredDocuments.find((entry) => entry.kind === 'rig')?.document;
+  if (!document) throw new Error('Real JV probe project lost its RigDocument.');
+  return document;
+}
+
 function pointLocator(sourceNodeLocator, side) {
   const datum = points.find((candidate) => candidate.sourceNodeLocator === sourceNodeLocator && candidate.derivation.side === side);
   if (!datum) throw new Error(`Missing derived ${side} X-end for ${sourceNodeLocator}.`);
@@ -83,6 +94,14 @@ function closeVec(actual, expected, label, tolerance = 1e-10) {
   close(actual.x, expected.x, `${label}.x`, tolerance);
   close(actual.y, expected.y, `${label}.y`, tolerance);
   close(actual.z, expected.z, `${label}.z`, tolerance);
+}
+
+function closePose(actual, expected, label, tolerance = 1e-10) {
+  closeVec(actual.position, expected.position, `${label}.position`, tolerance);
+  close(actual.rotation.x, expected.rotation.x, `${label}.rotation.x`, tolerance);
+  close(actual.rotation.y, expected.rotation.y, `${label}.rotation.y`, tolerance);
+  close(actual.rotation.z, expected.rotation.z, `${label}.rotation.z`, tolerance);
+  close(actual.rotation.w, expected.rotation.w, `${label}.rotation.w`, tolerance);
 }
 
 const upStartNodeLocator = exactNodeLocator('Axis_SuspensionTravel_Bottom');
@@ -141,8 +160,8 @@ const adopted = adoptSourceDatumAsFrame({
   sourceDatum: lowerDatum,
 }).apply(project);
 const reopened = parseJureProjectModel(serializeJureProjectModel(adopted));
-const reopenedRig = reopened.authoredDocuments.find((entry) => entry.kind === 'rig')?.document;
-const reopenedFrame = reopenedRig?.frames.find((frame) => frame.id === 'frame.lower-wishbone-hinge');
+const reopenedRig = rig(reopened);
+const reopenedFrame = reopenedRig.frames.find((frame) => frame.id === 'frame.lower-wishbone-hinge');
 if (!reopenedFrame) throw new Error('Reopened project lost the adopted lower wishbone hinge frame.');
 if (reopenedFrame.source?.locator !== lowerLocator) throw new Error('Reopened project lost the self-resolving lower hinge locator.');
 if (reopened.sourceAdoptions[0]?.source.locator !== lowerLocator) throw new Error('Reopened project lost lower hinge adoption provenance.');
@@ -171,4 +190,76 @@ console.log('REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS', JSON.stringify({
     derivation: lower.derivation,
     persistedLocator: reopenedFrame.source.locator,
   },
+}));
+
+// First real two-body ownership falsifier. The geometry is one physical hinge:
+// it must resolve to the same world frame on each authored body while each body
+// keeps its own local pose. The chassis element origin is explicit Owner-authored
+// reference space; it is not claimed to be a SOURCE-derived hinge or physics body.
+let twoBodyProject = projectFixture();
+const twoBodyRuntime = linkExactSourceRuntimeAsset(createProjectSourceRuntimeState(), twoBodyProject, sourceRevision.id, {
+  name: sourceRevision.uri,
+  sha256: sourceRevision.sha256,
+  objectUrl: 'probe:real-jv-two-body-source',
+  inspection,
+});
+const lowerArmDatum = resolveExactPlacedSourceDatum(twoBodyRuntime, twoBodyProject, 'source-instance.real-jv.fl', exactNodeLocator('Chassis_Bottom'));
+twoBodyProject = adoptSourceDatumAsElement({
+  rigDocumentId: 'rig.real-jv-probe',
+  elementId: 'element.lower-arm',
+  elementName: 'Lower arm',
+  adoptionId: 'adopt.lower-arm',
+  sourceDatum: lowerArmDatum,
+}).apply(twoBodyProject);
+twoBodyProject = applyRigCommandToProject('rig.real-jv-probe', createRigElement({
+  id: 'element.chassis-reference',
+  name: 'Owner chassis reference',
+})).apply(twoBodyProject);
+const twoBodyHingeDatum = resolveExactPlacedSourceDatum(twoBodyRuntime, twoBodyProject, 'source-instance.real-jv.fl', lowerLocator);
+twoBodyProject = adoptSourceDatumAsFrame({
+  rigDocumentId: 'rig.real-jv-probe',
+  frameId: 'frame.lower-arm.hinge',
+  frameName: 'Lower hinge · arm side',
+  ownerElementId: 'element.lower-arm',
+  adoptionId: 'adopt.lower-arm.hinge',
+  sourceDatum: twoBodyHingeDatum,
+}).apply(twoBodyProject);
+twoBodyProject = adoptSourceDatumAsFrame({
+  rigDocumentId: 'rig.real-jv-probe',
+  frameId: 'frame.chassis.lower-hinge',
+  frameName: 'Lower hinge · chassis side',
+  ownerElementId: 'element.chassis-reference',
+  adoptionId: 'adopt.chassis.lower-hinge',
+  sourceDatum: twoBodyHingeDatum,
+}).apply(twoBodyProject);
+
+const twoBodyRig = rig(twoBodyProject);
+const armFrame = twoBodyRig.frames.find((frame) => frame.id === 'frame.lower-arm.hinge');
+const chassisFrame = twoBodyRig.frames.find((frame) => frame.id === 'frame.chassis.lower-hinge');
+if (!armFrame || !chassisFrame) throw new Error('Two-body real JV proof lost one authored hinge frame.');
+if (armFrame.source?.locator !== lowerLocator || chassisFrame.source?.locator !== lowerLocator) throw new Error('Two-body hinge frames do not preserve the same physical SOURCE recipe.');
+closePose(armFrame.pose, { position: { x: 0.09375, y: 0, z: 0 }, rotation: identityPose.rotation }, 'lower-arm local hinge');
+closePose(chassisFrame.pose, lower.sourceRevisionWorldPose, 'chassis local hinge');
+
+const twoBodyResolved = resolveRigDocument(twoBodyRig);
+const armWorld = twoBodyResolved.frameWorldPoses.get(armFrame.id);
+const chassisWorld = twoBodyResolved.frameWorldPoses.get(chassisFrame.id);
+if (!armWorld || !chassisWorld) throw new Error('Two-body real JV proof could not resolve authored hinge frames.');
+closePose(armWorld, lower.sourceRevisionWorldPose, 'lower-arm world hinge');
+closePose(chassisWorld, lower.sourceRevisionWorldPose, 'chassis world hinge');
+closeVec(relationPrimaryAxisWorld(armWorld), { x: 0, y: 0, z: 1 }, 'lower-arm +Z');
+closeVec(relationPrimaryAxisWorld(chassisWorld), { x: 0, y: 0, z: 1 }, 'chassis +Z');
+
+const reopenedTwoBody = parseJureProjectModel(serializeJureProjectModel(twoBodyProject));
+const reopenedTwoBodyRig = rig(reopenedTwoBody);
+const persistedHingeFrames = reopenedTwoBodyRig.frames.filter((frame) => frame.source?.locator === lowerLocator);
+if (persistedHingeFrames.length !== 2) throw new Error(`Expected two persisted authored sides of one physical hinge; received ${persistedHingeFrames.length}.`);
+if (reopenedTwoBody.sourceAdoptions.filter((entry) => entry.source.locator === lowerLocator).length !== 2) throw new Error('Two-body hinge adoption evidence did not survive Save/Open.');
+
+console.log('REAL_JV_TWO_BODY_HINGE_OWNERSHIP_PASS', JSON.stringify({
+  locator: lowerLocator,
+  armLocalPose: armFrame.pose,
+  chassisLocalPose: chassisFrame.pose,
+  worldPose: armWorld,
+  primaryAxis: relationPrimaryAxisWorld(armWorld),
 }));
