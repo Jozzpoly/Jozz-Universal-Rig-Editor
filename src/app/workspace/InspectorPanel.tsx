@@ -128,10 +128,12 @@ function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCom
           <dt>Owner</dt><dd>{selectedFrame.ownerElementId ?? 'rig-root'}</dd>
           <dt>Role</dt><dd>{selectedFrame.role ?? '—'}</dd>
           <dt>Truth</dt><dd>{selectedFrame.provenance.kind}</dd>
+          <dt>Source revision</dt><dd>{selectedFrame.source?.sourceRevisionId ?? '—'}</dd>
+          <dt>Measured from</dt><dd>{selectedFrame.source?.locator ?? '—'}</dd>
         </dl>
         <PositionEditor target={target} pose={selectedPose} label="Local position · m" onCommit={onCommitPose} />
         <RotationEditor target={target} pose={selectedPose} onCommit={onCommitPose} />
-        <div className="context-footnote">This frame is authored in its owner's local rigid space.</div>
+        <div className="context-footnote">This frame is authored in its owner's local rigid space. SOURCE provenance is historical measurement evidence, not writeback authority.</div>
       </section>
     );
   }
