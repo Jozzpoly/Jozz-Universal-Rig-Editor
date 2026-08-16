@@ -238,20 +238,60 @@ try {
   }
   console.log('SOURCE placement Undo/Redo PASS');
 
-  await ownerElementBranch.locator('.row-main').click();
-  await sourceDatumRow.click();
-  const adoptedWorldBefore = await sourceWorldPosition();
+  let adoptionElementBranch = ownerElementBranch;
+  let adoptionDatumRow = sourceDatumRow;
+  let adoptionDatumName = sourceDatumName;
+  let expectedOwnerLocalPosition = null;
 
+  if (realSourcePath) {
+    const sourceElementOriginRow = page.locator('.source-row').filter({ hasText: 'Chassis_Bottom' }).first();
+    await sourceElementOriginRow.waitFor();
+    await sourceElementOriginRow.click();
+    await page.getByRole('button', { name: 'Create element at datum', exact: true }).click();
+
+    const sourceElementNameInput = page.getByLabel('SOURCE-derived element name');
+    const sourceElementName = 'SOURCE Bottom Component';
+    await sourceElementNameInput.fill(sourceElementName);
+    const sourceElementForm = page.locator('form').filter({ has: sourceElementNameInput });
+    await sourceElementForm.getByRole('button', { name: 'Create element', exact: true }).click();
+
+    adoptionElementBranch = page.locator('.element-branch').filter({ hasText: sourceElementName });
+    await adoptionElementBranch.waitFor();
+    await adoptionElementBranch.locator('.element-row.selected-auth').waitFor();
+    await assertBrowserHealthy('exact SOURCE datum -> Owner RigElement creation');
+
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await page.waitForTimeout(100);
+    if (await adoptionElementBranch.count() !== 0) throw new Error('Undo did not remove the SOURCE-derived RigElement.');
+    await assertBrowserHealthy('SOURCE-derived RigElement Undo');
+
+    await page.getByRole('button', { name: 'Redo' }).click();
+    await adoptionElementBranch.waitFor();
+    await adoptionElementBranch.locator('.row-main').click();
+    await assertBrowserHealthy('SOURCE-derived RigElement Redo');
+    console.log('SOURCE_DERIVED_RIG_ELEMENT_CREATE_UNDO_REDO_PASS');
+
+    adoptionDatumName = 'Socket_SingleDamperLower';
+    adoptionDatumRow = page.locator('.source-row').filter({ hasText: adoptionDatumName }).first();
+    await adoptionDatumRow.waitFor();
+    await adoptionDatumRow.click();
+    expectedOwnerLocalPosition = new THREE.Vector3(-1.125, 0, -0.8125);
+  } else {
+    await ownerElementBranch.locator('.row-main').click();
+    await sourceDatumRow.click();
+  }
+
+  const adoptedWorldBefore = await sourceWorldPosition();
   await page.getByRole('button', { name: 'Preview adopted frame' }).click();
   await assertBrowserHealthy('Owner-created element SOURCE adoption preview');
   await page.getByRole('button', { name: 'Commit frame' }).click();
   await assertBrowserHealthy('Owner-created element SOURCE adoption commit');
 
-  const adoptedFrameRow = ownerElementBranch.locator('.nav-row.indent').filter({ hasText: sourceDatumName }).first();
+  const adoptedFrameRow = adoptionElementBranch.locator('.nav-row.indent').filter({ hasText: adoptionDatumName }).first();
   const selectAdoptedFrame = async () => {
     await adoptedFrameRow.waitFor();
     await adoptedFrameRow.click();
-    await page.locator('.authored-context .inspector-name').filter({ hasText: sourceDatumName }).waitFor();
+    await page.locator('.authored-context .inspector-name').filter({ hasText: adoptionDatumName }).waitFor();
   };
   await selectAdoptedFrame();
 
@@ -265,6 +305,11 @@ try {
   );
   const frameBefore = await readFrameLocalPosition();
   if (![frameBefore.x, frameBefore.y, frameBefore.z].every(Number.isFinite)) throw new Error(`Adopted frame initial local pose is not finite: ${frameBefore.toArray()}`);
+
+  if (expectedOwnerLocalPosition && distanceBetween(frameBefore, expectedOwnerLocalPosition) > 1e-5) {
+    throw new Error(`Exact SOURCE parent-child local pose was not preserved. Expected ${expectedOwnerLocalPosition.toArray()}, got ${frameBefore.toArray()}.`);
+  }
+  if (expectedOwnerLocalPosition) console.log('REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS', frameBefore.toArray());
 
   let frameAfter = frameBefore;
   await dragAnyTranslateHandleAt(adoptedWorldBefore, selectAdoptedFrame, async () => {
