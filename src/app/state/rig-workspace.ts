@@ -1,4 +1,3 @@
-import type { RigAuthoringState } from './rig-authoring.js';
 import {
   beginRigTest,
   createRigTestState,
@@ -18,6 +17,10 @@ export interface RigWorkspaceState {
   test: RigTestState;
 }
 
+export interface RigWorkspaceTransitionGuard {
+  authoredPreviewActive: boolean;
+}
+
 export function createRigWorkspaceState(context: RigWorkspaceContext = 'inspect'): RigWorkspaceState {
   return {
     context,
@@ -28,10 +31,10 @@ export function createRigWorkspaceState(context: RigWorkspaceContext = 'inspect'
 export function switchRigWorkspaceContext(
   state: RigWorkspaceState,
   next: RigWorkspaceContext,
-  authoring: RigAuthoringState,
+  guard: RigWorkspaceTransitionGuard,
 ): RigWorkspaceState {
   if (state.context === next) return state;
-  if (authoring.session.preview) throw new Error('Commit or cancel the active authored preview before switching Rig Workspace context.');
+  if (guard.authoredPreviewActive) throw new Error('Commit or cancel the active authored preview before switching Rig Workspace context.');
   if (next === 'test') return { context: 'test', test: beginRigTest(createRigTestState()) };
   return { context: next, test: endRigTest() };
 }
