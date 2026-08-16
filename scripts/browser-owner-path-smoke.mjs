@@ -178,6 +178,28 @@ try {
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
   await assertBrowserHealthy('initial app load');
   await page.getByText('DEMO · fixture.synthetic-linkage', { exact: false }).waitFor();
+
+  const ownerElementName = 'Browser Owner Element';
+  await page.getByRole('button', { name: '+ Element', exact: true }).click();
+  const elementNameInput = page.getByLabel('New element name');
+  await elementNameInput.fill(ownerElementName);
+  const createElementForm = page.locator('form').filter({ has: elementNameInput });
+  await createElementForm.getByRole('button', { name: 'Create', exact: true }).click();
+  const ownerElementBranch = page.locator('.element-branch').filter({ hasText: ownerElementName });
+  await ownerElementBranch.waitFor();
+  await ownerElementBranch.locator('.element-row.selected-auth').waitFor();
+  await assertBrowserHealthy('Owner RigElement creation');
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForTimeout(100);
+  if (await ownerElementBranch.count() !== 0) throw new Error('Undo did not remove the newly created Owner RigElement.');
+  await assertBrowserHealthy('Owner RigElement creation Undo');
+
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await ownerElementBranch.waitFor();
+  await assertBrowserHealthy('Owner RigElement creation Redo');
+  console.log('OWNER_RIG_ELEMENT_CREATE_UNDO_REDO_PASS');
+
   await installMockPicker(sourceBytes, sourceFileName);
 
   await page.getByRole('button', { name: 'Open Source' }).click();
