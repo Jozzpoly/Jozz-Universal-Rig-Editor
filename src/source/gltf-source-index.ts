@@ -1,10 +1,11 @@
 import { composePose, IDENTITY_POSE, quat } from '../kernel/math.js';
 import type { RigidPose, Vec3 } from '../kernel/types.js';
-import type { SourceInspection, SourceNodeInspection } from './types.js';
+import { parseGltfContainer } from './gltf-container.js';
+import { extractGltfRigidGeometryPieces } from './gltf-rigid-geometry.js';
+import { deriveRigidGeometryXEndpointDatums } from './rigid-geometry-point-datums.js';
+import type { SourceDerivedPointDatumInspection, SourceInspection, SourceNodeInspection } from './types.js';
 
 export const GLTF2_SOURCE_ADAPTER = { id: 'gltf-2.0', version: 1 } as const;
-const GLB_MAGIC = 0x46546c67;
-const GLB_JSON_CHUNK = 0x4e4f534a;
 const SCALE_EPSILON = 1e-9;
 
 interface GltfNode {
@@ -66,23 +67,6 @@ function readRigidPose(node: GltfNode, index: number): { pose: RigidPose | null;
   return { pose: { position: translation, rotation }, scale, compatibility: 'rigid' };
 }
 
-function parseGltfJson(bytes: ArrayBuffer): GltfJson {
-  const view = new DataView(bytes);
-  if (bytes.byteLength >= 12 && view.getUint32(0, true) === GLB_MAGIC) {
-    const version = view.getUint32(4, true);
-    const declaredLength = view.getUint32(8, true);
-    if (version !== 2) throw new Error(`Unsupported GLB version ${version}; expected 2.`);
-    if (declaredLength > bytes.byteLength || declaredLength < 20) throw new Error('Invalid GLB length.');
-    const chunkLength = view.getUint32(12, true);
-    const chunkType = view.getUint32(16, true);
-    if (chunkType !== GLB_JSON_CHUNK || 20 + chunkLength > declaredLength) throw new Error('GLB must start with a valid JSON chunk.');
-    const jsonBytes = new Uint8Array(bytes, 20, chunkLength);
-    const jsonText = new TextDecoder().decode(jsonBytes).replace(/\u0000+$/g, '').trimEnd();
-    return JSON.parse(jsonText) as GltfJson;
-  }
-  return JSON.parse(new TextDecoder().decode(bytes)) as GltfJson;
-}
-
 function asNodeArray(value: unknown): GltfNode[] {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'object' || entry === null || Array.isArray(entry))) throw new Error('glTF nodes must be an array of objects.');
@@ -95,8 +79,24 @@ function countArray(value: unknown, label: string): number {
   return value.length;
 }
 
+function deriveAvailableRigidXEnds(
+  pieces: ReturnType<typeof extractGltfRigidGeometryPieces>,
+): SourceDerivedPointDatumInspection[] {
+  const datums: SourceDerivedPointDatumInspection[] = [];
+  for (const piece of pieces) {
+    try {
+      datums.push(...deriveRigidGeometryXEndpointDatums([piece]));
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('has no non-zero X extent')) continue;
+      throw error;
+    }
+  }
+  return datums;
+}
+
 export function inspectGltfSource(bytes: ArrayBuffer): SourceInspection {
-  const gltf = parseGltfJson(bytes);
+  const container = parseGltfContainer(bytes);
+  const gltf = container.document as GltfJson;
   if (gltf.asset?.version !== '2.0') throw new Error(`Unsupported glTF asset version ${String(gltf.asset?.version)}; expected 2.0.`);
 
   const nodes = asNodeArray(gltf.nodes);
@@ -171,6 +171,13 @@ export function inspectGltfSource(bytes: ArrayBuffer): SourceInspection {
     };
   });
 
+  const rigidPieces = extractGltfRigidGeometryPieces(
+    container.document,
+    container.internalBuffers,
+    inspectedNodes.map((node) => node.worldRigidPose),
+  );
+  const derivedPointDatums = deriveAvailableRigidXEnds(rigidPieces);
+
   return {
     adapter: GLTF2_SOURCE_ADAPTER,
     nodeCount: nodes.length,
@@ -178,5 +185,6 @@ export function inspectGltfSource(bytes: ArrayBuffer): SourceInspection {
     skinCount: countArray(gltf.skins, 'skins'),
     jointCount: skinJoints.size,
     nodes: inspectedNodes,
+    derivedPointDatums,
   };
 }
