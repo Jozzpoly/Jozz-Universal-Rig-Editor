@@ -2,236 +2,126 @@
 
 ## Authority
 
-Accepted product authority remains:
+- **accepted product baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
+- **active development authority:** `work/real-use-foundation-recovery` / draft PR #2;
+- **latest fully validated product checkpoint:** `7253b50f9f41ee9467dda6399c8c7e8e58757c23`;
+- **frozen branch for that checkpoint:** `checkpoint/ru1c-source-adoption-cross-platform-green-2026-08-16`.
 
-`main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
+The active branch is a clean fast-forward descendant of `main`; PR #2 remains draft, open and unmerged. Commits after `7253b50f...` currently document the validated state and improve development/takeover tooling; they do not establish a newer Owner-accepted product behavior by themselves.
 
-Active recovery line:
-
-`work/real-use-foundation-recovery`
-
-Latest fully validated product checkpoint before this STATUS update:
-
-`7253b50f9f41ee9467dda6399c8c7e8e58757c23`
-
-`main` has not been promoted or modified by RU-1. PR #2 remains the draft recovery PR.
+Closed PR #1 / `work/foundation-convergence-v1`, FC-9 visual concept work, BIND-00 branches and older handoff packs are historical evidence only.
 
 ## Product purpose
 
-JURE is an owner-first spatial engineering workbench. Its durable job is to let the owner inspect exact real source assets, create/correct authored rig truth, express mechanical/representation intent and test it without agent-side coordinate guessing and without SOURCE, renderer or consumer runtime becoming authored truth.
+JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express mechanical and representation intent, test the mechanism without mutating authored neutral truth, and hand a small reliable result to a consumer without an agent guessing coordinates from screenshots.
 
-JV/JV-Web is the first real consumer/falsifier, not automatic authored truth.
+JV/JV-Web is the first real consumer/falsifier. Native JV and later JV/VAW experiments should remain possible without making JURE vehicle-specific or turning it into a generic framework.
 
-## Durable KEEP
+## Validated foundation
 
-- `RigDocument` is authored rig truth.
-- `RigElement` / `RigFrame` use rigid position + quaternion rotation; no scale in mechanical pose.
-- SOURCE / AUTHORED / PREVIEW / EVALUATED / display runtime are different meanings.
-- `SourceRevision` is exact immutable source identity: SHA-256 + adapter identity/version + revision ID.
-- filename/label/URI/visual similarity are not source identity.
-- `SourceInstance` is one independently placed use of a SourceRevision.
-- `SourceAdoptionRecord` is immutable historical evidence of explicit SOURCE -> AUTHORED adoption.
-- durable edits use one chronological `ProjectSession` Undo/Redo history.
-- selection, camera, layout, runtime relink and TEST/evaluator state are outside durable history.
-- runtime object URLs/file handles are never project truth.
-- current relation vocabulary and `rigid | aim | span` representation vocabulary remain provisional.
+The active line currently contains these demonstrated foundations:
 
-## RU-1A / RU-1B
+- rigid `RigElement` and owner-local/root `RigFrame` authoring;
+- Move/Rotate, world/local and numeric XYZ-degree editing over quaternion storage;
+- preview/commit/cancel;
+- one chronological `ProjectSession` history for durable project changes;
+- exact immutable `SourceRevision` identity and independently placed `SourceInstance`s;
+- read-only glTF/GLB SOURCE inspection with deterministic locators, markers/axes and independent SOURCE selection;
+- explicit verified SOURCE datum -> authored `RigFrame` adoption with immutable historical adoption evidence;
+- deterministic logical project save/open and exact SOURCE relink boundaries;
+- separate project/source runtime state from durable authored truth;
+- provisional mechanical-relation, representation and AUTHOR/TEST domains kept outside consumer dynamics;
+- free inspection camera with Focus/Fit and viewport-first resizable/collapsible workspace.
 
-Status: **IMPLEMENTED / CANONICAL TESTED**.
-
-Canonical tests cover adoption snapshots, exact provenance fail-closed behavior, multiple SourceInstances, one SOURCE/authored Undo history, preview/commit/cancel, exact relink, runtime selection identity and deterministic project save/reopen.
-
-Owner decision remains one durable history, e.g.:
-
-`Move SOURCE -> Move authored frame -> Undo frame -> Undo SOURCE -> Redo SOURCE -> Redo frame`
-
-## RU-1C — first SOURCE -> AUTHORED crossing
-
-Status: **IMPLEMENTED / CANONICAL + CROSS-PLATFORM BROWSER GREEN / OWNER OBSERVED PARTIAL**.
-
-Current slice:
-
-`open/import project`
-`-> open exact SOURCE`
-`-> create/reuse placed SourceInstance`
-`-> Move/Rotate SOURCE placement`
-`-> inspect exact SOURCE nodes`
-`-> select existing RigElement`
-`-> Preview SOURCE datum as owned RigFrame`
-`-> Commit/Cancel`
-`-> unified Undo/Redo`
-`-> Save/Open`
-`-> exact SOURCE relink`
-
-Deliberate limits:
-
-- one active SourceInstance in current UI;
-- adoption targets an existing RigElement;
-- no arbitrary surface/vertex picking;
-- no free virtual/derived construction datum workflow;
-- final representation and kinematic TEST are not part of RU-1C;
-- current layout is an engineering harness, not final UI authority.
-
-## Exact real SOURCE
-
-Canonical current JV/native source used by RU-1C:
-
-`Jozzpoly/Box3d_FunProject/assets/source/OneSided_Steering_Suspension_Rig.gltf`
-
-- Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`
-- SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`
-- size: 64,264 bytes
-- expected 15-node/socket/axis-marker structure verified.
-
-Historical BIND-00 external fixture with SHA-256 `fc1e8bd0...` is a different exact SourceRevision. Never weaken exact relink because filenames or geometry look compatible.
-
-## Validation infrastructure
-
-Recovery CI owns automated validation before Owner interaction testing:
-
-- Node `24.16.0`, npm `11.17.0`;
-- `npm install` + `npm run check`;
-- all `tests/core/*.test.mjs` discovered deterministically;
-- real-source Chrome interaction probe on Linux;
-- same real-source interaction probe on `windows-latest` + installed Chrome;
-- read-only GitHub token permissions;
-- checkout/setup-node actions pinned by full commit SHA.
-
-Owner Windows is no longer used as a repeated compiler/debugger.
-
-Current canonical core result at `7253b50f...`:
+At product checkpoint `7253b50f...` canonical validation established:
 
 - TypeScript: PASS;
 - 22 core test files;
 - **116 PASS / 0 FAIL**;
-- production Vite build: PASS.
+- Vite production build: PASS;
+- real `OneSided_Steering_Suspension_Rig.gltf` SOURCE placement + Undo/Redo: PASS;
+- SOURCE datum adoption Preview/Commit: PASS;
+- movement + Undo of a freshly committed adopted frame: PASS;
+- adoption-preview transform lock regression: PASS;
+- same real-source owner path: PASS on Linux Chrome and Windows Chrome.
 
-The build still emits a non-blocking delivery warning: main JS bundle is about 944 kB minified / 248 kB gzip. Record for later performance work; do not divert current JURE authoring work into code splitting.
+Owner additionally observed in the browser that moving the real SOURCE and pressing Undo correctly restored SOURCE placement. Owner visually exercised the real adoption preview path.
 
-## Legacy BIND-00 owner-clarity correction
+## Important resolved lessons
 
-Owner screenshots first exposed that legacy transient `Bind visual preview` was easy to confuse with the current SOURCE -> AUTHORED path. That sequence did **not** prove a ProjectSession SOURCE-history failure: App cleared transient BIND-00 on Undo, creating a large visual snap.
+### BIND-00
 
-Correction retained BIND-00 only as historical proof while removing it from the normal Owner-facing RU-1 path:
+Historical BIND-00 proved a narrow fact: an authored element can drive one exact glTF skin joint while read-only SOURCE stays fixed. Its single-global-binding storage was falsified immediately by real Owner use: a second bind replaced the first.
 
-- startup synthetic project is visibly marked **DEMO / SYNTHETIC FIXTURE**;
-- legacy `Bound` control is hidden;
-- legacy `Bind visual preview` is quarantined.
+KEEP the evidence. Do **not** revive BIND-00 as current architecture or "fix" it by replacing one binding with an array. Persistent representation remains a separate domain whose exact vocabulary is provisional.
 
-## 2026-08-16 Owner browser evidence — SOURCE history
+### Adoption-preview black screen
 
-Owner then exercised the real `OneSided...gltf` through normal SOURCE placement and reported that **Undo correctly restored the SOURCE placement**.
+The Owner-triggered blank/black app was reproduced exactly as:
 
-Independent real-source browser probes now confirm on both Linux Chrome and Windows Chrome:
+`SOURCE adoption Preview -> drag authored gizmo before Commit`
 
-`SOURCE move -> Finish placement -> Undo -> Redo`
+The state machine correctly rejected concurrent `source-frame-adoption` + rig-transform operations; the UI incorrectly left an interactive authored transform target visible. The fix at `7253b50f...` clears/freeze authored selection during adoption preview while preserving the invariant. A runtime fault boundary now surfaces future client exceptions instead of leaving an unexplained blank page.
 
-Result: **PASS**.
+This blocker is resolved and protected by browser regression.
 
-This closes the previous uncertainty around SourceInstance placement history.
+## Exact real SOURCE for current RU-1 validation
 
-## 2026-08-16 adoption-preview black-screen incident
+Current JV/native fixture:
 
-Owner supplied a screenshot immediately before a blank/black workbench. It showed:
+`Jozzpoly/Box3d_FunProject/assets/source/OneSided_Steering_Suspension_Rig.gltf`
 
-- `FRAME ADOPTION PREVIEW · transient` still active;
-- rig status still `PREVIEW`;
-- `Commit frame` / `Cancel` still visible;
-- Owner attempted to drag the still-visible authored gizmo before Commit.
+Pin for reproducible external fetches:
 
-The uploaded Vite log only proved the dev server stayed healthy; the failure was client-side.
+- Box3d_FunProject commit: `959aefb78587ce60cf2b8eb03ff82797a4165142`;
+- Git blob: `06d5c66f6d13fb64863ab15a660f060358872291`;
+- SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
+- size: 64,264 bytes;
+- structure used by current probes: 15 nodes / 14 joints / 1 skinned mesh.
 
-### Exact root cause
+Historical external BIND fixture with SHA-256 `fc1e8bd0...` is a different exact SourceRevision despite sharing the filename. Never weaken exact identity/relink because two files look compatible.
 
-A dedicated browser regression reproduced the Owner action exactly:
+## Current limitations — do not hide them
 
-`select Link + Chassis_Top -> Preview adopted frame -> drag authored gizmo WITHOUT Commit`
+- Current UI exposes only one active SourceInstance context even though the project model supports multiple instances.
+- SOURCE datum adoption currently targets an **existing** `RigElement`.
+- There is no owner-facing creation workflow for real `RigElement`s yet.
+- There is no arbitrary surface/vertex picking or virtual/derived construction-datum workflow yet.
+- Mechanical relation enum/axis conventions are provisional.
+- Representation separation is a strong KEEP; exact `rigid/aim/span/...` mapping vocabulary remains provisional.
+- AUTHOR/TEST separation exists, but no final kinematic evaluator/solver is architecture yet.
+- Current layout is an engineering harness, not final information architecture.
+- There is no committed `package-lock.json`; direct dependencies are exact-pinned but transitives are not fully reproducible yet.
 
-Before the fix it failed with the exact runtime stack:
+## Next development slice
 
-`Another project authoring operation is already active. Commit or cancel it first.`
+Highest-leverage work for approaching real JV/JV-Web use:
 
-from:
+**Owner-created authored `RigElement`s plus the frames required by a real SOURCE mechanism.**
 
-`assertNoOtherOperation -> beginProjectRigTransform -> App state updater`
+The present RU-1 path can already inspect/place exact SOURCE and adopt a rigid datum as a frame, but it still relies on a synthetic/pre-existing target element. The next slice should let the Owner start constructing an actual mechanism rather than editing `fixture.synthetic-linkage`.
 
-Classification:
+Start with exact existing SOURCE sockets/axes. Add arbitrary geometry picking or virtual construction datums only when a concrete required JV hardpoint cannot be represented by existing exact datums.
 
-**REAL UI <-> STATE-MACHINE BUG — NOT ProjectSession, SourceRevision, adoption-data or Windows/WebGL failure.**
+Keep the slice small: element creation + ownership/selection/history semantics first; do not simultaneously implement the whole suspension, final representation system or kinematic solver.
 
-The state machine was correct to reject a second operation while `source-frame-adoption` owned the preview. The UI was wrong to leave an authored transform target interactive during that preview. Before runtime fault instrumentation, that exception blanked the React root.
+## Validation and Owner boundary
 
-### Fix
+Remaining manual checks that are useful but **do not block technical progress**:
 
-Product fix:
+- full Owner `Commit adopted frame -> move -> mixed multi-step Undo/Redo` after the fix;
+- Owner `Save As -> reopen -> exact SOURCE relink` in the same real workflow.
 
-`7253b50f9f41ee9467dda6399c8c7e8e58757c23`
+Do not create another large diagnostic gate just to force these checks. Automate compiler/runtime/browser facts; ask the Owner for spatial/product judgment when it adds information.
 
-During `source-frame-adoption` preview:
-
-- authored selection is frozen;
-- `selectedRigTarget` is cleared, removing the transform gizmo;
-- `Cancel` restores the previous authored selection;
-- `Commit` continues to let App select the newly adopted frame;
-- the existing state-machine invariant against concurrent operations remains intact.
-
-A top-level runtime fault boundary was also added earlier so future client exceptions surface their message/stack instead of producing an unexplained blank page.
-
-### RED -> GREEN evidence
-
-Before fix:
-
-- dedicated `Preview -> drag without Commit` browser regression: **FAIL**, reproducing Owner stack exactly.
-
-After fix, on Linux Chrome **and Windows Chrome**:
-
-- `ADOPTION_PREVIEW_TRANSFORM_LOCK_PASS`;
-- exact real `OneSided...gltf` load: PASS;
-- SOURCE placement: PASS;
-- SOURCE Undo/Redo: PASS;
-- `Chassis_Top` adoption Preview/Commit: PASS;
-- transform freshly committed adopted frame: PASS;
-- Undo adopted-frame transform: PASS;
-- `BROWSER_REAL_OWNER_PATH_SMOKE_PASS`.
-
-This is considered a resolved blocker.
-
-## Validation boundary / what remains genuinely Owner-specific
-
-Demonstrated:
-
-- exact current JV source identity;
-- canonical typecheck/core/build;
-- real-source SOURCE placement and Undo/Redo;
-- adoption Preview conflict is fail-safe instead of crashing;
-- committed adopted frame can be moved and undone;
-- same interaction path passes on Linux and Windows Chrome;
-- Owner has visually exercised real SOURCE placement and adoption preview.
-
-Not yet manually demonstrated by Owner end-to-end:
-
-- full `Commit adopted frame -> move -> mixed three-step Undo/Redo` sequence after the fix;
-- Save As -> reopen -> exact SOURCE relink in the same real workflow.
-
-These remaining manual checks should **not block technical progress or force another large diagnostic gate**. Keep PR #2 draft/unmerged until promotion evidence is sufficient, but continue the next small real-JV slice from this validated foundation.
-
-## Next development direction
-
-Do not add another generic feature pile and do not return to BIND-00.
-
-Highest-leverage next slice for approaching real JV/JV-Web use:
-
-**owner creation of authored RigElements plus frames from real SOURCE evidence.**
-
-RU-1C can adopt a datum only onto an already-existing RigElement; the next useful step is to let the Owner begin constructing a real mechanism instead of relying on `fixture.synthetic-linkage` or an artificial owner target.
-
-Use existing exact sockets/axes first. Add arbitrary mesh picking / virtual construction datums only when a concrete JV hardpoint cannot be represented from existing source datums.
+PR #2 stays draft/unmerged until the Owner explicitly promotes it. Do not silently move `main` because CI is green.
 
 ## Foundation exit criterion
 
-Foundation is complete only when the Owner can take a real JV mechanism and, without agent-side coordinate guessing, place/inspect exact source assets, author required elements/frames/mechanical intent, map representation, kinematically test/reset, save/reopen and export a small consumer-facing result.
+Foundation is complete when the Owner can take a real JV mechanism and, without agent-side coordinate guessing:
 
-Then return permanently to:
+`place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> map representation -> kinematically test/reset -> save/reopen -> export a small consumer-facing result`.
 
-`small need -> small vertical slice -> targeted test -> owner-visible gate -> next`.
+After that, the permanent operating rhythm is:
+
+`real need -> small vertical slice -> targeted test -> owner-visible gate when needed -> next`.
