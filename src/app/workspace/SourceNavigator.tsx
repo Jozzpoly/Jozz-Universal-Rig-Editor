@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { SourceInstance } from '../../project/types.js';
 import type { LinkedProjectSourceAsset } from '../state/project-source-runtime.js';
+import { ConstructionFrameBuilder } from './ConstructionFrameBuilder.js';
 
 export interface SourceLayerVisibility {
   geometry: boolean;
@@ -10,6 +11,7 @@ export interface SourceLayerVisibility {
 export interface SourceAdoptionPreviewView {
   frameName: string;
   ownerName: string;
+  sourceLabel?: string;
 }
 
 interface SourceNavigatorProps {
@@ -19,6 +21,7 @@ interface SourceNavigatorProps {
   placementEditActive: boolean;
   placementEditDisabled?: boolean;
   elementCreationDisabled?: boolean;
+  constructionDisabled?: boolean;
   adoptionTargetName?: string | null;
   adoptionPreview?: SourceAdoptionPreviewView | null;
   visible: boolean;
@@ -27,6 +30,7 @@ interface SourceNavigatorProps {
   onLayerChange(layer: keyof SourceLayerVisibility, visible: boolean): void;
   onTogglePlacementEdit(): void;
   onPreviewAdoption?(): void;
+  onPreviewConstructedFrame?(locator: string, frameName: string): void;
   onCommitAdoption?(): void;
   onCancelAdoption?(): void;
   onCreateElementFromSource?(name: string): void;
@@ -37,7 +41,7 @@ function formatCoordinate(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(6).replace(/0+$/u, '').replace(/\.$/u, '');
 }
 
-export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLocator, placementEditActive, placementEditDisabled = false, elementCreationDisabled = false, adoptionTargetName = null, adoptionPreview = null, visible, layers, onVisibleChange, onLayerChange, onTogglePlacementEdit, onPreviewAdoption, onCommitAdoption, onCancelAdoption, onCreateElementFromSource, onSelect }: SourceNavigatorProps) {
+export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLocator, placementEditActive, placementEditDisabled = false, elementCreationDisabled = false, constructionDisabled = false, adoptionTargetName = null, adoptionPreview = null, visible, layers, onVisibleChange, onLayerChange, onTogglePlacementEdit, onPreviewAdoption, onPreviewConstructedFrame, onCommitAdoption, onCancelAdoption, onCreateElementFromSource, onSelect }: SourceNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [creatingElementFromSource, setCreatingElementFromSource] = useState(false);
   const [elementName, setElementName] = useState('');
@@ -134,7 +138,7 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
           {adoptionPreview ? (
             <div className="binding-preview-card">
               <div className="binding-preview-head"><strong>Frame adoption preview</strong><span>transient</span></div>
-              <div className="binding-preview-pair"><span className="selection-mark source" />{selectedNode?.name ?? selectedNode?.locator ?? 'SOURCE datum'}<span className="binding-arrow">→</span><span className="selection-mark authored" />{adoptionPreview.ownerName} / {adoptionPreview.frameName}</div>
+              <div className="binding-preview-pair"><span className="selection-mark source" />{adoptionPreview.sourceLabel ?? selectedNode?.name ?? selectedNode?.locator ?? 'SOURCE datum'}<span className="binding-arrow">→</span><span className="selection-mark authored" />{adoptionPreview.ownerName} / {adoptionPreview.frameName}</div>
               <div className="topbar-actions">
                 <button type="button" className="binding-preview-button active" onClick={onCommitAdoption}>Commit frame</button>
                 <button type="button" className="binding-preview-button" onClick={onCancelAdoption}>Cancel</button>
@@ -181,6 +185,14 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
                 </>
               )}
             </div>
+          ) : null}
+          {!adoptionPreview ? (
+            <ConstructionFrameBuilder
+              inspection={sourceAsset.inspection}
+              adoptionTargetName={adoptionTargetName}
+              disabled={constructionDisabled}
+              onPreview={onPreviewConstructedFrame}
+            />
           ) : null}
           <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter source…" />
           <div className="navigator-tree source-tree">
