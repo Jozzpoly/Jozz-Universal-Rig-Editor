@@ -1,5 +1,5 @@
+import type { RigCommand } from '../../editor/rig-command.js';
 import type { TransformTarget } from '../../editor/transform-target.js';
-import type { RigCommand } from '../../editor/session.js';
 import { normalizeQuat } from '../../kernel/math.js';
 import type { RigidPose, RigDocument, RigId } from '../../kernel/types.js';
 
