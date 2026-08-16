@@ -6,7 +6,8 @@ JURE is an owner-first local web workbench for authoring rig intent directly on 
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **active development authority:** `work/real-use-foundation-recovery` through draft PR #2;
-- **latest frozen clean takeover checkpoint:** `checkpoint/foundation-clean-takeover-2026-08-16`.
+- **latest frozen clean takeover checkpoint:** `checkpoint/foundation-clean-takeover-2026-08-16`;
+- **final promotion-readiness checkpoint:** resolve the current checkpoint named in `docs/STATUS.md` before acting on promotion claims.
 
 Normal continuation belongs on the active development line until the Owner explicitly promotes PR #2. Do not start a new branch merely because a new conversation started, and do not silently move `main` because CI is green.
 
@@ -26,6 +27,7 @@ The active line now has one active project/state/history path:
 - deterministic logical project save/open and exact SOURCE relink boundaries;
 - separate provisional mechanical-relation, representation and AUTHOR/TEST domains;
 - viewport-first resizable/collapsible engineering workspace;
+- reproducible npm dependency graph through committed `package-lock.json`;
 - fast automated work validation plus explicit cross-platform real-source checkpoint gates.
 
 Historical shadow state/history implementations and the active BIND-00 runtime/UI path have been removed from the current tree. Git retains their evidence; they are not alternative APIs to extend.
@@ -48,10 +50,14 @@ Foundation exits only when the Owner can take a real JV mechanism and, without a
 
 Requires Node.js `>=22.12.0`.
 
+Restore the exact committed dependency graph and start development:
+
 ```bash
-npm install
+npm ci
 npm run dev
 ```
+
+Use `npm install` only when intentionally changing dependencies/lockfile.
 
 Targeted core validation accepts filename substrings:
 
@@ -74,14 +80,12 @@ npm run check
 
 CI has two intentional speeds:
 
-- **Work check** — `npm run check` on `main` / `work/**`; normal development gate.
-- **Checkpoint browser gate** — explicit `checkpoint/**` or manual run; canonical check plus the pinned real JV SOURCE browser path on Linux Chrome and Windows Chrome.
+- **Work check** — `npm ci` + `npm run check` on `main` / `work/**`; normal development gate.
+- **Checkpoint browser gate** — explicit `checkpoint/**` or manual run; locked canonical install/check plus the pinned real JV SOURCE browser path on Linux Chrome and Windows Chrome.
 
 Rendered interaction changes require browser evidence; a passing build alone is not a UI/interaction PASS.
 
-`RUN_EDITOR.cmd` is intentionally a fast Owner launcher. It does not re-run the complete validation suite every time the Owner wants to open JURE.
-
-There is currently no committed `package-lock.json`; direct dependencies are exact-pinned, but transitive installs are not yet fully reproducible. Do not fabricate a lockfile manually—generate it from a known-good canonical npm install when that environment is available.
+`RUN_EDITOR.cmd` is intentionally a fast Owner launcher. If dependencies are missing it restores them with `npm ci`; it does not re-run the complete validation suite every time the Owner wants to open JURE.
 
 ## Canonical docs
 
