@@ -33,6 +33,10 @@ interface SourceNavigatorProps {
   onSelect(locator: string): void;
 }
 
+function formatCoordinate(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(6).replace(/0+$/u, '').replace(/\.$/u, '');
+}
+
 export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLocator, placementEditActive, placementEditDisabled = false, elementCreationDisabled = false, adoptionTargetName = null, adoptionPreview = null, visible, layers, onVisibleChange, onLayerChange, onTogglePlacementEdit, onPreviewAdoption, onCommitAdoption, onCancelAdoption, onCreateElementFromSource, onSelect }: SourceNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [creatingElementFromSource, setCreatingElementFromSource] = useState(false);
@@ -45,6 +49,15 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
       || (node.isSkinJoint ? 'joint' : node.hasMesh ? 'mesh' : 'node').includes(normalizedFilter);
   }) ?? [], [sourceAsset, normalizedFilter]);
   const shownNodes = filteredNodes.slice(0, 240);
+  const derivedPointDatums = sourceAsset?.inspection.derivedPointDatums ?? [];
+  const filteredDerivedPointDatums = useMemo(() => derivedPointDatums.filter((datum) => {
+    if (!normalizedFilter) return true;
+    return datum.name.toLocaleLowerCase().includes(normalizedFilter)
+      || datum.locator.toLocaleLowerCase().includes(normalizedFilter)
+      || (datum.sourceNodeName ?? '').toLocaleLowerCase().includes(normalizedFilter)
+      || datum.derivation.algorithm.includes(normalizedFilter)
+      || 'construction point'.includes(normalizedFilter);
+  }), [derivedPointDatums, normalizedFilter]);
 
   const layerToggle = (layer: keyof SourceLayerVisibility, label: string) => (
     <button
@@ -115,7 +128,7 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
               <strong>{sourceAsset.name}</strong>
               <span>EXACT SOURCE BYTES · READ ONLY</span>
             </div>
-            <span className="source-asset-stats">{sourceAsset.inspection.nodeCount} nodes · {sourceAsset.inspection.jointCount} joints · {sourceAsset.inspection.meshCount} mesh{sourceAsset.inspection.meshCount === 1 ? '' : 'es'}</span>
+            <span className="source-asset-stats">{sourceAsset.inspection.nodeCount} nodes · {sourceAsset.inspection.jointCount} joints · {sourceAsset.inspection.meshCount} mesh{sourceAsset.inspection.meshCount === 1 ? '' : 'es'} · {derivedPointDatums.length} construction pts</span>
             <code title={sourceAsset.sha256}>sha256 {sourceAsset.sha256.slice(0, 16)}… · {sourceAsset.inspection.adapter.id}/v{sourceAsset.inspection.adapter.version}</code>
           </div>
           {adoptionPreview ? (
@@ -189,7 +202,25 @@ export function SourceNavigator({ sourceAsset, sourceInstance, selectedSourceLoc
                 <small>{node.isSkinJoint ? 'joint' : node.hasMesh ? 'mesh' : 'node'}{node.worldRigidPose ? '' : ` · ${node.rigidCompatibility}`}</small>
               </button>
             ))}
-            {filteredNodes.length > shownNodes.length ? <div className="tree-more">+{filteredNodes.length - shownNodes.length} more matches</div> : null}
+            {filteredNodes.length > shownNodes.length ? <div className="tree-more">+{filteredNodes.length - shownNodes.length} more node matches</div> : null}
+            {filteredDerivedPointDatums.length > 0 ? <div className="tree-section-label">Construction points · geometry-derived</div> : null}
+            {filteredDerivedPointDatums.map((datum) => (
+              <div
+                className="nav-row readonly source-derived-row"
+                key={datum.locator}
+                data-derived-locator={datum.locator}
+                data-source-node-locator={datum.sourceNodeLocator}
+                data-x={datum.sourceRevisionWorldPosition.x}
+                data-y={datum.sourceRevisionWorldPosition.y}
+                data-z={datum.sourceRevisionWorldPosition.z}
+                title="Geometry-derived SOURCE point only. Position is derived deterministically; no authored/mechanical orientation is claimed."
+              >
+                <span className="row-bullet source" />
+                <span className="row-name">{datum.name}</span>
+                <span className="row-kind">construction point</span>
+                <small>{datum.derivation.algorithm} · [{formatCoordinate(datum.sourceRevisionWorldPosition.x)}, {formatCoordinate(datum.sourceRevisionWorldPosition.y)}, {formatCoordinate(datum.sourceRevisionWorldPosition.z)}]</small>
+              </div>
+            ))}
           </div>
         </>
       ) : sourceInstance ? (
