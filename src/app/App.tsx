@@ -450,11 +450,8 @@ export function App() {
           selectedSourceNode={selectedSourceNode}
           selectedSourceWorldPose={sourceSelectionPose}
           sourceInstanceName={activeSourceInstance?.name ?? null}
-          representationBinding={null}
           onCommitPose={commitPose}
           onFocusSource={() => requestView('source-selection')}
-          onBindRepresentation={() => undefined}
-          onClearRepresentationBinding={() => undefined}
         />
       )}
       statusbar={(
