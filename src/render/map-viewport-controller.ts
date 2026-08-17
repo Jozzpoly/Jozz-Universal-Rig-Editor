@@ -3,12 +3,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import type { MapDocument, MapEntity, MapRigidPose, MapVec3, MapVisual } from '../map/types.js';
 
-export type MapTransformMode = 'translate' | 'rotate';
+export type MapTransformMode = 'translate' | 'rotate' | 'resize';
 
 export interface MapViewportCallbacks {
   onSelect(entityId: string | null): void;
   onTransformStart(entityId: string): void;
   onTransformPreview(entityId: string, pose: MapRigidPose): void;
+  onResizePreview?(entityId: string, scale: MapVec3): void;
   onTransformCommit(entityId: string): void;
   onTransformCancel(entityId: string): void;
 }
@@ -54,10 +55,12 @@ export class MapViewportController {
   private readonly pointer = new THREE.Vector2();
   private readonly selectable = new Map<THREE.Object3D, string>();
   private readonly entityPoses = new Map<string, MapRigidPose>();
+  private readonly resizableBoxes = new Set<string>();
   private selectedEntityId: string | null = null;
   private resizeObserver: ResizeObserver;
   private animationFrame = 0;
   private callbacks: MapViewportCallbacks;
+  private transformMode: MapTransformMode = 'translate';
   private transformDragActive = false;
   private transformCancelRequested = false;
   private fittedInitialDocument = false;
@@ -94,15 +97,22 @@ export class MapViewportController {
     this.scene.add(key);
 
     this.transform.addEventListener('mouseDown', () => {
-      if (!this.selectedEntityId || !this.entityPoses.has(this.selectedEntityId)) return;
+      const entityId = this.selectedEntityId;
+      if (!entityId || !this.entityPoses.has(entityId)) return;
+      if (this.transformMode === 'resize' && !this.resizableBoxes.has(entityId)) return;
       this.transformDragActive = true;
       this.transformCancelRequested = false;
       this.orbit.enabled = false;
-      this.callbacks.onTransformStart(this.selectedEntityId);
+      this.callbacks.onTransformStart(entityId);
     });
     this.transform.addEventListener('objectChange', () => {
-      if (!this.transformDragActive || this.transformCancelRequested || !this.selectedEntityId) return;
-      this.callbacks.onTransformPreview(this.selectedEntityId, this.readProxyPose());
+      const entityId = this.selectedEntityId;
+      if (!this.transformDragActive || this.transformCancelRequested || !entityId) return;
+      if (this.transformMode === 'resize') {
+        this.callbacks.onResizePreview?.(entityId, this.readProxyScale());
+        return;
+      }
+      this.callbacks.onTransformPreview(entityId, this.readProxyPose());
     });
     this.transform.addEventListener('dragging-changed', (event) => {
       const dragging = Boolean((event as { value?: boolean }).value);
@@ -135,7 +145,10 @@ export class MapViewportController {
   }
 
   setTransformMode(mode: MapTransformMode): void {
-    this.transform.setMode(mode);
+    if (this.transformDragActive && mode !== this.transformMode) this.cancelActiveTransform();
+    this.transformMode = mode;
+    this.transform.setMode(mode === 'resize' ? 'scale' : mode);
+    this.syncTransformProxy();
   }
 
   setDocument(document: MapDocument, selectedEntityId: string | null): void {
@@ -145,6 +158,7 @@ export class MapViewportController {
     this.disposeChildren(this.spawnRoot);
     this.selectable.clear();
     this.entityPoses.clear();
+    this.resizableBoxes.clear();
 
     for (const entity of document.entities) {
       const object = this.createEntityObject(entity, entity.id === selectedEntityId);
@@ -155,6 +169,7 @@ export class MapViewportController {
         if (child instanceof THREE.Mesh) this.selectable.set(child, entity.id);
       });
       this.entityPoses.set(entity.id, entity.pose);
+      if (entity.collision.kind === 'box') this.resizableBoxes.add(entity.id);
     }
 
     for (const spawn of document.spawnPoints) {
@@ -252,16 +267,20 @@ export class MapViewportController {
   }
 
   private syncTransformProxy(): void {
-    if (!this.selectedEntityId) {
+    const entityId = this.selectedEntityId;
+    if (!entityId) {
       this.transform.detach();
       return;
     }
-    const pose = this.entityPoses.get(this.selectedEntityId);
-    if (!pose) {
+    const pose = this.entityPoses.get(entityId);
+    if (!pose || (this.transformMode === 'resize' && !this.resizableBoxes.has(entityId))) {
       this.transform.detach();
       return;
     }
     this.applyPose(this.selectedProxy, pose);
+    if (!(this.transformDragActive && this.transformMode === 'resize')) {
+      this.selectedProxy.scale.set(1, 1, 1);
+    }
     this.transform.attach(this.selectedProxy);
   }
 
@@ -278,6 +297,14 @@ export class MapViewportController {
         z: this.selectedProxy.quaternion.z,
         w: this.selectedProxy.quaternion.w,
       },
+    };
+  }
+
+  private readProxyScale(): MapVec3 {
+    return {
+      x: this.selectedProxy.scale.x,
+      y: this.selectedProxy.scale.y,
+      z: this.selectedProxy.scale.z,
     };
   }
 
@@ -299,6 +326,7 @@ export class MapViewportController {
   private resetDragState(): void {
     this.transformDragActive = false;
     this.transformCancelRequested = false;
+    this.selectedProxy.scale.set(1, 1, 1);
   }
 
   private onPointerDown = (event: PointerEvent): void => {
