@@ -76,6 +76,7 @@ G2 currently proves technically:
 - each preview is calculated from the frozen drag-start box geometry rather than compounding the previous preview;
 - negative renderer proxy scale after crossing the center is interpreted as positive box dimension magnitude;
 - an exact-degeneracy tool floor prevents a transient gizmo from collapsing a box to zero volume;
+- that transient gizmo floor is **not** an authored schema limit: exact numeric dimensions remain valid for any finite positive value accepted by `MapDocument`;
 - resize changes geometry only and preserves rigid position/rotation;
 - preview/cancel/commit/undo/redo use the existing `EditorSession` lifecycle;
 - invalid dimensions, non-finite proposals, missing targets and non-box targets fail closed;
@@ -93,19 +94,19 @@ Do not generalize box Resize into a universal geometry transform system until th
 
 ## Current executed evidence
 
-Exact current G2 evidence head before this status-only update:
+Latest code-bearing G2 checkpoint:
 
-`5e5d8a797b9a0bd2a2d26336471dc306c307cc0f`
+`d1cc32c282cc25db0c82f86b903b1ad89f4b4862`
 
-GitHub Actions run `32080339597`, job `95541956071`:
+GitHub Actions run `32081314194`, job `95544712152`:
 
 - strict TypeScript PASS;
 - core suite **37/37 PASS**;
 - Vite production build PASS;
 - headless Chromium render PASS for default Rig and Map Lab;
-- generated Windows owner-preview package + HTTP smoke PASS;
-- exact run checkout used a PR merge ref built from G2 head `5e5d8a7...` and accepted `main` base `d971b8b...`;
-- final screenshots were manually inspected: Rig remains intact with `Map Workspace`; Map renders normally with capsule selected and Resize correctly unavailable by default.
+- generated Windows owner-preview package + HTTP smoke PASS.
+
+The preceding detailed evidence run on `5e5d8a797b9a0bd2a2d26336471dc306c307cc0f` also passed 37/37 tests, build, both render smokes and owner-preview smoke; its final screenshots were manually inspected: Rig remained intact with `Map Workspace`, and Map rendered normally with capsule selected and Resize correctly unavailable by default. The later `d1cc32c...` review fix only removed an unintended HTML minimum from exact numeric authoring so the gizmo anti-degeneracy floor cannot silently become an authored data restriction; that code-bearing head then passed the full workflow again.
 
 A deeper local Playwright interaction pass was attempted from the exact generated `dist`, but the available system Chromium is administratively blocked from navigating to both localhost and an intercepted synthetic test origin (`ERR_BLOCKED_BY_ADMINISTRATOR`). This is recorded as a tooling limitation, not product evidence. No product code was changed to work around it.
 
