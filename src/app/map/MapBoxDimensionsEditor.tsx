@@ -1,6 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import {
-  MAP_BOX_MIN_HALF_EXTENT,
   boxDimensionsFromHalfExtents,
   boxHalfExtentsFromDimensions,
 } from '../../features/map-resize/box-resize.js';
@@ -36,7 +35,6 @@ export function MapBoxDimensionsEditor({ entityId, halfExtents, disabled = false
               <input
                 type="number"
                 step="0.001"
-                min={MAP_BOX_MIN_HALF_EXTENT * 2}
                 disabled={disabled}
                 defaultValue={Number(current.toFixed(6))}
                 key={`${entityId}-${axis}-${current}`}
