@@ -10,9 +10,10 @@ import {
   visibleDocument,
   type EditorSession,
 } from '../../editor/session.js';
+import { boxHalfExtentsFromScale, setMapBoxHalfExtents } from '../../features/map-resize/box-resize.js';
 import { setMapEntityPose } from '../../features/map-transform/command.js';
 import { SYNTHETIC_MAP } from '../../fixtures/synthetic-map.js';
-import type { MapDocument, MapRigidPose } from '../../map/types.js';
+import type { MapDocument, MapRigidPose, MapVec3 } from '../../map/types.js';
 import type { MapTransformMode } from '../../render/map-viewport-controller.js';
 import { workspaceSearch } from '../workspace/workspace-navigation.js';
 import { MapViewport } from './MapViewport.js';
@@ -33,15 +34,43 @@ export function MapWorkspace() {
   const selectedEntity = selectedEntityId
     ? document.entities.find((entity) => entity.id === selectedEntityId) ?? null
     : null;
+  const resizeAvailable = selectedEntity?.collision.kind === 'box';
+
+  const selectEntity = useCallback((entityId: string | null) => {
+    setSelectedEntityId(entityId);
+    if (!entityId) return;
+    const target = document.entities.find((entity) => entity.id === entityId);
+    if (transformMode === 'resize' && target?.collision.kind !== 'box') {
+      setTransformMode('translate');
+      setStatus(`Selected ${entityId} · Resize is box-only in G2`);
+    }
+  }, [document, transformMode]);
 
   const handleTransformStart = useCallback((entityId: string) => {
-    setSession((current) => beginPreview(current, `Transform map entity ${entityId}`));
-  }, []);
+    setSession((current) => beginPreview(
+      current,
+      `${transformMode === 'resize' ? 'Resize' : 'Transform'} map entity ${entityId}`,
+    ));
+  }, [transformMode]);
 
   const handleTransformPreview = useCallback((entityId: string, pose: MapRigidPose) => {
     setSession((current) => {
       const started = current.preview ? current : beginPreview(current, `Transform map entity ${entityId}`);
       return updatePreview(started, setMapEntityPose(entityId, pose));
+    });
+  }, []);
+
+  const handleResizePreview = useCallback((entityId: string, scale: MapVec3) => {
+    setSession((current) => {
+      const started = current.preview ? current : beginPreview(current, `Resize map entity ${entityId}`);
+      const baseline = started.preview?.baseline ?? started.committed;
+      const entity = baseline.entities.find((entry) => entry.id === entityId);
+      if (!entity) throw new Error(`Map entity ${entityId} not found.`);
+      if (entity.collision.kind !== 'box') {
+        throw new Error(`Map entity ${entityId} is ${entity.collision.kind}, not box geometry.`);
+      }
+      const halfExtents = boxHalfExtentsFromScale(entity.collision.halfExtents, scale);
+      return updatePreview(started, setMapBoxHalfExtents(entityId, halfExtents));
     });
   }, []);
 
@@ -52,8 +81,8 @@ export function MapWorkspace() {
 
   const handleTransformCancel = useCallback((entityId: string) => {
     setSession((current) => cancelPreview(current));
-    setStatus(`Cancelled ${entityId} transform`);
-  }, []);
+    setStatus(`Cancelled ${entityId} ${transformMode === 'resize' ? 'resize' : 'transform'}`);
+  }, [transformMode]);
 
   const switchToRig = () => {
     window.location.search = workspaceSearch(window.location.search, 'rig');
@@ -70,6 +99,14 @@ export function MapWorkspace() {
         <div className="map-toolbar" aria-label="Map authoring tools">
           <button className={transformMode === 'translate' ? 'active' : ''} onClick={() => setTransformMode('translate')}>Move</button>
           <button className={transformMode === 'rotate' ? 'active' : ''} onClick={() => setTransformMode('rotate')}>Rotate</button>
+          <button
+            className={transformMode === 'resize' ? 'active' : ''}
+            disabled={!resizeAvailable}
+            title={resizeAvailable ? 'Resize box dimensions' : 'G2 Resize currently supports box geometry only'}
+            onClick={() => setTransformMode('resize')}
+          >
+            Resize
+          </button>
           <button onClick={() => setFitRequest((value) => value + 1)}>Fit Map</button>
           <span className="map-toolbar-separator" />
           <button disabled={session.past.length === 0 || Boolean(session.preview)} onClick={() => setSession((current) => undo(current))}>Undo</button>
@@ -92,7 +129,7 @@ export function MapWorkspace() {
             <button
               key={entity.id}
               className={entity.id === selectedEntityId ? 'selected' : ''}
-              onClick={() => setSelectedEntityId(entity.id)}
+              onClick={() => selectEntity(entity.id)}
             >
               <span>{entity.name}</span>
               <small>{entity.collision.kind}</small>
@@ -119,13 +156,14 @@ export function MapWorkspace() {
           selectedEntityId={selectedEntityId}
           transformMode={transformMode}
           fitRequest={fitRequest}
-          onSelect={setSelectedEntityId}
+          onSelect={selectEntity}
           onTransformStart={handleTransformStart}
           onTransformPreview={handleTransformPreview}
+          onResizePreview={handleResizePreview}
           onTransformCommit={handleTransformCommit}
           onTransformCancel={handleTransformCancel}
         />
-        <div className="map-viewport-hint">LMB select · gizmo Move/Rotate · drag background orbit · wheel zoom · Esc cancels active transform</div>
+        <div className="map-viewport-hint">LMB select · gizmo Move/Rotate · Resize box · drag background orbit · wheel zoom · Esc cancels active transform</div>
       </main>
 
       <aside className="map-inspector">
@@ -167,7 +205,11 @@ export function MapWorkspace() {
               <h3>Surface</h3>
               <dl><div><dt>Friction</dt><dd>{formatNumber(selectedEntity.surface.friction)}</dd></div></dl>
             </section>
-            <p className="map-inspector-note">This slice authors pose only. Geometry and surface values are read-only until their own validated editing slice.</p>
+            <p className="map-inspector-note">
+              {selectedEntity.collision.kind === 'box'
+                ? 'G2 Resize authors box halfExtents while preserving rigid pose. Numeric dimensions are the next controlled slice.'
+                : 'Capsule geometry remains read-only until its independent resize semantics are grounded.'}
+            </p>
           </div>
         ) : (
           <p className="map-empty-selection">Select a map entity in the viewport or navigator.</p>
