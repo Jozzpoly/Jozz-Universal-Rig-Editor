@@ -13,6 +13,8 @@
     "../../src/editor/**/*.ts",
     "../../src/features/rig-transform/**/*.ts",
     "../../src/fixtures/synthetic-rig.ts",
+    "../../src/fixtures/synthetic-map.ts",
+    "../../src/map/**/*.ts",
     "../../src/source/**/*.ts",
     "../../src/app/workspace/layout-state.ts"
   ]
