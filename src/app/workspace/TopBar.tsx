@@ -7,11 +7,12 @@ interface TopBarProps {
   onSave(): void;
   onSaveAs(): void;
   onOpenSource(): void;
+  onOpenMapWorkspace(): void;
   onUndo(): void;
   onRedo(): void;
 }
 
-export function TopBar({ documentId, revision, canUndo, canRedo, onOpenRig, onSave, onSaveAs, onOpenSource, onUndo, onRedo }: TopBarProps) {
+export function TopBar({ documentId, revision, canUndo, canRedo, onOpenRig, onSave, onSaveAs, onOpenSource, onOpenMapWorkspace, onUndo, onRedo }: TopBarProps) {
   return (
     <>
       <div className="brand-block"><strong>JURE</strong><span>Rig Workbench</span></div>
@@ -20,6 +21,7 @@ export function TopBar({ documentId, revision, canUndo, canRedo, onOpenRig, onSa
         <button onClick={onSave}>Save</button>
         <button onClick={onSaveAs}>Save As</button>
         <button onClick={onOpenSource}>Open Source</button>
+        <button onClick={onOpenMapWorkspace}>Map Workspace</button>
       </div>
       <div className="document-chip" title={`${documentId} · revision ${revision}`}>
         <span>{documentId}</span><small>rev {revision}</small>
