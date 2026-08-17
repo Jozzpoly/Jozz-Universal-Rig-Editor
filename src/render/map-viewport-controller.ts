@@ -343,11 +343,14 @@ export class MapViewportController {
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     root.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      geometries.add(object.geometry);
-      const material = object.material;
+      const renderable = object as THREE.Object3D & {
+        geometry?: THREE.BufferGeometry;
+        material?: THREE.Material | THREE.Material[];
+      };
+      if (renderable.geometry) geometries.add(renderable.geometry);
+      const material = renderable.material;
       if (Array.isArray(material)) material.forEach((entry) => materials.add(entry));
-      else materials.add(material);
+      else if (material) materials.add(material);
     });
     geometries.forEach((geometry) => geometry.dispose());
     materials.forEach((material) => material.dispose());
