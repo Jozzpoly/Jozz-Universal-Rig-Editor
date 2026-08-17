@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
+  applyCommand,
   beginPreview,
   cancelPreview,
   commitPreview,
@@ -16,6 +17,7 @@ import { SYNTHETIC_MAP } from '../../fixtures/synthetic-map.js';
 import type { MapDocument, MapRigidPose, MapVec3 } from '../../map/types.js';
 import type { MapTransformMode } from '../../render/map-viewport-controller.js';
 import { workspaceSearch } from '../workspace/workspace-navigation.js';
+import { MapBoxDimensionsEditor } from './MapBoxDimensionsEditor.js';
 import { MapViewport } from './MapViewport.js';
 import './map-workspace.css';
 
@@ -72,6 +74,11 @@ export function MapWorkspace() {
       const halfExtents = boxHalfExtentsFromScale(entity.collision.halfExtents, scale);
       return updatePreview(started, setMapBoxHalfExtents(entityId, halfExtents));
     });
+  }, []);
+
+  const commitBoxHalfExtents = useCallback((entityId: string, halfExtents: MapVec3) => {
+    setSession((current) => applyCommand(current, setMapBoxHalfExtents(entityId, halfExtents)));
+    setStatus(`Authored dimensions committed for ${entityId} · unsaved`);
   }, []);
 
   const handleTransformCommit = useCallback((entityId: string) => {
@@ -186,20 +193,31 @@ export function MapWorkspace() {
               <h3>Collision</h3>
               <dl>
                 <div><dt>Kind</dt><dd>{selectedEntity.collision.kind}</dd></div>
-                {selectedEntity.collision.kind === 'box' ? (
-                  <>
-                    <div><dt>Half X</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.x)} m</dd></div>
-                    <div><dt>Half Y</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.y)} m</dd></div>
-                    <div><dt>Half Z</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.z)} m</dd></div>
-                  </>
-                ) : (
-                  <>
-                    <div><dt>Radius</dt><dd>{formatNumber(selectedEntity.collision.radius)} m</dd></div>
-                    <div><dt>Axis A</dt><dd>{formatNumber(selectedEntity.collision.pointA.x)}, {formatNumber(selectedEntity.collision.pointA.y)}, {formatNumber(selectedEntity.collision.pointA.z)}</dd></div>
-                    <div><dt>Axis B</dt><dd>{formatNumber(selectedEntity.collision.pointB.x)}, {formatNumber(selectedEntity.collision.pointB.y)}, {formatNumber(selectedEntity.collision.pointB.z)}</dd></div>
-                  </>
-                )}
               </dl>
+              {selectedEntity.collision.kind === 'box' ? (
+                <>
+                  <MapBoxDimensionsEditor
+                    entityId={selectedEntity.id}
+                    halfExtents={selectedEntity.collision.halfExtents}
+                    disabled={Boolean(session.preview)}
+                    onCommit={(halfExtents) => commitBoxHalfExtents(selectedEntity.id, halfExtents)}
+                  />
+                  <details className="map-advanced-readout">
+                    <summary>Half-extents storage</summary>
+                    <dl>
+                      <div><dt>X</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.x)} m</dd></div>
+                      <div><dt>Y</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.y)} m</dd></div>
+                      <div><dt>Z</dt><dd>{formatNumber(selectedEntity.collision.halfExtents.z)} m</dd></div>
+                    </dl>
+                  </details>
+                </>
+              ) : (
+                <dl>
+                  <div><dt>Radius</dt><dd>{formatNumber(selectedEntity.collision.radius)} m</dd></div>
+                  <div><dt>Axis A</dt><dd>{formatNumber(selectedEntity.collision.pointA.x)}, {formatNumber(selectedEntity.collision.pointA.y)}, {formatNumber(selectedEntity.collision.pointA.z)}</dd></div>
+                  <div><dt>Axis B</dt><dd>{formatNumber(selectedEntity.collision.pointB.x)}, {formatNumber(selectedEntity.collision.pointB.y)}, {formatNumber(selectedEntity.collision.pointB.z)}</dd></div>
+                </dl>
+              )}
             </section>
             <section>
               <h3>Surface</h3>
@@ -207,7 +225,7 @@ export function MapWorkspace() {
             </section>
             <p className="map-inspector-note">
               {selectedEntity.collision.kind === 'box'
-                ? 'G2 Resize authors box halfExtents while preserving rigid pose. Numeric dimensions are the next controlled slice.'
+                ? 'Resize gizmo and exact dimensions author the same box halfExtents while preserving rigid pose.'
                 : 'Capsule geometry remains read-only until its independent resize semantics are grounded.'}
             </p>
           </div>
