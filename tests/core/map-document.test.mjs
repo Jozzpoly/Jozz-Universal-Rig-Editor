@@ -4,6 +4,7 @@ import test from 'node:test';
 const { SYNTHETIC_MAP } = await import('../../.core-dist/fixtures/synthetic-map.js');
 const { parseMapDocument, serializeMapDocument } = await import('../../.core-dist/map/serialize.js');
 const { validateMapDocument } = await import('../../.core-dist/map/validate.js');
+const sessionApi = await import('../../.core-dist/editor/session.js');
 
 function errorCodes(value) {
   return validateMapDocument(value)
@@ -60,4 +61,42 @@ test('MapDocument parser reports malformed structure instead of accepting partia
     () => parseMapDocument('{"schemaVersion":1,"documentId":"partial"}'),
     /Invalid MapDocument:/,
   );
+});
+
+test('shared editor session previews, commits, undoes and redoes MapDocument authored truth', () => {
+  let session = sessionApi.createEditorSession(SYNTHETIC_MAP);
+  session = sessionApi.beginPreview(session, 'Move ground');
+  session = sessionApi.updatePreview(session, {
+    label: 'Move ground',
+    apply(document) {
+      return {
+        ...document,
+        entities: document.entities.map((entity) => entity.id === 'entity.ground'
+          ? {
+              ...entity,
+              pose: {
+                ...entity.pose,
+                position: { ...entity.pose.position, x: 1.5 },
+              },
+            }
+          : entity),
+      };
+    },
+  });
+
+  const previewGround = sessionApi.visibleDocument(session).entities.find((entity) => entity.id === 'entity.ground');
+  const committedGround = session.committed.entities.find((entity) => entity.id === 'entity.ground');
+  assert.equal(previewGround.pose.position.x, 1.5);
+  assert.equal(committedGround.pose.position.x, 0);
+  assert.equal(session.committed.revision, 0);
+
+  session = sessionApi.commitPreview(session);
+  assert.equal(session.committed.revision, 1);
+  const committedText = serializeMapDocument(session.committed);
+
+  session = sessionApi.undo(session);
+  assert.equal(session.committed.revision, 0);
+  session = sessionApi.redo(session);
+  assert.equal(session.committed.revision, 1);
+  assert.equal(serializeMapDocument(session.committed), committedText);
 });
