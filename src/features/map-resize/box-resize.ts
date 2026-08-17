@@ -17,6 +17,24 @@ function cloneHalfExtents(value: MapVec3): MapVec3 {
   return { x: value.x, y: value.y, z: value.z };
 }
 
+export function boxDimensionsFromHalfExtents(halfExtents: MapVec3): MapVec3 {
+  assertFinitePositiveVec3(halfExtents, 'Map box halfExtents');
+  return {
+    x: halfExtents.x * 2,
+    y: halfExtents.y * 2,
+    z: halfExtents.z * 2,
+  };
+}
+
+export function boxHalfExtentsFromDimensions(dimensions: MapVec3): MapVec3 {
+  assertFinitePositiveVec3(dimensions, 'Map box dimensions');
+  return {
+    x: dimensions.x * 0.5,
+    y: dimensions.y * 0.5,
+    z: dimensions.z * 0.5,
+  };
+}
+
 export function boxHalfExtentsFromScale(source: MapVec3, scale: MapVec3): MapVec3 {
   assertFinitePositiveVec3(source, 'Source map box halfExtents');
   if (![scale.x, scale.y, scale.z].every((component) => Number.isFinite(component))) {
