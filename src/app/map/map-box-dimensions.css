@@ -1,0 +1,79 @@
+.map-dimensions-editor {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2b333c;
+}
+
+.map-dimensions-title {
+  margin-bottom: 6px;
+  color: #8394a3;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.map-dimensions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.map-dimension-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px;
+  border: 1px solid #313b45;
+  border-radius: 3px;
+  background: #13191e;
+}
+
+.map-dimension-field span {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.map-dimension-field.axis-x span { color: #f08b86; }
+.map-dimension-field.axis-y span { color: #85d49a; }
+.map-dimension-field.axis-z span { color: #79aef3; }
+
+.map-dimension-field input {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 4px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #dce7f0;
+  font: inherit;
+  font-size: 10px;
+  text-align: right;
+}
+
+.map-dimension-field:focus-within {
+  border-color: #5d84a4;
+  background: #18232c;
+}
+
+.map-dimension-field:has(input:disabled) {
+  opacity: 0.45;
+}
+
+.map-advanced-readout {
+  margin-top: 7px;
+  color: #778794;
+  font-size: 9px;
+}
+
+.map-advanced-readout summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.map-advanced-readout dl {
+  margin-top: 7px;
+}
