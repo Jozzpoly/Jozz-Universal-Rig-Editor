@@ -1,65 +1,71 @@
 import type { RigDocument } from '../kernel/types.js';
 
-export interface RigCommand {
+export interface RevisionedDocument {
+  revision: number;
+}
+
+export interface EditorCommand<Document extends RevisionedDocument> {
   label: string;
-  apply(document: RigDocument): RigDocument;
+  apply(document: Document): Document;
 }
 
-export interface PreviewState {
+export interface RigCommand extends EditorCommand<RigDocument> {}
+
+export interface PreviewState<Document extends RevisionedDocument = RigDocument> {
   label: string;
-  baseline: RigDocument;
-  document: RigDocument;
+  baseline: Document;
+  document: Document;
 }
 
-export interface EditorSession {
-  committed: RigDocument;
-  preview: PreviewState | null;
-  past: RigDocument[];
-  future: RigDocument[];
+export interface EditorSession<Document extends RevisionedDocument = RigDocument> {
+  committed: Document;
+  preview: PreviewState<Document> | null;
+  past: Document[];
+  future: Document[];
 }
 
-export function createEditorSession(document: RigDocument): EditorSession {
+export function createEditorSession<Document extends RevisionedDocument>(document: Document): EditorSession<Document> {
   return { committed: document, preview: null, past: [], future: [] };
 }
 
-export function beginPreview(session: EditorSession, label: string): EditorSession {
+export function beginPreview<Document extends RevisionedDocument>(session: EditorSession<Document>, label: string): EditorSession<Document> {
   if (session.preview) return session;
   return { ...session, preview: { label, baseline: session.committed, document: session.committed } };
 }
 
-export function updatePreview(session: EditorSession, command: RigCommand): EditorSession {
+export function updatePreview<Document extends RevisionedDocument>(session: EditorSession<Document>, command: EditorCommand<Document>): EditorSession<Document> {
   if (!session.preview) throw new Error('Preview must be started before it can be updated.');
   return { ...session, preview: { ...session.preview, document: command.apply(session.preview.baseline) } };
 }
 
-export function cancelPreview(session: EditorSession): EditorSession {
+export function cancelPreview<Document extends RevisionedDocument>(session: EditorSession<Document>): EditorSession<Document> {
   return session.preview ? { ...session, preview: null } : session;
 }
 
-export function commitPreview(session: EditorSession): EditorSession {
+export function commitPreview<Document extends RevisionedDocument>(session: EditorSession<Document>): EditorSession<Document> {
   if (!session.preview) return session;
-  const next = { ...session.preview.document, revision: session.committed.revision + 1 };
+  const next: Document = { ...session.preview.document, revision: session.committed.revision + 1 };
   return { committed: next, preview: null, past: [...session.past, session.committed], future: [] };
 }
 
-export function applyCommand(session: EditorSession, command: RigCommand): EditorSession {
+export function applyCommand<Document extends RevisionedDocument>(session: EditorSession<Document>, command: EditorCommand<Document>): EditorSession<Document> {
   if (session.preview) throw new Error('Cannot apply a committed command while a preview is active.');
-  const next = { ...command.apply(session.committed), revision: session.committed.revision + 1 };
+  const next: Document = { ...command.apply(session.committed), revision: session.committed.revision + 1 };
   return { committed: next, preview: null, past: [...session.past, session.committed], future: [] };
 }
 
-export function undo(session: EditorSession): EditorSession {
+export function undo<Document extends RevisionedDocument>(session: EditorSession<Document>): EditorSession<Document> {
   if (session.preview || session.past.length === 0) return session;
   const previous = session.past[session.past.length - 1];
   return { committed: previous, preview: null, past: session.past.slice(0, -1), future: [session.committed, ...session.future] };
 }
 
-export function redo(session: EditorSession): EditorSession {
+export function redo<Document extends RevisionedDocument>(session: EditorSession<Document>): EditorSession<Document> {
   if (session.preview || session.future.length === 0) return session;
   const next = session.future[0];
   return { committed: next, preview: null, past: [...session.past, session.committed], future: session.future.slice(1) };
 }
 
-export function visibleDocument(session: EditorSession): RigDocument {
+export function visibleDocument<Document extends RevisionedDocument>(session: EditorSession<Document>): Document {
   return session.preview?.document ?? session.committed;
 }
