@@ -5,6 +5,7 @@ import {
   boxHalfExtentsFromDimensions,
 } from '../../features/map-resize/box-resize.js';
 import type { MapVec3 } from '../../map/types.js';
+import './map-box-dimensions.css';
 
 const AXES = ['x', 'y', 'z'] as const;
 type Axis = typeof AXES[number];
