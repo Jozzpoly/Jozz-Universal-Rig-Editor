@@ -13,6 +13,7 @@
     "../../src/editor/**/*.ts",
     "../../src/features/rig-transform/**/*.ts",
     "../../src/features/map-transform/**/*.ts",
+    "../../src/features/map-resize/**/*.ts",
     "../../src/fixtures/synthetic-rig.ts",
     "../../src/fixtures/synthetic-map.ts",
     "../../src/map/**/*.ts",
