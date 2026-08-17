@@ -28,4 +28,5 @@ runNode([
   'tests/core/core.test.mjs',
   'tests/core/representation-binding.test.mjs',
   'tests/core/map-document.test.mjs',
+  'tests/core/workspace-navigation.test.mjs',
 ]);
