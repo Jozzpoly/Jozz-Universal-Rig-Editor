@@ -14,6 +14,7 @@ import { setMapEntityPose } from '../../features/map-transform/command.js';
 import { SYNTHETIC_MAP } from '../../fixtures/synthetic-map.js';
 import type { MapDocument, MapRigidPose } from '../../map/types.js';
 import type { MapTransformMode } from '../../render/map-viewport-controller.js';
+import { workspaceSearch } from '../workspace/workspace-navigation.js';
 import { MapViewport } from './MapViewport.js';
 import './map-workspace.css';
 
@@ -55,10 +56,7 @@ export function MapWorkspace() {
   }, []);
 
   const switchToRig = () => {
-    const params = new URLSearchParams(window.location.search);
-    params.delete('workspace');
-    const query = params.toString();
-    window.location.search = query ? `?${query}` : '';
+    window.location.search = workspaceSearch(window.location.search, 'rig');
   };
 
   return (
