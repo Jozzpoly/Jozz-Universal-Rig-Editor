@@ -17,6 +17,7 @@
     "../../src/fixtures/synthetic-map.ts",
     "../../src/map/**/*.ts",
     "../../src/source/**/*.ts",
-    "../../src/app/workspace/layout-state.ts"
+    "../../src/app/workspace/layout-state.ts",
+    "../../src/app/workspace/workspace-navigation.ts"
   ]
 }
