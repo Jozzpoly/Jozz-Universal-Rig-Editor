@@ -12,6 +12,7 @@
     "../../src/kernel/**/*.ts",
     "../../src/editor/**/*.ts",
     "../../src/features/rig-transform/**/*.ts",
+    "../../src/features/map-transform/**/*.ts",
     "../../src/fixtures/synthetic-rig.ts",
     "../../src/fixtures/synthetic-map.ts",
     "../../src/map/**/*.ts",
