@@ -147,9 +147,12 @@ jobs:
           Windows:
           1. Double-click START_MAP_PREVIEW.cmd
           2. The browser opens directly in the experimental Map workspace.
-          3. Use Move/Rotate, select Ground slab or Bumper, test Undo/Redo, Fit Map and Esc cancel.
-          4. Click Rig Workspace to verify the accepted Rig entry still opens.
-          5. Close the command window (or press Ctrl+C) to stop the local preview server.
+          3. Select Ground slab. Test Move/Rotate and Resize on individual axes and uniformly.
+          4. During Resize press Esc and confirm the box returns exactly to its pre-drag dimensions.
+          5. Commit a Resize, then test Undo/Redo. Edit exact Dimensions X/Y/Z in the Inspector and verify the same history path.
+          6. Select Bumper and confirm Resize is intentionally unavailable in this G2 build while Move/Rotate still work.
+          7. Click Rig Workspace, then Map Workspace, to verify symmetric navigation and the accepted Rig entry.
+          8. Close the command window (or press Ctrl+C) to stop the local preview server.
 
           This artifact is a local preview only. It does not modify an existing JURE checkout.
           EOF
