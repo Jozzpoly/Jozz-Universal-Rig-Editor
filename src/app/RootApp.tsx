@@ -1,14 +1,8 @@
 import { App as RigWorkspace } from './App.js';
 import { MapWorkspace } from './map/MapWorkspace.js';
-
-export type WorkspaceKind = 'rig' | 'map';
-
-export function resolveWorkspaceKind(location: Pick<Location, 'search'> = window.location): WorkspaceKind {
-  const requested = new URLSearchParams(location.search).get('workspace');
-  return requested === 'map' ? 'map' : 'rig';
-}
+import { resolveWorkspaceKind } from './workspace/workspace-navigation.js';
 
 export function RootApp() {
-  const workspace = resolveWorkspaceKind();
+  const workspace = resolveWorkspaceKind(window.location.search);
   return workspace === 'map' ? <MapWorkspace /> : <RigWorkspace />;
 }
