@@ -2,9 +2,16 @@
 
 ## Current state
 
-The owner-tested Rig foundation remains the accepted baseline. A separate experimental Map authoring lane is now being developed without replacing or reinterpreting that accepted Rig state.
+The owner-tested Rig foundation remains the accepted baseline. A separate experimental Map authoring lane is active on draft PR #5 and has now completed its first owner-tested proof-of-viability slice.
 
-Accepted Rig baseline:
+The Map slice is **working but not fundamentally complete**. The active grounding contract is:
+
+`docs/FOUNDATION_GROUNDING_2026-08-18.md`
+
+That document distinguishes durable evidence-backed foundation from provisional experiments and defines the stop condition for the current fundamentalization phase.
+
+## Accepted Rig baseline
+
 - rigid `RigElement` and owner-local `RigFrame` authoring;
 - Move/Rotate, world/local, numeric XYZ degree editing over quaternion storage;
 - preview/commit/cancel, undo/redo, deterministic RigDocument save/open;
@@ -16,66 +23,106 @@ The current Rig UI is an accepted engineering baseline, not a promise that the f
 
 ## Experimental Map foundation
 
-The active map work is isolated from the default Rig workspace behind the root workspace seam. The accepted Rig `App` is still the default application path; `?workspace=map` enters the experimental map lane.
+The map work remains isolated from the accepted Rig authored model. Default application entry is Rig; `?workspace=map` enters Map Lab. After owner feedback on the first preview, workspace routing is being grounded as a small shared symmetric contract so Rig and Map can navigate to each other without separate ad-hoc routing logic.
 
-Implemented foundation on the active map branch:
+Implemented map foundation:
+
 - independent `MapDocument` authored truth;
 - explicit metre/right-handed `+X` forward, `+Y` up, `+Z` right coordinate contract;
 - stable global IDs for spawn points and map entities;
-- rigid map poses with no transform scale;
-- box and capsule collision primitives;
+- rigid map poses without generic transform scale;
+- box and capsule P0 primitive geometry;
 - independent collision-proxy/none visual intent and surface friction;
 - deterministic canonical parse/serialize round-trip;
 - fail-closed malformed/unsupported geometry, identity, basis, pose, visual and surface validation;
 - map entity pose command with quaternion normalization and missing-target failure;
-- shared generic revisioned editor session now proven by both RigDocument and MapDocument while `RigCommand` remains rig-specific.
+- shared generic revisioned `EditorSession<Document>` proven by both RigDocument and MapDocument while domain commands remain domain-owned;
+- dedicated Map Lab viewport with box/capsule projection, spawn marker, selection, OrbitControls, Move/Rotate TransformControls, preview/commit/cancel, Esc/blur cancel, Undo/Redo and Fit Map;
+- dedicated Map navigator/inspector without refactoring the accepted Rig WorkspaceShell or Rig viewport.
 
-This is deliberately **not** yet a finished map format or editor. Not frozen or implemented yet:
-- triangle meshes / large E2R-class terrain;
-- map source assets, textures or material packaging;
-- map open/save UI and final extension/package layout;
-- final `JURE MapPackage` interchange schema;
-- JV-Web parser/lowering/runtime integration;
-- map hierarchy, streaming, partitioning or a generic scene graph;
-- owner-validated 3D map authoring interaction.
+## Owner validation — first Map Lab slice
 
-The next useful vertical slice is a separate map viewport that projects the synthetic MapDocument into Three and lets the owner select and Move/Rotate one primitive through the existing preview/commit/cancel semantics. It should reuse proven Rig viewport mechanics locally before any universal viewport abstraction is considered.
+Owner-tested preview source head:
 
-## Map validation evidence
+`3f5cea513ecb7c040285fc2f9604690d3fe13428`
 
-The map foundation is being validated on a draft PR branch because the current execution environment cannot install repository dependencies locally. The branch-owned PR check uses Node 22 and runs the repository-owned `npm run check` after a normal dependency install.
+The owner opened the generated Windows preview in a real browser and preliminarily validated the build as working. The supplied screen/video evidence confirms practical Map Lab interaction including camera/orbit, Move/Rotate and Fit Map without an obvious authored-state/render desynchronization in the short test.
 
-Current strongest executed evidence before the first 3D interaction slice:
+The same owner test immediately found two important design facts:
+
+1. Map -> Rig navigation existed but Rig -> Map navigation did not. This is a real product defect, not user error.
+2. pose-only authoring is insufficient; practical map creation needs shape resizing/creation tools.
+
+The second finding does **not** yet prove that generic scale belongs in `MapRigidPose`. Current grounding instead treats shape-aware `Resize` as the leading hypothesis: box extents, capsule radius/length and future parametric shape dimensions should be authored explicitly unless a real mesh/source case proves different semantics are needed.
+
+The owner explicitly did **not** close the fundamentalization phase. This validation proves the direction is viable and can continue.
+
+## Current executed evidence
+
+On exact owner-tested head `3f5cea5...`:
+
 - strict TypeScript PASS;
-- core suite **28/28 PASS**, including deterministic/fail-closed MapDocument tests, shared editor-session map history, and map transform command falsifiers;
-- production Vite build PASS;
-- existing large JS chunk warning remains non-blocking and is not attributed to the map foundation.
+- core suite 28/28 PASS;
+- Vite production build PASS;
+- headless browser render PASS for default Rig and Map Lab;
+- generated owner-preview HTTP smoke PASS;
+- real owner browser interaction: preliminary PASS with the limitations above.
 
-The repository still has no lockfile, so this is current dependency-resolution evidence rather than a hermetic dependency reproduction claim.
+Subsequent grounding work adds donor research, status/architecture grounding and symmetric workspace routing. Each code-bearing head must pass the same repository check and browser smoke before becoming the next evidence checkpoint.
+
+The repository still has no lockfile, so Action installs are current dependency-resolution evidence rather than hermetic dependency reproduction.
+
+## Map model — current boundary
+
+Current box/capsule entities are a primitive proof slice, **not the final Map ontology**.
+
+Grounding evidence from JURE consumers and donor projects requires the architecture to remain open to at least:
+
+- primitive geometry;
+- parametric obstacle/shape recipes;
+- terrain/heightfield;
+- imported mesh/scan geometry;
+- layout/semantic constructs such as spawns, anchors, zones/routes and test stations.
+
+This is a classification boundary, not a command to implement all of those systems now.
+
+## Donor conclusions
+
+The project may harvest proven techniques from the owner's public/private repositories, but must not import whole product ontologies without evidence.
+
+Current high-value donors:
+
+- **HomeScan-Web-Builder** — transform sessions, domain `resize`, axis/pivot constraints, snapping, numeric input and validated command commit;
+- **Voxel Aeronautics Workshop** — terrain/patch dimensions, placement/snapping patterns and explicit render-only vs gameplay authority;
+- **JV-Web** — real consumer boundary, explicit primitive dimensions, render/collision source separation and current JURE-compatible coordinate basis;
+- **Native JV / Box3d_FunProject** — accepted tiled/heightfield terrain, parametric obstacle recipes, scan collision geometry and historical evidence that green data validators can miss wrong built geometry;
+- **PROJECT ANVIL** — donor doctrine: transfer the smallest proven capability and adapt it to destination contracts instead of transplanting a subsystem.
 
 ## BIND-00 result
 
-BIND-00 is a transient representation-binding prototype tested on the real `OneSided_Steering_Suspension_Rig.gltf`.
+BIND-00 remains a transient representation-binding prototype tested on the real `OneSided_Steering_Suspension_Rig.gltf`.
 
 Exact real SOURCE evidence used for the accepted SOURCE/BIND tests:
+
 - file: `OneSided_Steering_Suspension_Rig.gltf`;
 - SHA-256: `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
 - self-contained glTF (embedded buffer/texture), 15 nodes / 14 joints / 1 skinned mesh in the tested revision;
 - the asset is not stored canonically in this repo. If reproduction requires it, obtain the exact file from the owner/File Library and verify the SHA before use rather than substituting historical JV geometry.
 
 What it proved:
+
 - one authored `RigElement` can drive one exact rigid glTF skin joint through a stable rest offset;
 - the bound visual can follow authored Move/Rotate while the read-only SOURCE reference stays fixed;
 - SOURCE Geometry and Bound visibility can be inspected independently;
 - driving a source skin joint can produce useful real hierarchy/deformation instead of only moving the whole asset rigidly.
 
 What it falsified:
+
 - the prototype stores one global `representationBinding`; creating a second binding replaces the first, so the previous driven joint returns to its unmodified pose;
-- therefore the singleton binding model is **not** a viable final representation/assembly model.
+- therefore the singleton binding model is not a viable final representation/assembly model.
 
-BIND-00 is deliberately transient and not serialized. No persistent representation schema was frozen from it.
+BIND-00 is deliberately transient and not serialized. Exact pre-cleanup owner-evidence checkpoint:
 
-Exact pre-cleanup owner-evidence checkpoint is preserved on:
 `checkpoint/foundation-bind00-owner-tested-2026-08-15`
 
 ## Durable conclusions
@@ -83,32 +130,25 @@ Exact pre-cleanup owner-evidence checkpoint is preserved on:
 - `RigElement / RigFrame / RigRelation` remain the small authored rig kernel unless a real consumer falsifies them.
 - `MapDocument` remains a separate authored map model; it must not absorb renderer, Box3D or JV runtime ontology.
 - SOURCE reference, source provenance, authored rig, representation binding, transient preview, evaluated motion, runtime/display state and authored map truth are distinct meanings.
-- Shared infrastructure is extracted only when multiple real consumers prove the overlap; the generic editor session is the first such proven case.
-- A useful JURE must support a complete mechanism with multiple simultaneous representation mappings.
-- Rigid pose stays free of scale; stretch/deformation belongs to representation/evaluation, while map primitive dimensions belong to geometry rather than transform scale.
-- Motion testing starts kinematic: authored neutral truth must remain unchanged and `Reset` must restore it exactly.
-- Free camera/navigation and direct spatial inspection are product requirements, not optional polish.
-- Do not "fix" BIND-00 by simply replacing the singleton with an array before the next rig design pass.
-- Do not freeze `JvWorldData` or the current small JV scene-package as the JURE authored map schema.
+- Shared infrastructure is extracted only when multiple real consumers prove the overlap; the generic editor session is the first proven case.
+- The current transform proxy pattern is valid: renderer proposes, domain command interprets, preview is disposable, commit changes authored truth.
+- Rigid pose stays free of generic scale for now. Map shape authoring is reopened as a domain Resize problem rather than declared solved.
+- Free camera/navigation and direct spatial inspection remain product requirements.
+- Do not freeze `JvWorldData`, Native JV structures or the current small MapDocument primitives as the final JURE map schema.
+- Do not fix BIND-00 by simply replacing the singleton with an array before the next real rig representation design pass.
 
-## Rig next fundamental phase
+## Grounded next sequence
 
-The paused Rig design problem remains: evolve JURE as the owner's practical visual rigging workbench for current projects, with JV/JV-Web as the first real consumer and later native JV / JV+VAW possible without turning the tool into a framework.
+1. close symmetric Rig <-> Map workspace routing with tests and browser evidence;
+2. use one box as the first shape-aware Resize falsifier, editing geometry dimensions rather than pose scale;
+3. test capsule resize separately rather than forcing genericity;
+4. ground create/delete/duplicate and deterministic map save/open;
+5. then choose one real non-primitive representation (parametric obstacle, terrain/heightfield or imported mesh/scan) to falsify the primitive-only architecture.
 
-The design must cover the real end-to-end rig workflow:
-
-`open/position source -> inspect -> create rig elements/frames/relations -> map real representation -> edit -> diagnose -> kinematic test -> reset/save`
-
-The first rig design questions remain:
-- minimal `SourceRevision` vs placed source instance/registration semantics;
-- how many real source joints/parts/meshes map to multiple `RigElement`s without importing renderer ontology into the kernel;
-- explicit source datum -> authored frame adoption/rebind;
-- rigid representation vs spring/damper/cardan stretch/deformation;
-- `AUTHOR` vs transient `TEST` interaction and the smallest evaluator boundary;
-- how the workflow scales to the full JV car rig: suspension, steering members, wheels, chassis/body, springs/dampers, cardans, and related hardpoints.
-
-Map work must not silently answer or rewrite these Rig questions merely because both workspaces share JURE.
+Do not jump directly to a universal scene framework, ECS/plugin system or full terrain editor.
 
 ## Known tooling debt
 
-There is currently no `package-lock.json`. Direct dependencies are exact-pinned in `package.json`, but transitive installs are not fully reproducible yet. Add a lockfile from a canonical successful install when convenient; this is not a reason to block the product/design work.
+- no `package-lock.json`; transitive installs are not fully reproducible;
+- current Vite output has a large client chunk warning;
+- PR browser screenshots and Windows owner-preview packaging are evidence scaffolding, not yet permanent product infrastructure.
