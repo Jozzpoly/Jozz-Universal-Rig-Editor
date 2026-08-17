@@ -112,10 +112,8 @@ export function validateMapDocument(value: unknown): MapDiagnostic[] {
           error('collision.box.halfExtents.invalid', `Map entity ${id ?? '<invalid>'} box halfExtents must be finite and positive.`, reference);
         }
       } else if (collision.kind === 'capsule') {
-        const pointAValid = vec3Finite(collision.pointA);
-        const pointBValid = vec3Finite(collision.pointB);
         const radiusValid = typeof collision.radius === 'number' && Number.isFinite(collision.radius) && collision.radius > 0;
-        if (!pointAValid || !pointBValid || !radiusValid) {
+        if (!vec3Finite(collision.pointA) || !vec3Finite(collision.pointB) || !radiusValid) {
           error('collision.capsule.invalid', `Map entity ${id ?? '<invalid>'} capsule requires finite endpoints and a positive radius.`, reference);
         } else if (capsuleLength(collision.pointA, collision.pointB) <= 1e-9) {
           error('collision.capsule.degenerate', `Map entity ${id ?? '<invalid>'} capsule endpoints must not coincide.`, reference);
