@@ -61,3 +61,117 @@ jobs:
           path: browser-evidence
           if-no-files-found: warn
           retention-days: 3
+      - name: Prepare Windows owner preview
+        shell: bash
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          rm -rf owner-preview
+          mkdir -p owner-preview
+          cp -R dist owner-preview/dist
+          cat > owner-preview/preview-server.mjs <<'EOF'
+          import { createServer } from 'node:http';
+          import { readFile, stat } from 'node:fs/promises';
+          import { extname, resolve, sep } from 'node:path';
+          import { fileURLToPath } from 'node:url';
+          import { spawn } from 'node:child_process';
+
+          const root = resolve(fileURLToPath(new URL('./dist/', import.meta.url)));
+          const port = Number(process.env.PORT || 4173);
+          const host = '127.0.0.1';
+          const contentTypes = new Map([
+            ['.html', 'text/html; charset=utf-8'],
+            ['.js', 'text/javascript; charset=utf-8'],
+            ['.css', 'text/css; charset=utf-8'],
+            ['.json', 'application/json; charset=utf-8'],
+            ['.svg', 'image/svg+xml'],
+            ['.png', 'image/png'],
+            ['.jpg', 'image/jpeg'],
+            ['.jpeg', 'image/jpeg'],
+            ['.webp', 'image/webp'],
+            ['.wasm', 'application/wasm'],
+          ]);
+
+          const server = createServer(async (request, response) => {
+            try {
+              const url = new URL(request.url ?? '/', `http://${host}:${port}`);
+              const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
+              const candidate = resolve(root, `.${pathname}`);
+              if (candidate !== root && !candidate.startsWith(`${root}${sep}`)) {
+                response.writeHead(403).end('Forbidden');
+                return;
+              }
+              const info = await stat(candidate);
+              if (!info.isFile()) throw new Error('Not a file');
+              const body = await readFile(candidate);
+              response.writeHead(200, {
+                'Content-Type': contentTypes.get(extname(candidate).toLowerCase()) ?? 'application/octet-stream',
+                'Cache-Control': 'no-store',
+              });
+              response.end(body);
+            } catch {
+              response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+              response.end('Not found');
+            }
+          });
+
+          server.listen(port, host, () => {
+            const url = `http://${host}:${port}/?workspace=map`;
+            console.log(`JURE Map preview: ${url}`);
+            console.log('Close this window or press Ctrl+C to stop the preview server.');
+            if (process.platform === 'win32' && process.env.JURE_PREVIEW_NO_OPEN !== '1') {
+              const child = spawn('cmd.exe', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' });
+              child.unref();
+            }
+          });
+          EOF
+          cat > owner-preview/START_MAP_PREVIEW.cmd <<'EOF'
+          @echo off
+          setlocal
+          cd /d "%~dp0"
+          where node >nul 2>nul
+          if errorlevel 1 (
+            echo Node.js was not found. Install Node.js, then run this file again.
+            pause
+            exit /b 1
+          )
+          node preview-server.mjs
+          if errorlevel 1 pause
+          EOF
+          cat > owner-preview/README.txt <<EOF
+          JURE Map Lab - owner preview
+          Source branch: agent/map-workspace-foundation
+          Source head: ${HEAD_SHA}
+
+          Windows:
+          1. Double-click START_MAP_PREVIEW.cmd
+          2. The browser opens directly in the experimental Map workspace.
+          3. Use Move/Rotate, select Ground slab or Bumper, test Undo/Redo, Fit Map and Esc cancel.
+          4. Click Rig Workspace to verify the accepted Rig entry still opens.
+          5. Close the command window (or press Ctrl+C) to stop the local preview server.
+
+          This artifact is a local preview only. It does not modify an existing JURE checkout.
+          EOF
+      - name: Smoke owner preview package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4174 JURE_PREVIEW_NO_OPEN=1 node owner-preview/preview-server.mjs > owner-preview/server-smoke.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent 'http://127.0.0.1:4174/?workspace=map' > /dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+          curl --fail --silent 'http://127.0.0.1:4174/?workspace=map' > /dev/null
+          curl --fail --silent 'http://127.0.0.1:4174/assets/' > /dev/null || true
+      - name: Upload owner preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: jure-map-owner-preview-${{ github.event.pull_request.head.sha }}
+          path: owner-preview
+          if-no-files-found: error
+          retention-days: 7
