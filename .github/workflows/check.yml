@@ -18,3 +18,46 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run repository check
         run: npm run check
+      - name: Diagnostic browser render smoke
+        id: browser-smoke
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p browser-evidence
+          python3 -m http.server 4173 --directory dist > browser-evidence/http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+          curl --fail --silent http://127.0.0.1:4173/ > /dev/null
+          chrome="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$chrome" ]; then
+            echo "No Chrome/Chromium executable found on runner." >&2
+            exit 2
+          fi
+          common_flags=(
+            --headless=new
+            --no-sandbox
+            --disable-dev-shm-usage
+            --use-angle=swiftshader
+            --enable-unsafe-swiftshader
+            --window-size=1440,900
+            --hide-scrollbars
+          )
+          "$chrome" "${common_flags[@]}" --screenshot=browser-evidence/rig-default.png http://127.0.0.1:4173/
+          "$chrome" "${common_flags[@]}" --screenshot=browser-evidence/map-workspace.png 'http://127.0.0.1:4173/?workspace=map'
+          test -s browser-evidence/rig-default.png
+          test -s browser-evidence/map-workspace.png
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence-${{ github.event.pull_request.head.sha }}
+          path: browser-evidence
+          if-no-files-found: warn
+          retention-days: 3
