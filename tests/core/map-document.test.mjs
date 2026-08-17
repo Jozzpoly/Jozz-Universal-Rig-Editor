@@ -4,6 +4,7 @@ import test from 'node:test';
 const { SYNTHETIC_MAP } = await import('../../.core-dist/fixtures/synthetic-map.js');
 const { parseMapDocument, serializeMapDocument } = await import('../../.core-dist/map/serialize.js');
 const { validateMapDocument } = await import('../../.core-dist/map/validate.js');
+const { setMapEntityPose } = await import('../../.core-dist/features/map-transform/command.js');
 const sessionApi = await import('../../.core-dist/editor/session.js');
 
 function errorCodes(value) {
@@ -66,27 +67,15 @@ test('MapDocument parser reports malformed structure instead of accepting partia
 test('shared editor session previews, commits, undoes and redoes MapDocument authored truth', () => {
   let session = sessionApi.createEditorSession(SYNTHETIC_MAP);
   session = sessionApi.beginPreview(session, 'Move ground');
-  session = sessionApi.updatePreview(session, {
-    label: 'Move ground',
-    apply(document) {
-      return {
-        ...document,
-        entities: document.entities.map((entity) => entity.id === 'entity.ground'
-          ? {
-              ...entity,
-              pose: {
-                ...entity.pose,
-                position: { ...entity.pose.position, x: 1.5 },
-              },
-            }
-          : entity),
-      };
-    },
-  });
+  session = sessionApi.updatePreview(session, setMapEntityPose('entity.ground', {
+    position: { x: 1.5, y: -0.25, z: 0 },
+    rotation: { x: 0, y: 0, z: 0, w: 2 },
+  }));
 
   const previewGround = sessionApi.visibleDocument(session).entities.find((entity) => entity.id === 'entity.ground');
   const committedGround = session.committed.entities.find((entity) => entity.id === 'entity.ground');
   assert.equal(previewGround.pose.position.x, 1.5);
+  assert.equal(previewGround.pose.rotation.w, 1);
   assert.equal(committedGround.pose.position.x, 0);
   assert.equal(session.committed.revision, 0);
 
@@ -99,4 +88,16 @@ test('shared editor session previews, commits, undoes and redoes MapDocument aut
   session = sessionApi.redo(session);
   assert.equal(session.committed.revision, 1);
   assert.equal(serializeMapDocument(session.committed), committedText);
+});
+
+test('map transform command fails closed for missing entities and zero-length rotations', () => {
+  const pose = {
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0, w: 1 },
+  };
+  assert.throws(() => setMapEntityPose('entity.missing', pose).apply(SYNTHETIC_MAP), /not found/);
+  assert.throws(() => setMapEntityPose('entity.ground', {
+    ...pose,
+    rotation: { x: 0, y: 0, z: 0, w: 0 },
+  }).apply(SYNTHETIC_MAP), /finite non-zero length/);
 });
