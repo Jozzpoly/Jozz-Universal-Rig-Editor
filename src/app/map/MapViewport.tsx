@@ -58,6 +58,23 @@ export function MapViewport(props: MapViewportProps) {
   }, [props.transformMode]);
 
   useEffect(() => {
+    if (props.transformMode !== 'resize') return;
+    const target = hostRef.current?.ownerDocument.defaultView;
+    if (!target) return;
+
+    const suppressBrowserAltDefault = (event: KeyboardEvent) => {
+      if (event.key === 'Alt') event.preventDefault();
+    };
+
+    target.addEventListener('keydown', suppressBrowserAltDefault, { capture: true });
+    target.addEventListener('keyup', suppressBrowserAltDefault, { capture: true });
+    return () => {
+      target.removeEventListener('keydown', suppressBrowserAltDefault, { capture: true });
+      target.removeEventListener('keyup', suppressBrowserAltDefault, { capture: true });
+    };
+  }, [props.transformMode]);
+
+  useEffect(() => {
     if (props.fitRequest > 0) controllerRef.current?.fitAll();
   }, [props.fitRequest]);
 
