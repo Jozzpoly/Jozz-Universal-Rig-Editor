@@ -1,5 +1,7 @@
-import type { MapQuat, MapRigidPose, MapVec3 } from '../../map/types.js';
-import { MAP_BOX_MIN_HALF_EXTENT } from './box-resize.js';
+import type { EditorCommand } from '../../editor/session.js';
+import type { MapDocument, MapQuat, MapRigidPose, MapVec3 } from '../../map/types.js';
+import { setMapEntityPose } from '../map-transform/command.js';
+import { MAP_BOX_MIN_HALF_EXTENT, setMapBoxHalfExtents } from './box-resize.js';
 
 export type MapAxis = 'x' | 'y' | 'z';
 export type MapFaceSide = -1 | 1;
@@ -178,5 +180,25 @@ export function planMapBoxFaceResize(
       rotation: { ...sourcePose.rotation },
     },
     halfExtents: withAxisHalfExtent(sourceHalfExtents, axis, nextHalf),
+  };
+}
+
+/**
+ * Commits the coupled pose + geometry result as one editor command. This is
+ * intentionally atomic because EditorSession preview updates always re-apply one
+ * command to the frozen preview baseline.
+ */
+export function setMapBoxFaceResizeResult(
+  entityId: string,
+  result: MapBoxFaceResizeResult,
+): EditorCommand<MapDocument> {
+  const poseCommand = setMapEntityPose(entityId, result.pose);
+  const geometryCommand = setMapBoxHalfExtents(entityId, result.halfExtents);
+
+  return {
+    label: `Resize map box face: ${entityId}`,
+    apply(document: MapDocument): MapDocument {
+      return geometryCommand.apply(poseCommand.apply(document));
+    },
   };
 }
