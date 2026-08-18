@@ -2,7 +2,7 @@
 
 Status: **active grounding contract for draft PR #5; not a final architecture specification**.
 
-This document exists to prevent provisional experiments from silently becoming permanent JURE ontology. It records what current evidence actually supports after the first owner-tested Map Lab slice, what was falsified, what remains deliberately open, and how donor projects may be harvested without importing their product-specific architecture.
+This document prevents provisional experiments from silently becoming permanent JURE ontology. `docs/STATUS.md` carries the exact current checkpoint/evidence; this file carries the more durable rules, corrections and stop conditions.
 
 ## 1. Authority order
 
@@ -11,295 +11,336 @@ When statements disagree, use this order:
 1. live Git / exact current files and branch state;
 2. executed evidence tied to an exact revision;
 3. direct owner interaction feedback;
-4. current architecture/status documents;
+4. current architecture/status documentation;
 5. historical plans, donor documentation, names and agent narrative.
 
-A green synthetic or CI gate is not owner/product acceptance. A working owner interaction is not proof of untested persistence, geometry correctness, runtime lowering or future scalability.
+A green synthetic/CI gate is not owner acceptance. Owner interaction is not proof of persistence, consumer lowering, large-map performance or untested geometry classes.
 
-## 2. Exact checkpoint being grounded
+## 2. Isolation / identity
 
-Branch: `agent/map-workspace-foundation`
+Active branch:
 
-Owner-tested preview source head: `3f5cea513ecb7c040285fc2f9604690d3fe13428`
+`agent/map-workspace-foundation`
 
-Base `main` at the start of the Map experiment: `d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
+Base `main` for this experiment:
 
-The branch remains isolated behind draft PR #5. `main` is not changed by this grounding work unless the owner later accepts a merge.
+`d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
 
-## 3. Evidence at this checkpoint
+Work remains behind draft PR #5. Do not merge, rewrite accepted Rig behavior or treat the branch as final platform architecture without an explicit owner gate.
 
-Executed evidence on the exact owner-tested head:
+## 3. Durable evidence-backed foundation
 
-- strict TypeScript: PASS;
-- core tests: 28/28 PASS;
-- production Vite build: PASS;
-- headless browser render of default Rig workspace: PASS;
-- headless browser render of `?workspace=map`: PASS;
-- generated Windows owner-preview package HTTP smoke: PASS;
-- owner opened the exact preview and exercised the Map workspace in a real browser;
-- owner observed working camera/orbit, selection, Move/Rotate and general Map Lab operation and preliminarily classified the build as working.
-
-Owner feedback also immediately exposed two design facts:
-
-- navigation is asymmetric: Map can enter Rig but Rig offers no way back to Map;
-- pose-only manipulation is insufficient for practical map authoring; shape resizing/creation tools are needed.
-
-The owner explicitly did **not** close the fundamentalization phase. This checkpoint proves viability of the current path, not completeness of the platform.
-
-## 4. Durable foundation — evidence-backed
-
-The following are currently strong enough to build on unless future real evidence falsifies them.
-
-### 4.1 Authority separation
+### Authored authority remains domain-specific
 
 - `RigDocument` is authored rig truth.
 - `MapDocument` is authored map truth.
-- Three scene objects, TransformControls proxies, renderer state and runtime objects are disposable projections, not authored authority.
-- JV/JV-Web/Box3D consumer structures are downstream consumer/runtime authority and must not be silently imported into JURE authored schemas.
-- source/reference geometry, authored state, representation/display state and runtime/evaluated state remain distinct meanings.
+- Three scene objects, proxies, custom handles and renderer state are disposable projections.
+- JV/JV-Web/Box3D structures are downstream consumer/runtime authority, not JURE authored schemas.
+- SOURCE/reference, authored state, display/representation, transient preview and runtime/evaluated state remain distinct meanings.
 
-### 4.2 Explicit coordinates and units
+### Coordinates and units are explicit
 
-Current map authored coordinates are metre-based, right-handed, `+X` forward, `+Y` up, `+Z` right. This matches the first real JV-Web world consumer and the current Native JV convention. Keep the contract explicit at every interchange boundary rather than relying on renderer defaults.
+Current Map authoring is metre-based, right-handed:
 
-### 4.3 Stable identity and deterministic documents
+- `+X` forward;
+- `+Y` up;
+- `+Z` right.
 
-Stable authored IDs, fail-closed validation and deterministic canonical serialization are useful in both Rig and Map domains. They remain domain-specific implementations until enough repeated structure justifies a smaller shared document utility.
+Do not rely on renderer defaults at interchange boundaries.
 
-### 4.4 Revisioned editor session
+### Stable identity / deterministic documents
 
-`EditorSession<Document>` is the first genuinely proven shared JURE mechanism because two independent authored domains now use the same semantics:
+Stable authored IDs, fail-closed validation and deterministic serialization are valuable in both domains. Keep domain implementations separate until a repeated real requirement proves a smaller shared utility.
+
+### Revisioned EditorSession is proven shared infrastructure
+
+`EditorSession<Document>` is used by independent Rig and Map authored domains:
 
 `committed -> preview -> commit/cancel -> undo/redo`
 
-Domain commands remain domain-owned. Sharing the session does not imply a universal object model.
+Domain commands remain domain-owned. A shared session is not evidence for a universal object model.
 
-### 4.5 Ephemeral transform proxy
+### Renderer proposal -> domain interpretation is the authority direction
 
-The current transform pattern is sound:
+The robust interaction pattern is:
 
-- renderer/gizmo proposes a change;
-- authored command interprets it;
-- preview state is disposable;
-- commit is the only authored transition;
-- cancel restores authored truth.
+1. renderer/input produces a transient proposal;
+2. domain code interprets that proposal against authored semantics and a frozen baseline;
+3. preview remains disposable;
+4. commit is the authored transition;
+5. cancel restores committed truth.
 
-This pattern is independently supported by the mature HomeScan editor interaction design.
+This now holds for rigid Move/Rotate and shape-aware box Resize.
 
-## 5. Falsified or corrected assumptions
+## 4. Owner-tested falsifications and corrections
 
-### 5.1 One-way workspace routing is not sufficient
+### One-way workspace routing was insufficient
 
-The current root seam proved that Rig and Map can coexist, but the product navigation is incomplete. Workspace navigation must be symmetric and use one small shared routing contract instead of separate ad-hoc buttons.
+The first Map owner test found Map -> Rig without Rig -> Map. Routing is now symmetric through one small shared workspace-navigation contract.
 
-This does **not** justify a large plugin/workspace framework. A shared `WorkspaceKind` + URL/query navigation helper is enough until a third workspace proves more is needed.
+This does not justify a plugin/workspace framework.
 
-### 5.2 “No scale in Map” was stated too broadly
+### Move/Rotate alone was insufficient for Map authoring
 
-What remains valid:
+The first Map test proved practical geometry authoring is required. This did **not** prove generic `pose.scale` belongs in Map authored truth.
 
-- rigid authored pose should not silently absorb scale;
-- Box3D/JV primitive collision consumers already use explicit shape dimensions;
-- arbitrary renderer scaling must not become authored physics by accident.
+Replacement rule:
 
-What the owner test falsified:
-
-- Move/Rotate alone is enough for useful map authoring.
-
-Replacement hypothesis:
-
-**Map needs shape-aware `Resize`, which may be presented through familiar Scale-like gizmo handles while committing domain geometry parameters instead of generic pose scale.**
+**Resize authors shape/domain parameters; rigid pose does not silently absorb renderer scale.**
 
 Examples:
 
-- box resize -> `halfExtents`;
-- capsule radial resize -> `radius`;
-- capsule axial resize -> endpoint separation/length;
-- future obstacle recipe -> its semantic dimensions (`width`, `height`, `length`, `angle`, `gap`, `spacing`, etc.);
-- imported mesh/scan -> scale semantics remain open and must be decided from a real source/consumer slice rather than inferred from primitives.
+- box -> dimensions / `halfExtents`;
+- capsule radial -> `radius`;
+- capsule axial -> endpoints/separation/length;
+- obstacle recipes -> semantic width/height/length/angle/gap/spacing etc.;
+- imported mesh/scan scale remains open until a real source/consumer slice proves its meaning.
 
-This distinction is supported by HomeScan (`resize` as an editor operation with domain validation), VAW terrain authoring (`size`, `width`) and Native JV obstacle recipes (explicit parametric dimensions).
+### Center-preserving box Resize was rejected as the default UX
 
-## 6. Map model: what exists versus what it means
+Original G2 used Three scale handles as a transient proposal and preserved the box center. The owner tested that build and classified the stage as viable/PASS for continuing, but immediately rejected center Resize as the desired default for map construction.
 
-Current `box | capsule` entities are **P0 primitive geometry**, not the final Map ontology.
+Owner requirement now grounded as the Box V2 hypothesis:
 
-Do not infer from the current prototype that every future map item is one primitive entity. Current donor and consumer evidence requires us to leave room for at least these representation classes:
+- default: drag one boundary/face, keep the opposite face fixed;
+- modifier working hypothesis: `Alt` = symmetric resize from center;
+- exact numeric dimensions may remain center-preserving exact authoring;
+- capsule also needs resize later;
+- Map needs World/Local control, but World Resize semantics must not be faked.
 
-1. **primitive geometry** — boxes/capsules and possibly later other simple collision primitives;
-2. **parametric authored recipes** — ramps, steps, whoops, berms, obstacle banks and similar domain constructs compiled into one or many primitives/meshes;
-3. **terrain/heightfield** — large continuous sampled surfaces with their own regeneration/source semantics;
-4. **imported mesh/scan geometry** — externally sourced geometry whose visual and collision representations may differ;
-5. **layout/semantic constructs** — spawn/anchors, zones, routes, entrances/exits, test stations and future gameplay/test metadata.
+### Stock Three scale cannot represent signed-face or World Resize correctly
 
-This is a classification boundary, not a command to implement five systems now.
+Inspection of the exact Three TransformControls behavior established:
 
-## 7. Donor grounding
+- positive and negative scale pickers for one axis collapse to the same `X/Y/Z` axis identity;
+- scale mode forces local orientation internally regardless of the transform `space` setting.
 
-Donor code is evidence and a library of techniques, not an authority over JURE ontology.
+Therefore:
 
-### 7.1 Harvest rule
+- do not infer `+X/-X` from generic Three scale state;
+- do not expose a `World Resize` toggle backed by stock Three scale;
+- Box Face Resize V2 uses explicit signed faces and its own input path;
+- World Resize remains a separate geometry-semantics problem.
 
-For every donor use:
+## 5. Box Face Resize V2 contract
 
-1. identify the exact live donor revision/file;
-2. identify the smallest proven capability needed;
-3. list donor-specific assumptions;
-4. rewrite/adapt the capability against JURE contracts when practical instead of importing a subsystem wholesale;
-5. add a JURE-specific test or owner gate proving the transfer actually helps;
-6. preserve third-party licensing obligations where applicable.
+Face identity is explicit:
 
-This follows the donor doctrine already used by PROJECT ANVIL.
+`axis ('x'|'y'|'z') + side (-1|+1)`
 
-### 7.2 HomeScan-Web-Builder
+Six box boundaries exist:
 
-Strong donor for editor interaction mechanics:
+`-X +X -Y +Y -Z +Z`
 
-- explicit transform sessions;
-- `resize` as a first-class operation rather than generic scene scaling;
-- pivot/orientation/axis constraints;
-- snapping;
-- numeric input;
-- preview + validation + command commit;
-- domain resize planning that verifies geometric invariants before commit.
+### Default: opposite-face anchored
 
-Use these as interaction patterns. Do not import HomeScan building ontology into JURE.
+Dragging a signed face changes that local box dimension and shifts the authored rigid center so the opposite local face remains fixed in world space.
 
-### 7.3 Voxel Aeronautics Workshop
+This invariant must survive authored rotation.
 
-Useful donors:
+### Alt: center origin
 
-- terrain/patch authoring with domain dimensions such as `size` and `width`;
-- snapping/target-result techniques;
-- explicit separation of renderer-only terrain appearance from gameplay/collision authority.
+During the same active drag, `Alt` switches the resize origin to the center. The pose remains at the original center and the opposite boundary mirrors the dragged side.
 
-Do not import VAW’s vehicle/build taxonomy into JURE Map.
+Switching anchored -> center -> anchored must always re-evaluate against the same frozen preview baseline. It must not compound prior previews.
 
-### 7.4 JV-Web
+### Exact dimensions
 
-Useful real consumer/falsifier:
+Inspector Dimensions are precise authored values and intentionally preserve the box center. They share domain/history infrastructure with viewport authoring but do not have to mimic a face drag.
 
-- explicit JURE consumer boundary already exists;
-- `JvWorldData` uses explicit primitive dimensions and the same coordinate basis;
-- scene package separates render and collision sources;
-- current Box3D lowering confirms primitives do not require generic transform scale.
+### Degeneracy / inversion
 
-Do not freeze `JvWorldData` as the JURE authored schema. Consumer lowering must stay explicit.
+Interactive face drag must clamp before an authored box inverts or becomes exactly degenerate. This is a tool-interaction guard only, not a global authored minimum. Exact numeric authoring remains governed by the MapDocument finite-positive contract.
 
-### 7.5 Native JV / Box3d_FunProject
+### Pointer mapping
 
-Important map lessons:
+Spatial drag maps the pointer ray to a signed scalar along the selected authored face axis. If the viewing ray is nearly parallel to that axis, the mapping is ill-conditioned and must fail closed/suppress the handle rather than inventing an arbitrary screen multiplier.
 
-- accepted terrain foundation uses explicit world layout + tiled plate + procedural heightfield;
-- obstacle kit uses semantic parameters (`length`, `width`, `height`, `radius`, `angle`, `count`, `spacing`, etc.);
-- scan collision reader produces raw collision-ready geometry in lab metres without mixing renderer/physics dependencies;
-- historical map audit proved that green validators can validate tables while the built geometry is wrong;
-- product gates and geometric/runtime gates must therefore remain separate;
-- owner sign-off checkpoints must be real stop gates, not suggestions.
+### Lifecycle
 
-JURE should eventually make these classes of mistakes easier to see before lowering into a consumer.
+- no-op drag -> cancel/no new revision;
+- pointer release after preview -> commit;
+- `Esc`, pointer cancel, blur -> cancel;
+- handle meshes may be destroyed/reprojected during preview and must not own semantic drag state;
+- Move/Rotate continue to use stock TransformControls; Resize uses the custom signed-face path.
 
-## 8. Candidate shared Editor Core — not all frozen
+The exact current evidence and owner-gate status are recorded in `docs/STATUS.md`.
 
-### Proven now
+## 6. World / Local grounding
 
-- revisioned editor session/history lifecycle.
+### Move / Rotate
 
-### Strong candidates requiring another real use before broad extraction
+World/Local already exists in accepted Rig interaction and is a strong candidate for the Map Stage-1 follow-up after Box Face Resize V2 owner acceptance.
 
-- workspace navigation;
+### Resize
+
+Local face Resize is currently defined.
+
+World Resize is deliberately **not defined yet**. For an arbitrarily rotated primitive, moving a world-axis boundary may imply multiple local dimensions, shear, orientation change or a different geometry representation. Do not hide that ambiguity behind a UI toggle.
+
+A later real use case must define what World Resize means per geometry class before implementation.
+
+## 7. Capsule is the next independent shape falsifier
+
+Do not force capsule through box semantics merely to claim genericity.
+
+At minimum distinguish:
+
+- axial/end-point or length authoring;
+- radial/radius authoring.
+
+Whether center/anchored modifiers and handle layout transfer from the box must be validated by a real capsule implementation and owner gate.
+
+## 8. Map model boundary
+
+Current `box | capsule` entities are P0 primitive geometry, not final Map ontology.
+
+Leave architecture open to:
+
+1. primitive geometry;
+2. parametric authored recipes (ramps, steps, whoops, berms, obstacle banks, etc.);
+3. terrain/heightfield;
+4. imported mesh/scan geometry;
+5. semantic layout constructs (spawns, anchors, zones, routes, test stations, etc.).
+
+This classification is a design guard, not an instruction to implement all classes now.
+
+## 9. Donor grounding
+
+Donor code is evidence and technique, not authority over JURE ontology.
+
+For every donor transfer:
+
+1. identify the exact donor revision/file;
+2. isolate the smallest proven capability;
+3. identify donor-specific assumptions;
+4. adapt against JURE contracts instead of transplanting the subsystem wholesale;
+5. add JURE-specific evidence/owner validation;
+6. preserve licensing obligations.
+
+High-value donors currently identified:
+
+- **HomeScan-Web-Builder** — transform sessions, resize as a domain operation, axis/pivot constraints, snapping, numeric input, validated preview/commit;
+- **Voxel Aeronautics Workshop** — authored terrain dimensions and render/gameplay authority separation;
+- **JV-Web** — real JURE consumer boundary, explicit primitive dimensions, render/collision source separation and compatible basis;
+- **Native JV / Box3d_FunProject** — tiled/heightfield terrain, semantic obstacle recipes, scan collision geometry, and evidence that green data validators can miss wrong built geometry;
+- **PROJECT ANVIL** — smallest-proven-capability donor doctrine.
+
+## 10. Candidate shared Editor Core
+
+### Proven shared now
+
+- revisioned editor session/history lifecycle;
+- small workspace routing contract.
+
+### Strong candidates, not yet automatically shared
+
 - selection contract;
-- transform interaction lifecycle;
+- transform lifecycle;
 - transform-space/pivot/axis constraint representation;
 - numeric input;
 - snapping;
-- command diagnostics/validation presentation;
-- common viewport camera/focus utilities;
-- file/session dirty-state UX.
+- diagnostics/validation presentation;
+- camera/focus utilities;
+- document dirty-state UX;
+- panel/shell primitives.
 
-Rule: when Rig and Map independently need the same capability, compare the actual requirements first. Extract the smallest intersection only after both sides exist.
+Rule: compare actual Rig and Map requirements first, then extract only the smallest common intersection.
 
-## 9. Explicitly provisional / not frozen
+## 11. Interface grounding / separate Stage 2
 
-- current `MapDocument` entity taxonomy;
-- `visual: collision-proxy | none`;
+Owner comparison of current Rig and Map surfaces established that Map reads as a separate application attached by routing. This is a real product-system issue, not merely color polish.
+
+Live Rig already contains a more mature system around:
+
+- `WorkspaceShell`;
+- `ViewportChrome`;
+- `TopBar`;
+- inspector/navigator patterns;
+- shared design tokens in `styles.css`;
+- resizable/collapsible side panels and status chrome.
+
+Map currently maintains its own shell and CSS. That was acceptable for an isolated proof-of-viability slice, but must not become permanent duplication.
+
+**Do not mix this refactor into interaction grounding.**
+
+After Stage 1 semantics are stable, Stage 2 should:
+
+1. audit which Rig shell mechanics are genuinely shared versus Rig-specific;
+2. neutralize the smallest shared slot/component contract without changing accepted Rig behavior;
+3. migrate Map to the common JURE shell/tokens/primitives;
+4. validate visually and with the owner that Rig/Map feel like workspaces of one tool rather than two attached applications.
+
+Current names such as `rigPane/sourcePane` are not automatically universal merely because `WorkspaceShell` is reusable mechanically.
+
+## 12. Explicitly provisional / not frozen
+
+- final Map entity/object taxonomy;
+- collision-proxy-only visual model;
 - friction-only surface model;
-- final map file extension/package structure;
-- source asset/texture/material model;
-- mesh and scan instance transform semantics;
-- capsule resize semantics and gizmo UX;
-- hierarchy / scene graph / ECS / plugin model;
+- final map extension/package/interchange format;
+- materials/textures/source asset model;
+- mesh/scan transform/scale semantics;
+- capsule resize UX;
+- World Resize semantics;
+- hierarchy/scene graph/ECS/plugin model;
 - streaming/partitioning;
-- URL-query workspace routing as final UX;
-- final Map/Rig panel layouts;
-- Test/Simulation workspace composition;
+- URL query routing as final UX;
+- final Map/Rig panel composition;
+- Test/Simulation workspace;
 - final JURE -> JV/JV-Web lowering schema;
-- PR screenshot/owner-preview workflow as permanent infrastructure.
+- PR screenshot/owner-preview scaffolding as permanent infrastructure.
 
-Do not build architectural abstractions around these as if already decided.
+Do not build broad abstractions around these as if they were decided.
 
-## 10. Validation doctrine for the next foundation work
+## 13. Validation doctrine
 
-Every substantial slice should distinguish at least:
+Substantial slices should distinguish:
 
-1. **schema/unit tests** — invariants, deterministic state, command semantics;
-2. **built geometry tests** — inspect the actual generated geometry, bounds and topological/clearance properties where relevant;
-3. **render evidence** — catches empty, misplaced, overlapped or visually misleading output;
-4. **consumer/runtime evidence** — only when the slice crosses into JV/JV-Web/Box3D;
-5. **owner interaction gate** — ergonomics, spatial readability and product value.
+1. schema/unit evidence;
+2. built geometry/invariant evidence where relevant;
+3. render evidence;
+4. consumer/runtime evidence when crossing into JV/JV-Web/Box3D;
+5. owner interaction/product gate.
 
 No one category substitutes for the others.
 
-## 11. Grounded next sequence
+Historical Native JV map work is an explicit warning: green tables/tests can coexist with wrong built geometry.
 
-Do not jump to mesh import, full terrain editing or a universal scene framework yet.
+## 14. Controlled next sequence
 
-Recommended next controlled sequence:
+### Stage 1 — interaction / authoring completion
 
-### G1 — repair workspace symmetry
+1. Box Face Resize V2: technical implementation/evidence -> owner spatial gate.
+2. Map World/Local for Move/Rotate using accepted Rig behavior; keep Resize local until World Resize is semantically defined.
+3. Capsule axial/radial Resize as an independent falsifier.
+4. Tactical interaction polish only; avoid large shell redesign.
 
-- one small shared workspace navigation helper;
-- Rig -> Map and Map -> Rig use the same contract;
-- preserve unrelated query parameters;
-- add deterministic routing tests;
-- full repo check + browser smoke.
+### Stage 2 — interface unification
 
-### G2 — ground transform/resize semantics on one primitive
+After Stage 1 interaction semantics stabilize, migrate Map to a genuinely shared JURE shell/design system while preserving Rig as the regression baseline.
 
-Use box only as the first falsifier:
+### Broader map grounding after those stages
 
-- add a `Resize` authoring command that changes `halfExtents`, not pose scale;
-- expose Scale-like handles if ergonomically useful;
-- preserve center for symmetric resize;
-- enforce positive/minimum extents;
-- preview/commit/cancel/undo/redo;
-- add numeric extent editing if needed to validate exact authoring;
-- owner test before generalizing.
+- create/delete/duplicate;
+- deterministic map save/open;
+- one real non-primitive representation to falsify primitive-only assumptions;
+- consumer lowering only through explicit adapters/contracts.
 
-### G3 — second shape falsifier
+Do not jump to a universal scene framework, ECS/plugin system or full terrain editor before evidence requires it.
 
-Only after box Resize works, design capsule resize. Radial and axial resize have different semantics; do not force them through the box implementation merely to claim genericity.
+## 15. Stop condition for the broader foundation phase
 
-### G4 — authoring operations
+The JURE Map foundation is not complete because one primitive can be manipulated.
 
-Once transforms are grounded, evaluate the smallest useful create/delete/duplicate workflow and map save/open. These are prerequisites for a real authoring tool, but they should use the grounded command/session model rather than bypass it.
+Meaningful grounding requires at least:
 
-### G5 — first non-primitive representation
+- Rig and Map coexist without authored-domain contamination;
+- shared mechanics are extracted only where multiple domains prove the overlap;
+- Map has owner-accepted real geometry authoring beyond rigid pose;
+- tested authored state survives deterministic save/open;
+- at least one non-primitive representation challenges the primitive-only model;
+- relevant technical, render, geometry/runtime and owner gates are explicit;
+- the next JV/JV-Web consumer boundary can be described without turning JURE into a runtime-schema copy.
 
-Choose one real need from Native JV/VAW/JV-Web — likely a parametric obstacle recipe or terrain/mesh slice — specifically to falsify the primitive-only MapDocument design. Do not implement all representation classes at once.
-
-## 12. Stop condition for this grounding phase
-
-The foundation phase is not complete merely because a map can be manipulated.
-
-It becomes meaningfully grounded when:
-
-- Rig and Map coexist symmetrically without contaminating each other;
-- shared editor mechanics are extracted only where two domains prove them;
-- Map supports a real geometry-authoring operation beyond rigid pose;
-- authored state survives deterministic save/open for the tested map slice;
-- at least one non-primitive world representation falsifies or validates the current Map architecture;
-- technical, render and owner gates all exist for the relevant slice;
-- the next consumer boundary can be described without making JURE a copy of JV runtime.
-
-Until then, PR #5 remains an experimental foundation lane, not a final JURE platform release.
+Until then PR #5 remains an experimental foundation lane, not a final JURE platform release.
