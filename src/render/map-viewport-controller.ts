@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { closestAxisParameterToRay } from '../features/map-resize/axis-drag.js';
+import {
+  mapBoxFaceFrame,
+  type MapAxis,
+  type MapBoxResizeOrigin,
+  type MapFaceSide,
+} from '../features/map-resize/box-face-resize.js';
 import type { MapDocument, MapEntity, MapRigidPose, MapVec3, MapVisual } from '../map/types.js';
 
 export type MapTransformMode = 'translate' | 'rotate' | 'resize';
@@ -9,10 +16,46 @@ export interface MapViewportCallbacks {
   onSelect(entityId: string | null): void;
   onTransformStart(entityId: string): void;
   onTransformPreview(entityId: string, pose: MapRigidPose): void;
-  onResizePreview?(entityId: string, scale: MapVec3): void;
+  onBoxFaceResizePreview?(
+    entityId: string,
+    axis: MapAxis,
+    side: MapFaceSide,
+    outwardDelta: number,
+    origin: MapBoxResizeOrigin,
+  ): void;
   onTransformCommit(entityId: string): void;
   onTransformCancel(entityId: string): void;
 }
+
+interface BoxProjection {
+  pose: MapRigidPose;
+  halfExtents: MapVec3;
+}
+
+interface ResizeHandleTarget {
+  entityId: string;
+  axis: MapAxis;
+  side: MapFaceSide;
+  center: THREE.Vector3;
+  outwardNormal: THREE.Vector3;
+}
+
+interface ActiveFaceResizeDrag {
+  pointerId: number;
+  entityId: string;
+  axis: MapAxis;
+  side: MapFaceSide;
+  axisOrigin: THREE.Vector3;
+  outwardNormal: THREE.Vector3;
+  startAxisParameter: number;
+  lastOutwardDelta: number;
+  lastOrigin: MapBoxResizeOrigin;
+  didPreview: boolean;
+}
+
+const RESIZE_AXES: MapAxis[] = ['x', 'y', 'z'];
+const RESIZE_SIDES: MapFaceSide[] = [-1, 1];
+const HANDLE_AXIS_HIDE_ALIGNMENT = 0.985;
 
 function materialForVisual(visual: MapVisual, selected: boolean): THREE.MeshStandardMaterial {
   if (selected) {
@@ -42,6 +85,20 @@ function midpoint(a: MapVec3, b: MapVec3): THREE.Vector3 {
   return new THREE.Vector3((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, (a.z + b.z) * 0.5);
 }
 
+function toThree(value: MapVec3): THREE.Vector3 {
+  return new THREE.Vector3(value.x, value.y, value.z);
+}
+
+function toMap(value: THREE.Vector3): MapVec3 {
+  return { x: value.x, y: value.y, z: value.z };
+}
+
+function resizeAxisColor(axis: MapAxis): number {
+  if (axis === 'x') return 0xf15b5b;
+  if (axis === 'y') return 0x65d86e;
+  return 0x6278ff;
+}
+
 export class MapViewportController {
   readonly scene = new THREE.Scene();
   private readonly renderer: THREE.WebGLRenderer;
@@ -50,12 +107,14 @@ export class MapViewportController {
   private readonly transform: TransformControls;
   private readonly mapRoot = new THREE.Group();
   private readonly spawnRoot = new THREE.Group();
+  private readonly resizeHandleRoot = new THREE.Group();
   private readonly selectedProxy = new THREE.Object3D();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly selectable = new Map<THREE.Object3D, string>();
   private readonly entityPoses = new Map<string, MapRigidPose>();
-  private readonly resizableBoxes = new Set<string>();
+  private readonly boxProjections = new Map<string, BoxProjection>();
+  private readonly resizeHandleTargets = new Map<THREE.Object3D, ResizeHandleTarget>();
   private selectedEntityId: string | null = null;
   private resizeObserver: ResizeObserver;
   private animationFrame = 0;
@@ -63,6 +122,8 @@ export class MapViewportController {
   private transformMode: MapTransformMode = 'translate';
   private transformDragActive = false;
   private transformCancelRequested = false;
+  private activeFaceResizeDrag: ActiveFaceResizeDrag | null = null;
+  private hoveredResizeHandle: THREE.Object3D | null = null;
   private fittedInitialDocument = false;
 
   constructor(private readonly host: HTMLElement, callbacks: MapViewportCallbacks) {
@@ -86,7 +147,13 @@ export class MapViewportController {
     this.transform.setSpace('world');
     this.transform.setSize(0.85);
 
-    this.scene.add(this.mapRoot, this.spawnRoot, this.selectedProxy, this.transform.getHelper());
+    this.scene.add(
+      this.mapRoot,
+      this.spawnRoot,
+      this.resizeHandleRoot,
+      this.selectedProxy,
+      this.transform.getHelper(),
+    );
 
     const grid = new THREE.GridHelper(40, 80, 0x3f4852, 0x252b31);
     this.scene.add(grid);
@@ -98,8 +165,7 @@ export class MapViewportController {
 
     this.transform.addEventListener('mouseDown', () => {
       const entityId = this.selectedEntityId;
-      if (!entityId || !this.entityPoses.has(entityId)) return;
-      if (this.transformMode === 'resize' && !this.resizableBoxes.has(entityId)) return;
+      if (this.transformMode === 'resize' || !entityId || !this.entityPoses.has(entityId)) return;
       this.transformDragActive = true;
       this.transformCancelRequested = false;
       this.orbit.enabled = false;
@@ -107,31 +173,32 @@ export class MapViewportController {
     });
     this.transform.addEventListener('objectChange', () => {
       const entityId = this.selectedEntityId;
-      if (!this.transformDragActive || this.transformCancelRequested || !entityId) return;
-      if (this.transformMode === 'resize') {
-        this.callbacks.onResizePreview?.(entityId, this.readProxyScale());
-        return;
-      }
+      if (this.transformMode === 'resize' || !this.transformDragActive || this.transformCancelRequested || !entityId) return;
       this.callbacks.onTransformPreview(entityId, this.readProxyPose());
     });
     this.transform.addEventListener('dragging-changed', (event) => {
+      if (this.activeFaceResizeDrag) return;
       const dragging = Boolean((event as { value?: boolean }).value);
       this.orbit.enabled = !dragging;
     });
     this.transform.addEventListener('mouseUp', () => {
+      if (this.transformMode === 'resize') return;
       this.orbit.enabled = true;
       const entityId = this.selectedEntityId;
       if (!this.transformDragActive || this.transformCancelRequested || !entityId) {
-        this.resetDragState();
+        this.resetTransformDragState();
         return;
       }
       this.callbacks.onTransformCommit(entityId);
-      this.resetDragState();
+      this.resetTransformDragState();
     });
 
-    this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
-    this.renderer.domElement.addEventListener('pointercancel', this.onPointerCancel);
+    this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown, true);
+    this.renderer.domElement.addEventListener('pointermove', this.onPointerMove, true);
+    this.renderer.domElement.addEventListener('pointerup', this.onPointerUp, true);
+    this.renderer.domElement.addEventListener('pointercancel', this.onPointerCancel, true);
     this.host.ownerDocument.defaultView?.addEventListener('keydown', this.onWindowKeyDown);
+    this.host.ownerDocument.defaultView?.addEventListener('keyup', this.onWindowKeyUp);
     this.host.ownerDocument.defaultView?.addEventListener('blur', this.onWindowBlur);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -145,20 +212,27 @@ export class MapViewportController {
   }
 
   setTransformMode(mode: MapTransformMode): void {
-    if (this.transformDragActive && mode !== this.transformMode) this.cancelActiveTransform();
+    if ((this.transformDragActive || this.activeFaceResizeDrag) && mode !== this.transformMode) {
+      this.cancelActiveInteraction();
+    }
     this.transformMode = mode;
-    this.transform.setMode(mode === 'resize' ? 'scale' : mode);
-    this.syncTransformProxy();
+    if (mode !== 'resize') this.transform.setMode(mode);
+    this.syncInteractionWidgets();
   }
 
   setDocument(document: MapDocument, selectedEntityId: string | null): void {
-    if (this.transformDragActive && this.selectedEntityId !== selectedEntityId) this.cancelActiveTransform();
+    if (
+      (this.transformDragActive || this.activeFaceResizeDrag)
+      && this.selectedEntityId !== selectedEntityId
+    ) {
+      this.cancelActiveInteraction();
+    }
 
     this.disposeChildren(this.mapRoot);
     this.disposeChildren(this.spawnRoot);
     this.selectable.clear();
     this.entityPoses.clear();
-    this.resizableBoxes.clear();
+    this.boxProjections.clear();
 
     for (const entity of document.entities) {
       const object = this.createEntityObject(entity, entity.id === selectedEntityId);
@@ -169,7 +243,12 @@ export class MapViewportController {
         if (child instanceof THREE.Mesh) this.selectable.set(child, entity.id);
       });
       this.entityPoses.set(entity.id, entity.pose);
-      if (entity.collision.kind === 'box') this.resizableBoxes.add(entity.id);
+      if (entity.collision.kind === 'box') {
+        this.boxProjections.set(entity.id, {
+          pose: entity.pose,
+          halfExtents: entity.collision.halfExtents,
+        });
+      }
     }
 
     for (const spawn of document.spawnPoints) {
@@ -187,7 +266,7 @@ export class MapViewportController {
     }
 
     this.selectedEntityId = selectedEntityId;
-    this.syncTransformProxy();
+    this.syncInteractionWidgets();
 
     if (!this.fittedInitialDocument && document.entities.length > 0) {
       this.fittedInitialDocument = true;
@@ -223,16 +302,21 @@ export class MapViewportController {
       this.transform.reset();
       this.transform.pointerUp(null);
     }
+    this.clearActiveFaceResizeDrag(false);
     cancelAnimationFrame(this.animationFrame);
     this.resizeObserver.disconnect();
-    this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
-    this.renderer.domElement.removeEventListener('pointercancel', this.onPointerCancel);
+    this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown, true);
+    this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove, true);
+    this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp, true);
+    this.renderer.domElement.removeEventListener('pointercancel', this.onPointerCancel, true);
     this.host.ownerDocument.defaultView?.removeEventListener('keydown', this.onWindowKeyDown);
+    this.host.ownerDocument.defaultView?.removeEventListener('keyup', this.onWindowKeyUp);
     this.host.ownerDocument.defaultView?.removeEventListener('blur', this.onWindowBlur);
     this.orbit.dispose();
     this.transform.dispose();
     this.disposeChildren(this.mapRoot);
     this.disposeChildren(this.spawnRoot);
+    this.disposeChildren(this.resizeHandleRoot);
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }
@@ -266,22 +350,87 @@ export class MapViewportController {
     return group;
   }
 
+  private syncInteractionWidgets(): void {
+    this.syncTransformProxy();
+    this.syncResizeHandles();
+  }
+
   private syncTransformProxy(): void {
     const entityId = this.selectedEntityId;
-    if (!entityId) {
+    if (this.transformMode === 'resize' || !entityId) {
       this.transform.detach();
       return;
     }
     const pose = this.entityPoses.get(entityId);
-    if (!pose || (this.transformMode === 'resize' && !this.resizableBoxes.has(entityId))) {
+    if (!pose) {
       this.transform.detach();
       return;
     }
     this.applyPose(this.selectedProxy, pose);
-    if (!(this.transformDragActive && this.transformMode === 'resize')) {
-      this.selectedProxy.scale.set(1, 1, 1);
-    }
+    this.selectedProxy.scale.set(1, 1, 1);
     this.transform.attach(this.selectedProxy);
+  }
+
+  private syncResizeHandles(): void {
+    this.disposeChildren(this.resizeHandleRoot);
+    this.resizeHandleTargets.clear();
+    this.hoveredResizeHandle = null;
+
+    const entityId = this.selectedEntityId;
+    if (this.transformMode !== 'resize' || !entityId) return;
+    const box = this.boxProjections.get(entityId);
+    if (!box) return;
+
+    for (const axis of RESIZE_AXES) {
+      for (const side of RESIZE_SIDES) {
+        const frame = mapBoxFaceFrame(box.pose, box.halfExtents, axis, side);
+        const material = new THREE.MeshBasicMaterial({
+          color: resizeAxisColor(axis),
+          transparent: true,
+          opacity: 0.9,
+          depthTest: false,
+          depthWrite: false,
+        });
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+        handle.renderOrder = 40;
+        this.resizeHandleRoot.add(handle);
+        this.resizeHandleTargets.set(handle, {
+          entityId,
+          axis,
+          side,
+          center: toThree(frame.center),
+          outwardNormal: toThree(frame.outwardNormal).normalize(),
+        });
+      }
+    }
+    this.updateResizeHandleAppearance();
+  }
+
+  private updateResizeHandleAppearance(): void {
+    for (const [handle, target] of this.resizeHandleTargets) {
+      const cameraVector = this.camera.position.clone().sub(target.center);
+      const distance = Math.max(cameraVector.length(), 0.01);
+      const viewDirection = cameraVector.normalize();
+      const alignment = Math.abs(viewDirection.dot(target.outwardNormal));
+      const active = this.activeFaceResizeDrag;
+      const isActiveHandle = Boolean(
+        active
+        && active.entityId === target.entityId
+        && active.axis === target.axis
+        && active.side === target.side,
+      );
+      handle.visible = isActiveHandle || alignment < HANDLE_AXIS_HIDE_ALIGNMENT;
+
+      const baseSize = THREE.MathUtils.clamp(distance * 0.018, 0.08, 0.32);
+      const hovered = handle === this.hoveredResizeHandle;
+      const size = baseSize * (hovered || isActiveHandle ? 1.22 : 1);
+      handle.position.copy(target.center).addScaledVector(target.outwardNormal, baseSize * 0.68);
+      handle.scale.setScalar(size);
+
+      const material = (handle as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      const facesCamera = target.outwardNormal.dot(viewDirection) > 0;
+      material.opacity = hovered || isActiveHandle ? 1 : (facesCamera ? 0.92 : 0.46);
+    }
   }
 
   private readProxyPose(): MapRigidPose {
@@ -300,17 +449,112 @@ export class MapViewportController {
     };
   }
 
-  private readProxyScale(): MapVec3 {
-    return {
-      x: this.selectedProxy.scale.x,
-      y: this.selectedProxy.scale.y,
-      z: this.selectedProxy.scale.z,
-    };
-  }
-
   private applyPose(object: THREE.Object3D, pose: MapRigidPose): void {
     object.position.set(pose.position.x, pose.position.y, pose.position.z);
     object.quaternion.set(pose.rotation.x, pose.rotation.y, pose.rotation.z, pose.rotation.w);
+  }
+
+  private updatePointerRay(event: PointerEvent): void {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.set(
+      ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1,
+      -((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+  }
+
+  private axisParameterForCurrentRay(origin: THREE.Vector3, direction: THREE.Vector3): number | null {
+    return closestAxisParameterToRay(
+      toMap(origin),
+      toMap(direction),
+      toMap(this.raycaster.ray.origin),
+      toMap(this.raycaster.ray.direction),
+    );
+  }
+
+  private beginFaceResize(event: PointerEvent, target: ResizeHandleTarget): boolean {
+    this.updatePointerRay(event);
+    const startAxisParameter = this.axisParameterForCurrentRay(target.center, target.outwardNormal);
+    if (startAxisParameter === null) return false;
+
+    this.activeFaceResizeDrag = {
+      pointerId: event.pointerId,
+      entityId: target.entityId,
+      axis: target.axis,
+      side: target.side,
+      axisOrigin: target.center.clone(),
+      outwardNormal: target.outwardNormal.clone(),
+      startAxisParameter,
+      lastOutwardDelta: 0,
+      lastOrigin: event.altKey ? 'center' : 'opposite-face',
+      didPreview: false,
+    };
+    this.orbit.enabled = false;
+    this.callbacks.onTransformStart(target.entityId);
+    try { this.renderer.domElement.setPointerCapture(event.pointerId); } catch { /* pointer capture is best effort */ }
+    this.renderer.domElement.style.cursor = 'grabbing';
+    return true;
+  }
+
+  private previewActiveFaceResize(origin: MapBoxResizeOrigin): void {
+    const active = this.activeFaceResizeDrag;
+    if (!active || !active.didPreview) return;
+    active.lastOrigin = origin;
+    this.callbacks.onBoxFaceResizePreview?.(
+      active.entityId,
+      active.axis,
+      active.side,
+      active.lastOutwardDelta,
+      origin,
+    );
+  }
+
+  private updateFaceResizeDrag(event: PointerEvent): void {
+    const active = this.activeFaceResizeDrag;
+    if (!active || event.pointerId !== active.pointerId) return;
+    this.updatePointerRay(event);
+    const currentAxisParameter = this.axisParameterForCurrentRay(active.axisOrigin, active.outwardNormal);
+    if (currentAxisParameter === null) return;
+
+    const outwardDelta = currentAxisParameter - active.startAxisParameter;
+    if (!Number.isFinite(outwardDelta)) return;
+    const origin: MapBoxResizeOrigin = event.altKey ? 'center' : 'opposite-face';
+    active.lastOutwardDelta = outwardDelta;
+    active.lastOrigin = origin;
+
+    if (Math.abs(outwardDelta) <= 1e-10 && !active.didPreview) return;
+    active.didPreview = true;
+    this.callbacks.onBoxFaceResizePreview?.(
+      active.entityId,
+      active.axis,
+      active.side,
+      outwardDelta,
+      origin,
+    );
+  }
+
+  private finishActiveFaceResize(event: PointerEvent): void {
+    const active = this.activeFaceResizeDrag;
+    if (!active || event.pointerId !== active.pointerId) return;
+    const entityId = active.entityId;
+    const shouldCommit = active.didPreview;
+    this.clearActiveFaceResizeDrag(false);
+    if (shouldCommit) this.callbacks.onTransformCommit(entityId);
+    else this.callbacks.onTransformCancel(entityId);
+  }
+
+  private clearActiveFaceResizeDrag(notifyCancel: boolean): void {
+    const active = this.activeFaceResizeDrag;
+    if (!active) return;
+    this.activeFaceResizeDrag = null;
+    this.orbit.enabled = true;
+    try {
+      if (this.renderer.domElement.hasPointerCapture(active.pointerId)) {
+        this.renderer.domElement.releasePointerCapture(active.pointerId);
+      }
+    } catch { /* pointer capture is best effort */ }
+    this.renderer.domElement.style.cursor = '';
+    if (notifyCancel) this.callbacks.onTransformCancel(active.entityId);
   }
 
   private cancelActiveTransform(): void {
@@ -323,34 +567,93 @@ export class MapViewportController {
     this.orbit.enabled = true;
   }
 
-  private resetDragState(): void {
+  private cancelActiveInteraction(): void {
+    if (this.activeFaceResizeDrag) {
+      this.clearActiveFaceResizeDrag(true);
+      return;
+    }
+    this.cancelActiveTransform();
+  }
+
+  private resetTransformDragState(): void {
     this.transformDragActive = false;
     this.transformCancelRequested = false;
     this.selectedProxy.scale.set(1, 1, 1);
   }
 
   private onPointerDown = (event: PointerEvent): void => {
-    if (this.transform.dragging || this.transform.axis !== null) return;
-    const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointer.set(
-      ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1,
-      -((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 + 1,
-    );
-    this.raycaster.setFromCamera(this.pointer, this.camera);
+    if (this.activeFaceResizeDrag) return;
+    this.updatePointerRay(event);
+
+    if (this.transformMode === 'resize') {
+      const handles = [...this.resizeHandleTargets.keys()].filter((handle) => handle.visible);
+      const handleHit = this.raycaster.intersectObjects(handles, false)[0];
+      if (handleHit) {
+        const target = this.resizeHandleTargets.get(handleHit.object);
+        if (target && this.beginFaceResize(event, target)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return;
+        }
+      }
+    } else if (this.transform.dragging || this.transform.axis !== null) {
+      return;
+    }
+
     const hits = this.raycaster.intersectObjects([...this.selectable.keys()], false);
     this.callbacks.onSelect(hits.length > 0 ? this.selectable.get(hits[0].object) ?? null : null);
   };
 
-  private onPointerCancel = (): void => {
+  private onPointerMove = (event: PointerEvent): void => {
+    if (this.activeFaceResizeDrag) {
+      this.updateFaceResizeDrag(event);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (this.transformMode !== 'resize') return;
+
+    this.updatePointerRay(event);
+    const handles = [...this.resizeHandleTargets.keys()].filter((handle) => handle.visible);
+    const hit = this.raycaster.intersectObjects(handles, false)[0]?.object ?? null;
+    this.hoveredResizeHandle = hit;
+    this.renderer.domElement.style.cursor = hit ? 'grab' : '';
+  };
+
+  private onPointerUp = (event: PointerEvent): void => {
+    if (!this.activeFaceResizeDrag) return;
+    this.finishActiveFaceResize(event);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  private onPointerCancel = (event: PointerEvent): void => {
+    if (this.activeFaceResizeDrag && event.pointerId === this.activeFaceResizeDrag.pointerId) {
+      this.clearActiveFaceResizeDrag(true);
+      event.stopImmediatePropagation();
+      return;
+    }
     this.cancelActiveTransform();
   };
 
   private onWindowKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') this.cancelActiveTransform();
+    if (event.key === 'Escape') {
+      this.cancelActiveInteraction();
+      return;
+    }
+    if (event.key === 'Alt' && this.activeFaceResizeDrag) {
+      this.previewActiveFaceResize('center');
+    }
+  };
+
+  private onWindowKeyUp = (event: KeyboardEvent): void => {
+    if (event.key === 'Alt' && this.activeFaceResizeDrag) {
+      this.previewActiveFaceResize('opposite-face');
+    }
   };
 
   private onWindowBlur = (): void => {
-    this.cancelActiveTransform();
+    this.cancelActiveInteraction();
   };
 
   private resize(): void {
@@ -364,6 +667,7 @@ export class MapViewportController {
   private animate = (): void => {
     this.animationFrame = requestAnimationFrame(this.animate);
     this.orbit.update();
+    if (this.transformMode === 'resize') this.updateResizeHandleAppearance();
     this.renderer.render(this.scene, this.camera);
   };
 
