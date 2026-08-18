@@ -8,9 +8,12 @@ import {
   type MapBoxResizeOrigin,
   type MapFaceSide,
 } from '../features/map-resize/box-face-resize.js';
+import {
+  effectiveMapTransformSpace,
+  type MapTransformMode,
+  type MapTransformSpace,
+} from '../features/map-transform/space.js';
 import type { MapDocument, MapEntity, MapRigidPose, MapVec3, MapVisual } from '../map/types.js';
-
-export type MapTransformMode = 'translate' | 'rotate' | 'resize';
 
 export interface MapViewportCallbacks {
   onSelect(entityId: string | null): void;
@@ -141,6 +144,7 @@ export class MapViewportController {
   private animationFrame = 0;
   private callbacks: MapViewportCallbacks;
   private transformMode: MapTransformMode = 'translate';
+  private transformSpace: MapTransformSpace = 'world';
   private transformDragActive = false;
   private transformCancelRequested = false;
   private activeFaceResizeDrag: ActiveFaceResizeDrag | null = null;
@@ -238,7 +242,13 @@ export class MapViewportController {
     }
     this.transformMode = mode;
     if (mode !== 'resize') this.transform.setMode(mode);
+    this.transform.setSpace(effectiveMapTransformSpace(mode, this.transformSpace));
     this.syncInteractionWidgets();
+  }
+
+  setTransformSpace(space: MapTransformSpace): void {
+    this.transformSpace = space;
+    this.transform.setSpace(effectiveMapTransformSpace(this.transformMode, space));
   }
 
   setDocument(document: MapDocument, selectedEntityId: string | null): void {
