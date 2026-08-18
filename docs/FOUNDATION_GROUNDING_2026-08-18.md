@@ -100,10 +100,10 @@ Examples:
 
 Original G2 used Three scale handles as a transient proposal and preserved the box center. The owner tested that build and classified the stage as viable/PASS for continuing, but immediately rejected center Resize as the desired default for map construction.
 
-Owner requirement now grounded as the Box V2 hypothesis:
+Owner requirement grounded for Box V2:
 
 - default: drag one boundary/face, keep the opposite face fixed;
-- modifier working hypothesis: `Alt` = symmetric resize from center;
+- modifier: `Alt` requests symmetric resize from center;
 - exact numeric dimensions may remain center-preserving exact authoring;
 - capsule also needs resize later;
 - Map needs World/Local control, but World Resize semantics must not be faked.
@@ -121,6 +121,22 @@ Therefore:
 - do not expose a `World Resize` toggle backed by stock Three scale;
 - Box Face Resize V2 uses explicit signed faces and its own input path;
 - World Resize remains a separate geometry-semantics problem.
+
+### First Box Face Resize V2 owner test almost passed, but exposed real input and affordance failures
+
+The owner tested the custom signed-face implementation in a real Windows browser and reported the underlying behavior works as planned enough to classify the checkpoint as **almost PASS**:
+
+- signed face dragging works;
+- default opposite-face-fixed behavior is useful in practice;
+- Undo/Redo works;
+- the face-boundary interaction is preferable to center-preserving default Resize.
+
+Two concrete failures were owner-observed:
+
+1. pressing `Alt` switched to center behavior, but releasing Alt during the same pointer drag cancelled the command instead of returning to anchored mode;
+2. six detached colored cube handles were too raw and ambiguous compared with JURE's mature transform gizmo language. They exposed selectable locations but did not communicate axis direction, face relationship or current anchored/center semantics clearly enough.
+
+These findings **do not reopen** the signed-face planner, rigid-pose/no-generic-scale decision, opposite-face invariant or atomic history model. The closeout problem is narrower: real browser modifier lifecycle + renderer affordance.
 
 ## 5. Box Face Resize V2 contract
 
@@ -142,7 +158,9 @@ This invariant must survive authored rotation.
 
 During the same active drag, `Alt` switches the resize origin to the center. The pose remains at the original center and the opposite boundary mirrors the dragged side.
 
-Switching anchored -> center -> anchored must always re-evaluate against the same frozen preview baseline. It must not compound prior previews.
+Switching anchored -> center -> anchored must always re-evaluate against the same frozen preview baseline. It must not compound prior previews or create a revision until pointer release.
+
+The planner/session implementation already proves this synthetically. Real browser delivery of Alt press/release is a separate interaction-layer concern and must be owner-tested.
 
 ### Exact dimensions
 
@@ -160,9 +178,32 @@ Spatial drag maps the pointer ray to a signed scalar along the selected authored
 
 - no-op drag -> cancel/no new revision;
 - pointer release after preview -> commit;
-- `Esc`, pointer cancel, blur -> cancel;
+- explicit `Esc` -> cancel;
+- pointer cancellation -> cancel;
+- loss of the application/window may still cancel as a safety path;
+- browser/system behavior caused merely by using the `Alt` modifier must **not** be misclassified as the user's intent to cancel;
 - handle meshes may be destroyed/reprojected during preview and must not own semantic drag state;
 - Move/Rotate continue to use stock TransformControls; Resize uses the custom signed-face path.
+
+Current closeout uses capturing key listeners while Resize is active to suppress the browser's default `Alt` action without stopping propagation to JURE's existing `keydown/keyup` handlers. Existing explicit cancel paths remain intact. This is deliberately narrower than globally removing blur or pointer-cancel safety. If owner re-test still reproduces cancellation, gather the actual event provenance rather than weakening cancellation semantics blindly.
+
+### Resize visual language
+
+Resize should look like a member of the same JURE manipulation-tool family as Move/Rotate without pretending to be stock Scale.
+
+Required semantic affordance:
+
+- the control belongs to a concrete signed authored face;
+- the allowed drag direction is visible;
+- front/back spatial relationship remains legible;
+- anchored mode communicates the opposite fixed boundary;
+- center mode communicates symmetric pairing and the center origin.
+
+The current closeout representation therefore uses, per signed face:
+
+`depth-aware face plate -> short axis stem -> cube grip`
+
+with stronger front controls and ghosted rear controls. Anchored mode marks the opposite face as fixed; center mode presents the opposite control as paired and shows a center cue. This representation remains disposable renderer UI; it does not alter authored semantics.
 
 The exact current evidence and owner-gate status are recorded in `docs/STATUS.md`.
 
@@ -170,7 +211,7 @@ The exact current evidence and owner-gate status are recorded in `docs/STATUS.md
 
 ### Move / Rotate
 
-World/Local already exists in accepted Rig interaction and is a strong candidate for the Map Stage-1 follow-up after Box Face Resize V2 owner acceptance.
+World/Local already exists in accepted Rig interaction and is a strong candidate for the Map Stage-1 follow-up only after Box Face Resize V2 receives a full owner PASS.
 
 ### Resize
 
@@ -190,6 +231,8 @@ At minimum distinguish:
 - radial/radius authoring.
 
 Whether center/anchored modifiers and handle layout transfer from the box must be validated by a real capsule implementation and owner gate.
+
+Do not start capsule work before the current Box Face Resize closeout receives owner acceptance.
 
 ## 8. Map model boundary
 
@@ -305,16 +348,25 @@ Substantial slices should distinguish:
 
 No one category substitutes for the others.
 
-Historical Native JV map work is an explicit warning: green tables/tests can coexist with wrong built geometry.
+The current Face Resize closeout is a concrete example: planner/history tests stayed green while the real Windows/browser Alt lifecycle still failed. The owner gate therefore has authority over the synthetic assumption for that interaction layer.
+
+Historical Native JV map work is another explicit warning: green tables/tests can coexist with wrong built geometry.
 
 ## 14. Controlled next sequence
 
-### Stage 1 — interaction / authoring completion
+### Current closeout gate
 
-1. Box Face Resize V2: technical implementation/evidence -> owner spatial gate.
-2. Map World/Local for Move/Rotate using accepted Rig behavior; keep Resize local until World Resize is semantically defined.
-3. Capsule axial/radial Resize as an independent falsifier.
-4. Tactical interaction polish only; avoid large shell redesign.
+1. Re-test Box Face Resize V2 with the Alt browser-default suppression and the revised face plate/stem/grip controls.
+2. Require one continuous pointer drag to survive repeated `anchored -> Alt center -> anchored` switching without cancellation or jump.
+3. Require the revised visual language to be materially clearer than detached cube handles.
+4. Preserve Esc/pointer-cancel, Undo/Redo and rotated-box behavior.
+5. Only an explicit owner PASS closes this checkpoint.
+
+### Stage 1 — interaction / authoring completion after closeout PASS
+
+1. Map World/Local for Move/Rotate using accepted Rig behavior; keep Resize local until World Resize is semantically defined.
+2. Capsule axial/radial Resize as an independent falsifier.
+3. Tactical interaction polish only; avoid large shell redesign.
 
 ### Stage 2 — interface unification
 
