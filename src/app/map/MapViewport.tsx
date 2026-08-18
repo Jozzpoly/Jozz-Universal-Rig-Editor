@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { MapDocument, MapRigidPose, MapVec3 } from '../../map/types.js';
+import type { MapAxis, MapBoxResizeOrigin, MapFaceSide } from '../../features/map-resize/box-face-resize.js';
+import type { MapDocument, MapRigidPose } from '../../map/types.js';
 import { MapViewportController, type MapTransformMode } from '../../render/map-viewport-controller.js';
 
 interface MapViewportProps {
@@ -10,7 +11,13 @@ interface MapViewportProps {
   onSelect(entityId: string | null): void;
   onTransformStart(entityId: string): void;
   onTransformPreview(entityId: string, pose: MapRigidPose): void;
-  onResizePreview?(entityId: string, scale: MapVec3): void;
+  onBoxFaceResizePreview?(
+    entityId: string,
+    axis: MapAxis,
+    side: MapFaceSide,
+    outwardDelta: number,
+    origin: MapBoxResizeOrigin,
+  ): void;
   onTransformCommit(entityId: string): void;
   onTransformCancel(entityId: string): void;
 }
@@ -33,7 +40,14 @@ export function MapViewport(props: MapViewportProps) {
 
   useEffect(() => {
     controllerRef.current?.setCallbacks(props);
-  }, [props.onSelect, props.onTransformStart, props.onTransformPreview, props.onResizePreview, props.onTransformCommit, props.onTransformCancel]);
+  }, [
+    props.onSelect,
+    props.onTransformStart,
+    props.onTransformPreview,
+    props.onBoxFaceResizePreview,
+    props.onTransformCommit,
+    props.onTransformCancel,
+  ]);
 
   useEffect(() => {
     controllerRef.current?.setDocument(props.document, props.selectedEntityId);
