@@ -38,6 +38,14 @@ interface ResizeHandleTarget {
   side: MapFaceSide;
   center: THREE.Vector3;
   outwardNormal: THREE.Vector3;
+  orientation: THREE.Quaternion;
+}
+
+interface ResizeHandleVisual {
+  target: ResizeHandleTarget;
+  facePlate: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  stem: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
+  head: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial>;
 }
 
 interface ActiveFaceResizeDrag {
@@ -56,6 +64,8 @@ interface ActiveFaceResizeDrag {
 const RESIZE_AXES: MapAxis[] = ['x', 'y', 'z'];
 const RESIZE_SIDES: MapFaceSide[] = [-1, 1];
 const HANDLE_AXIS_HIDE_ALIGNMENT = 0.985;
+const RESIZE_FIXED_CUE_COLOR = 0xe7edf5;
+const RESIZE_CENTER_CUE_COLOR = 0xf4f7fb;
 
 function materialForVisual(visual: MapVisual, selected: boolean): THREE.MeshStandardMaterial {
   if (selected) {
@@ -99,6 +109,15 @@ function resizeAxisColor(axis: MapAxis): number {
   return 0x6278ff;
 }
 
+function sameResizeTarget(a: ResizeHandleTarget | undefined, b: ResizeHandleTarget): boolean {
+  return Boolean(
+    a
+    && a.entityId === b.entityId
+    && a.axis === b.axis
+    && a.side === b.side,
+  );
+}
+
 export class MapViewportController {
   readonly scene = new THREE.Scene();
   private readonly renderer: THREE.WebGLRenderer;
@@ -115,7 +134,9 @@ export class MapViewportController {
   private readonly entityPoses = new Map<string, MapRigidPose>();
   private readonly boxProjections = new Map<string, BoxProjection>();
   private readonly resizeHandleTargets = new Map<THREE.Object3D, ResizeHandleTarget>();
+  private readonly resizeHandleVisuals: ResizeHandleVisual[] = [];
   private selectedEntityId: string | null = null;
+  private resizeCenterCue: THREE.Mesh<THREE.OctahedronGeometry, THREE.MeshBasicMaterial> | null = null;
   private resizeObserver: ResizeObserver;
   private animationFrame = 0;
   private callbacks: MapViewportCallbacks;
@@ -374,6 +395,8 @@ export class MapViewportController {
   private syncResizeHandles(): void {
     this.disposeChildren(this.resizeHandleRoot);
     this.resizeHandleTargets.clear();
+    this.resizeHandleVisuals.length = 0;
+    this.resizeCenterCue = null;
     this.hoveredResizeHandle = null;
 
     const entityId = this.selectedEntityId;
@@ -381,55 +404,179 @@ export class MapViewportController {
     const box = this.boxProjections.get(entityId);
     if (!box) return;
 
+    const orientation = new THREE.Quaternion(
+      box.pose.rotation.x,
+      box.pose.rotation.y,
+      box.pose.rotation.z,
+      box.pose.rotation.w,
+    );
+
     for (const axis of RESIZE_AXES) {
       for (const side of RESIZE_SIDES) {
         const frame = mapBoxFaceFrame(box.pose, box.halfExtents, axis, side);
-        const material = new THREE.MeshBasicMaterial({
-          color: resizeAxisColor(axis),
-          transparent: true,
-          opacity: 0.9,
-          depthTest: false,
-          depthWrite: false,
-        });
-        const handle = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
-        handle.renderOrder = 40;
-        this.resizeHandleRoot.add(handle);
-        this.resizeHandleTargets.set(handle, {
+        const target: ResizeHandleTarget = {
           entityId,
           axis,
           side,
           center: toThree(frame.center),
           outwardNormal: toThree(frame.outwardNormal).normalize(),
-        });
+          orientation: orientation.clone(),
+        };
+        const axisColor = resizeAxisColor(axis);
+        const facePlate = new THREE.Mesh(
+          new THREE.PlaneGeometry(1, 1),
+          new THREE.MeshBasicMaterial({
+            color: axisColor,
+            transparent: true,
+            opacity: 0.4,
+            depthTest: true,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          }),
+        );
+        const stem = new THREE.Mesh(
+          new THREE.CylinderGeometry(1, 1, 1, 10),
+          new THREE.MeshBasicMaterial({
+            color: axisColor,
+            transparent: true,
+            opacity: 0.75,
+            depthTest: false,
+            depthWrite: false,
+          }),
+        );
+        const head = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({
+            color: axisColor,
+            transparent: true,
+            opacity: 0.9,
+            depthTest: false,
+            depthWrite: false,
+          }),
+        );
+        facePlate.renderOrder = 38;
+        stem.renderOrder = 40;
+        head.renderOrder = 41;
+        this.resizeHandleRoot.add(facePlate, stem, head);
+        this.resizeHandleTargets.set(stem, target);
+        this.resizeHandleTargets.set(head, target);
+        this.resizeHandleVisuals.push({ target, facePlate, stem, head });
       }
     }
+
+    const centerCue = new THREE.Mesh(
+      new THREE.OctahedronGeometry(1, 0),
+      new THREE.MeshBasicMaterial({
+        color: RESIZE_CENTER_CUE_COLOR,
+        transparent: true,
+        opacity: 0.9,
+        depthTest: false,
+        depthWrite: false,
+        wireframe: true,
+      }),
+    );
+    centerCue.renderOrder = 45;
+    centerCue.visible = false;
+    this.resizeHandleRoot.add(centerCue);
+    this.resizeCenterCue = centerCue;
     this.updateResizeHandleAppearance();
   }
 
   private updateResizeHandleAppearance(): void {
-    for (const [handle, target] of this.resizeHandleTargets) {
+    const active = this.activeFaceResizeDrag;
+    const hoveredTarget = this.hoveredResizeHandle
+      ? this.resizeHandleTargets.get(this.hoveredResizeHandle)
+      : undefined;
+    const selectedBox = this.selectedEntityId ? this.boxProjections.get(this.selectedEntityId) : undefined;
+
+    if (this.resizeCenterCue) {
+      const showCenter = Boolean(active && active.lastOrigin === 'center' && selectedBox);
+      this.resizeCenterCue.visible = showCenter;
+      if (showCenter && selectedBox) {
+        const center = toThree(selectedBox.pose.position);
+        const distance = Math.max(this.camera.position.distanceTo(center), 0.01);
+        const size = THREE.MathUtils.clamp(distance * 0.011, 0.07, 0.2);
+        this.resizeCenterCue.position.copy(center);
+        this.resizeCenterCue.scale.setScalar(size);
+      }
+    }
+
+    for (const visual of this.resizeHandleVisuals) {
+      const { target, facePlate, stem, head } = visual;
       const cameraVector = this.camera.position.clone().sub(target.center);
       const distance = Math.max(cameraVector.length(), 0.01);
       const viewDirection = cameraVector.normalize();
       const alignment = Math.abs(viewDirection.dot(target.outwardNormal));
-      const active = this.activeFaceResizeDrag;
+      const facesCamera = target.outwardNormal.dot(viewDirection) > 0;
       const isActiveHandle = Boolean(
         active
         && active.entityId === target.entityId
         && active.axis === target.axis
         && active.side === target.side,
       );
-      handle.visible = isActiveHandle || alignment < HANDLE_AXIS_HIDE_ALIGNMENT;
+      const isOppositeHandle = Boolean(
+        active
+        && active.entityId === target.entityId
+        && active.axis === target.axis
+        && active.side === -target.side,
+      );
+      const isFixedCue = isOppositeHandle && active?.lastOrigin === 'opposite-face';
+      const isCenterPair = isOppositeHandle && active?.lastOrigin === 'center';
+      const hovered = sameResizeTarget(hoveredTarget, target);
+      const visible = isActiveHandle || isFixedCue || isCenterPair || alignment < HANDLE_AXIS_HIDE_ALIGNMENT;
+      facePlate.visible = visible;
+      stem.visible = visible;
+      head.visible = visible;
+      if (!visible) continue;
 
       const baseSize = THREE.MathUtils.clamp(distance * 0.018, 0.08, 0.32);
-      const hovered = handle === this.hoveredResizeHandle;
-      const size = baseSize * (hovered || isActiveHandle ? 1.22 : 1);
-      handle.position.copy(target.center).addScaledVector(target.outwardNormal, baseSize * 0.68);
-      handle.scale.setScalar(size);
+      const headScale = baseSize * (hovered || isActiveHandle ? 1.08 : (isCenterPair ? 1 : 0.9));
+      const stemLength = baseSize * (hovered || isActiveHandle ? 1.85 : 1.65);
+      const stemRadius = baseSize * (hovered || isActiveHandle ? 0.13 : 0.105);
+      const plateScale = baseSize * (hovered || isActiveHandle || isFixedCue || isCenterPair ? 1.65 : 1.38);
 
-      const material = (handle as THREE.Mesh).material as THREE.MeshBasicMaterial;
-      const facesCamera = target.outwardNormal.dot(viewDirection) > 0;
-      material.opacity = hovered || isActiveHandle ? 1 : (facesCamera ? 0.92 : 0.46);
+      facePlate.position.copy(target.center).addScaledVector(target.outwardNormal, 0.004);
+      facePlate.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), target.outwardNormal);
+      facePlate.scale.set(plateScale, plateScale, 1);
+
+      stem.position.copy(target.center).addScaledVector(target.outwardNormal, stemLength * 0.5 + baseSize * 0.1);
+      stem.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), target.outwardNormal);
+      stem.scale.set(stemRadius, stemLength, stemRadius);
+
+      head.position.copy(target.center).addScaledVector(target.outwardNormal, stemLength + baseSize * 0.18);
+      head.quaternion.copy(target.orientation);
+      head.scale.setScalar(headScale);
+
+      const axisColor = resizeAxisColor(target.axis);
+      const faceMaterial = facePlate.material;
+      const stemMaterial = stem.material;
+      const headMaterial = head.material;
+
+      faceMaterial.color.setHex(isFixedCue ? RESIZE_FIXED_CUE_COLOR : axisColor);
+      stemMaterial.color.setHex(axisColor);
+      headMaterial.color.setHex(axisColor);
+
+      if (isActiveHandle || hovered) {
+        faceMaterial.opacity = 0.82;
+        stemMaterial.opacity = 1;
+        headMaterial.opacity = 1;
+      } else if (isCenterPair) {
+        faceMaterial.opacity = 0.58;
+        stemMaterial.opacity = 0.78;
+        headMaterial.opacity = 0.88;
+      } else if (isFixedCue) {
+        faceMaterial.opacity = 0.9;
+        stemMaterial.opacity = 0.28;
+        headMaterial.opacity = 0.38;
+      } else if (facesCamera) {
+        faceMaterial.opacity = 0.42;
+        stemMaterial.opacity = 0.72;
+        headMaterial.opacity = 0.9;
+      } else {
+        faceMaterial.opacity = 0.08;
+        stemMaterial.opacity = 0.18;
+        headMaterial.opacity = 0.28;
+      }
     }
   }
 
