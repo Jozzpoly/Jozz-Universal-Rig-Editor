@@ -6,6 +6,7 @@ const {
   planMapBoxFaceResize,
   setMapBoxFaceResizeResult,
 } = await import('../../.core-dist/features/map-resize/box-face-resize.js');
+const { closestAxisParameterToRay } = await import('../../.core-dist/features/map-resize/axis-drag.js');
 const { MAP_BOX_MIN_HALF_EXTENT } = await import('../../.core-dist/features/map-resize/box-resize.js');
 const { SYNTHETIC_MAP } = await import('../../.core-dist/fixtures/synthetic-map.js');
 const sessionApi = await import('../../.core-dist/editor/session.js');
@@ -184,4 +185,59 @@ test('anchored pose and geometry commit atomically through one preview command',
   assert.deepEqual(redone.pose, result.pose);
   assert.equal(redone.collision.kind, 'box');
   assert.deepEqual(redone.collision.halfExtents, result.halfExtents);
+});
+
+test('pointer ray maps to stable signed distance on a face axis independent of camera offset', () => {
+  const axisOrigin = { x: 0, y: 0, z: 0 };
+  const axisDirection = { x: 1, y: 0, z: 0 };
+
+  const start = closestAxisParameterToRay(
+    axisOrigin,
+    axisDirection,
+    { x: 0, y: 5, z: 10 },
+    { x: 0, y: -0.5, z: -1 },
+  );
+  const moved = closestAxisParameterToRay(
+    axisOrigin,
+    axisDirection,
+    { x: 0, y: 5, z: 10 },
+    { x: 2, y: -5, z: -10 },
+  );
+
+  assert.notEqual(start, null);
+  assert.notEqual(moved, null);
+  approx(start, 0);
+  approx(moved, 2);
+});
+
+test('axis drag fails closed when the pointer ray is parallel or input is invalid', () => {
+  assert.equal(
+    closestAxisParameterToRay(
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 0, z: 10 },
+      { x: 1, y: 0, z: 0 },
+    ),
+    null,
+  );
+
+  assert.throws(
+    () => closestAxisParameterToRay(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: -1 },
+    ),
+    /non-zero length/,
+  );
+  assert.throws(
+    () => closestAxisParameterToRay(
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 0, z: 10 },
+      { x: 0, y: 0, z: -1 },
+      0,
+    ),
+    /parallel epsilon/,
+  );
 });
