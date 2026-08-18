@@ -147,13 +147,17 @@ jobs:
           Windows:
           1. Double-click START_MAP_PREVIEW.cmd
           2. The browser opens directly in the experimental Map workspace.
-          3. Select Ground slab. Test Move/Rotate and Resize on individual axes and uniformly.
-          4. During Resize press Esc and confirm the box returns exactly to its pre-drag dimensions.
-          5. Commit a Resize, then test Undo/Redo. Edit exact Dimensions X/Y/Z in the Inspector and verify the same history path.
-          6. Select Bumper and confirm Resize is intentionally unavailable in this G2 build while Move/Rotate still work.
-          7. Click Rig Workspace, then Map Workspace, to verify symmetric navigation and the accepted Rig entry.
-          8. Close the command window (or press Ctrl+C) to stop the local preview server.
+          3. Select Ground slab, then Resize. Six colored signed face handles should replace the old Three scale gizmo.
+          4. Drag several faces separately. By default the opposite face should remain fixed while the box center moves as required.
+          5. During the same kind of drag hold Alt: Resize should switch to symmetric center-origin behavior. Release Alt and it should return to anchored behavior from the same frozen baseline.
+          6. During active Resize press Esc and confirm pose + dimensions return exactly to their pre-drag state. Also test pointer release, Undo and Redo after a committed face Resize.
+          7. Rotate the Ground slab, then Resize again. Handles should follow local box faces and the opposite local face should remain spatially fixed.
+          8. Edit exact Dimensions X/Y/Z in the Inspector. Numeric dimensions intentionally preserve the box center and use the same authored history.
+          9. Select Bumper and confirm Resize is intentionally unavailable until capsule axial/radial semantics are grounded; Move/Rotate must still work.
+          10. Click Rig Workspace, then Map Workspace, to verify symmetric navigation and the accepted Rig entry.
+          11. Close the command window (or press Ctrl+C) to stop the local preview server.
 
+          Current scope: Box Face Resize V2 owner gate. World Resize and capsule Resize are intentionally not implemented in this checkpoint.
           This artifact is a local preview only. It does not modify an existing JURE checkout.
           EOF
       - name: Smoke owner preview package
