@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import type { MapAxis, MapBoxResizeOrigin, MapFaceSide } from '../../features/map-resize/box-face-resize.js';
+import type { MapTransformMode, MapTransformSpace } from '../../features/map-transform/space.js';
 import type { MapDocument, MapRigidPose } from '../../map/types.js';
-import { MapViewportController, type MapTransformMode } from '../../render/map-viewport-controller.js';
+import { MapViewportController } from '../../render/map-viewport-controller.js';
 
 interface MapViewportProps {
   document: MapDocument;
   selectedEntityId: string | null;
   transformMode: MapTransformMode;
+  transformSpace: MapTransformSpace;
   fitRequest: number;
   onSelect(entityId: string | null): void;
   onTransformStart(entityId: string): void;
@@ -32,6 +34,7 @@ export function MapViewport(props: MapViewportProps) {
     controllerRef.current = controller;
     controller.setDocument(props.document, props.selectedEntityId);
     controller.setTransformMode(props.transformMode);
+    controller.setTransformSpace(props.transformSpace);
     return () => {
       controller.dispose();
       controllerRef.current = null;
@@ -56,6 +59,10 @@ export function MapViewport(props: MapViewportProps) {
   useEffect(() => {
     controllerRef.current?.setTransformMode(props.transformMode);
   }, [props.transformMode]);
+
+  useEffect(() => {
+    controllerRef.current?.setTransformSpace(props.transformSpace);
+  }, [props.transformSpace]);
 
   useEffect(() => {
     if (props.transformMode !== 'resize') return;
