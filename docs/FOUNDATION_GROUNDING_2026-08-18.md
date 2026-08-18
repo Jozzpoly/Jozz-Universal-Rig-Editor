@@ -205,6 +205,12 @@ The current closeout representation therefore uses, per signed face:
 
 with stronger front controls and ghosted rear controls. Anchored mode marks the opposite face as fixed; center mode presents the opposite control as paired and shows a center cue. This representation remains disposable renderer UI; it does not alter authored semantics.
 
+The latest **product-code** checkpoint implementing this closeout is:
+
+`fe201d26dc2ca93c51b9261f555ee0b88bab7df4`
+
+Subsequent branch-head changes may update owner-test instructions and these canonical documents. Treat those later documentation-only heads as delivery/evidence synchronization, not as additional product behavior.
+
 The exact current evidence and owner-gate status are recorded in `docs/STATUS.md`.
 
 ## 6. World / Local grounding
