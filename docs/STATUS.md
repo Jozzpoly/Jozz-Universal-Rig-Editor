@@ -2,195 +2,215 @@
 
 ## Current state
 
-The owner-tested Rig foundation remains the accepted baseline. A separate experimental Map authoring lane is active on draft PR #5. The first Map proof-of-viability slice was owner-tested, and the next grounded slice — **G2 box Resize** — is now implemented and technically validated but still awaits owner interaction validation for spatial drag ergonomics.
+The owner-tested Rig foundation remains the accepted baseline. The experimental Map authoring lane remains isolated on draft PR #5; `main` is not changed by this work.
 
-The Map slice is **working but not fundamentally complete**. The active grounding contract is:
+The first Map proof-of-viability and the original G2 box Resize were both owner-tested. G2 proved that shape-aware Resize can author box dimensions without adding generic scale to `MapRigidPose`, but the owner **rejected center-preserving symmetric Resize as the default map-authoring interaction**. The replacement interaction — **Box Face Resize V2** — is now implemented and technically validated. Its real spatial feel still requires the owner gate before this substage is considered ergonomically grounded.
+
+The Map slice is working but the broader fundamentalization phase is not complete. Active grounding contract:
 
 `docs/FOUNDATION_GROUNDING_2026-08-18.md`
-
-That document distinguishes durable evidence-backed foundation from provisional experiments and defines the stop condition for the current fundamentalization phase.
 
 ## Accepted Rig baseline
 
 - rigid `RigElement` and owner-local `RigFrame` authoring;
-- Move/Rotate, world/local, numeric XYZ degree editing over quaternion storage;
-- preview/commit/cancel, undo/redo, deterministic RigDocument save/open;
-- free inspection camera with Focus/Fit helpers;
-- read-only glTF/GLB SOURCE loading with SHA-256, deterministic locators, datum markers/axes, and independent SOURCE selection;
-- viewport-first resizable/collapsible RIG/SOURCE/Inspector workspace with presentation-layer visibility controls.
+- Move/Rotate with World/Local and exact numeric editing;
+- preview/commit/cancel and undo/redo;
+- deterministic RigDocument save/open;
+- free inspection camera and Focus/Fit helpers;
+- read-only glTF/GLB SOURCE inspection and provenance;
+- viewport-first resizable/collapsible navigator/viewport/inspector workspace.
 
-The current Rig UI is an accepted engineering baseline, not a promise that the final JURE information architecture stays identical.
+The Rig UI is the accepted current quality/reference baseline for the later JURE interface-unification stage. It is not evidence that every Rig-specific panel or name belongs in a universal shell.
 
 ## Experimental Map foundation
 
-The map work remains isolated from the accepted Rig authored model. Default application entry is Rig; `?workspace=map` enters Map Lab. Workspace routing is now a small shared symmetric contract: Rig can enter Map and Map can return to Rig without separate ad-hoc query manipulation.
-
-Implemented map foundation:
+Implemented and still supported:
 
 - independent `MapDocument` authored truth;
-- explicit metre/right-handed `+X` forward, `+Y` up, `+Z` right coordinate contract;
-- stable global IDs for spawn points and map entities;
-- rigid map poses without generic transform scale;
-- box and capsule P0 primitive geometry;
-- independent collision-proxy/none visual intent and surface friction;
-- deterministic canonical parse/serialize round-trip;
-- fail-closed malformed/unsupported geometry, identity, basis, pose, visual and surface validation;
-- map entity pose command with quaternion normalization and missing-target failure;
-- shared generic revisioned `EditorSession<Document>` proven by both RigDocument and MapDocument while domain commands remain domain-owned;
-- dedicated Map Lab viewport with box/capsule projection, spawn marker, selection, OrbitControls, Move/Rotate, preview/commit/cancel, Esc/blur cancel, Undo/Redo and Fit Map;
-- symmetric Rig <-> Map workspace navigation with deterministic tests;
-- G2 box-only shape-aware Resize using Three scale handles only as a transient proposal source while authored geometry changes `halfExtents`;
-- baseline-relative Resize math that prevents compounding across repeated preview events and keeps rigid pose unchanged;
-- exact user-facing box `Dimensions · m` editing that round-trips through authored `halfExtents` and uses the same command/history path as gizmo Resize;
-- capsule Resize intentionally unavailable until its distinct radius/length semantics are grounded;
-- dedicated Map navigator/inspector without refactoring the accepted Rig WorkspaceShell or Rig viewport.
+- metre/right-handed `+X` forward, `+Y` up, `+Z` right basis;
+- stable authored IDs;
+- rigid position+rotation poses with no generic authored scale;
+- P0 box/capsule geometry;
+- deterministic parse/serialize and fail-closed validation;
+- shared generic `EditorSession<Document>` with domain-owned commands;
+- Map viewport projection, selection, OrbitControls, Move/Rotate, preview/commit/cancel, Undo/Redo and Fit Map;
+- symmetric Rig <-> Map workspace routing;
+- exact user-facing box `Dimensions · m` authoring through `halfExtents`;
+- dedicated Map navigator/inspector, still intentionally separate from the accepted Rig shell during the interaction-grounding stage.
 
-## Owner validation — first Map Lab slice
+Current box Resize architecture:
 
-Owner-tested preview source head:
+`custom signed face handle -> pointer ray / authored face axis proposal -> frozen-baseline face-resize planner -> atomic pose + halfExtents command -> EditorSession preview/commit`
+
+Three scene objects and handle meshes remain disposable projections; they never become authored authority.
+
+## Owner evidence
+
+### First Map Lab viability
+
+Owner-tested head:
 
 `3f5cea513ecb7c040285fc2f9604690d3fe13428`
 
-The owner opened the generated Windows preview in a real browser and preliminarily validated the build as working. The supplied screen/video evidence confirms practical Map Lab interaction including camera/orbit, Move/Rotate and Fit Map without an obvious authored-state/render desynchronization in the short test.
+Owner evidence confirmed practical camera/orbit, selection, Move/Rotate and Fit Map operation and classified the build as working enough to continue. It also exposed the original one-way workspace routing defect and the need for geometry authoring beyond rigid pose. Routing was repaired through one symmetric contract.
 
-The same owner test immediately found two important design facts:
+### Original G2 box Resize
 
-1. Map -> Rig navigation existed but Rig -> Map navigation did not. This was a real product defect and is now repaired through one symmetric routing helper.
-2. pose-only authoring is insufficient; practical map creation needs shape resizing/creation tools.
+Owner tested the center-preserving Scale-like box Resize plus exact dimensions and classified the stage overall as PASS for continuing development. That test produced a decisive UX falsification:
 
-The second finding did **not** prove that generic scale belongs in `MapRigidPose`. G2 therefore tests the narrower hypothesis: a familiar scale-like gizmo can drive a domain `Resize` operation whose authored meaning is explicit shape dimensions. For a box, Resize authors `halfExtents`; future capsule, obstacle recipe and imported mesh semantics remain separate questions.
+- symmetric center Resize is useful as a modifier behavior, not the desired default;
+- default map authoring should move only the dragged side while the opposite side stays fixed;
+- `Alt` is the preferred working hypothesis for temporary center/symmetric behavior;
+- Map also needs World/Local control and later capsule Resize;
+- Map UI currently reads as a separate application compared with the accepted Rig workspace, motivating a later **separate** interface-unification stage.
 
-The owner explicitly did **not** close the fundamentalization phase. The first validation proved the direction viable; G2 now needs its own owner interaction gate before box Resize is considered grounded ergonomically.
+The data/command architecture survived this falsification. The default interaction did not.
 
-## G2 box Resize — implemented, owner gate pending
+## Box Face Resize V2 — implementation complete, owner gate pending
 
-Current implementation deliberately separates four meanings:
+The stock Three scale gizmo was intentionally retired from Map Resize. Investigation of the exact Three transform control showed two blockers for the required semantics:
 
-`Three TransformControls scale -> transient scale proposal -> baseline-relative box resize math -> MapDocument halfExtents`
+- positive and negative scale pickers on one axis collapse to the same `X/Y/Z` axis identity, so the stock control cannot robustly tell which signed face the user grabbed;
+- Three scale mode forces local space internally, so a `World` toggle cannot honestly create World Resize semantics.
 
-Three `Object3D.scale` is never serialized or copied into `MapRigidPose`.
+Face Resize V2 therefore uses six explicit signed box faces:
 
-G2 currently proves technically:
+`-X +X -Y +Y -Z +Z`
 
-- box-only Resize can use Three scale handles without introducing generic authored pose scale;
-- each preview is calculated from the frozen drag-start box geometry rather than compounding the previous preview;
-- negative renderer proxy scale after crossing the center is interpreted as positive box dimension magnitude;
-- an exact-degeneracy tool floor prevents a transient gizmo from collapsing a box to zero volume;
-- that transient gizmo floor is **not** an authored schema limit: exact numeric dimensions remain valid for any finite positive value accepted by `MapDocument`;
-- resize changes geometry only and preserves rigid position/rotation;
-- preview/cancel/commit/undo/redo use the existing `EditorSession` lifecycle;
-- invalid dimensions, non-finite proposals, missing targets and non-box targets fail closed;
-- exact full dimensions in metres use the same authored command/history path as gizmo Resize;
-- selecting a capsule while Resize is active returns the Map tool to Move instead of pretending capsule semantics exist.
+Current semantics:
 
-Still unproved by the owner:
+- default `opposite-face`: dragged local face moves and the opposite local face remains spatially fixed;
+- the authored box center shifts by exactly the amount required to preserve that fixed face;
+- `Alt` switches the active drag to `center` mode from the same frozen baseline; releasing Alt returns to anchored mode without compounding;
+- rotated authored boxes preserve the same opposite-face invariant in world coordinates;
+- crossing through inversion is clamped at a transient tool degeneracy floor instead of flipping the authored box;
+- exact numeric Dimensions deliberately remain center-preserving exact authoring and are not constrained by the gizmo-only degeneracy floor;
+- no-op face drags cancel rather than creating a revision;
+- `Esc`, pointer cancel and window blur cancel the active preview;
+- pointer release commits through the same revision/history lifecycle;
+- capsule Resize remains unavailable rather than inheriting false box semantics.
 
-- the feel/readability of actual Resize handles during spatial drag;
-- whether center-preserving symmetric resize is useful enough or should later be supplemented by face/edge anchored resize;
-- practical behavior when dragging through/near zero;
-- whether the current full-document render rebuild during preview remains smooth on larger real maps.
+Renderer/input grounding:
 
-Do not generalize box Resize into a universal geometry transform system until those questions and the independent capsule case are tested.
+- face identity is explicit `axis + side`, not inferred from renderer scale;
+- pointer movement is projected to a signed world-space distance along the selected authored face axis;
+- ray/axis near-parallel views fail closed instead of producing arbitrary screen-space jumps;
+- handles near a spatially degenerate view are suppressed unless active;
+- handle size is approximately screen-stable and back-facing handles are de-emphasized;
+- active drag state stores stable semantic data rather than references to handle meshes, so the current full-document preview reprojection does not own the drag session;
+- stock `TransformControls` remains the Move/Rotate path only.
 
-## Current executed evidence
+Still unproved by automation and intentionally owner-gated:
 
-Latest code-bearing G2 checkpoint:
+- the actual tactile/readability quality of the six face handles;
+- whether Alt switching feels natural during a continuous real pointer drag;
+- whether hidden/de-emphasized handles behave well across the owner's normal camera angles;
+- practical smoothness of full-document reprojection on substantially larger maps.
 
-`d1cc32c282cc25db0c82f86b903b1ad89f4b4862`
+Do not start capsule generalization or claim Box Face Resize ergonomically accepted until this owner gate is exercised.
 
-GitHub Actions run `32081314194`, job `95544712152`:
+## Current exact-head evidence
+
+Latest code-bearing checkpoint:
+
+`0868e0443bc279371c6cc9a1b3090e902d8cd198`
+
+GitHub Actions run `32160998792`, job `95789592092`:
 
 - strict TypeScript PASS;
-- core suite **37/37 PASS**;
+- core suite **47/47 PASS**;
 - Vite production build PASS;
-- headless Chromium render PASS for default Rig and Map Lab;
+- headless Chromium default Rig render smoke PASS;
+- headless Chromium Map render smoke PASS;
 - generated Windows owner-preview package + HTTP smoke PASS.
 
-The preceding detailed evidence run on `5e5d8a797b9a0bd2a2d26336471dc306c307cc0f` also passed 37/37 tests, build, both render smokes and owner-preview smoke; its final screenshots were manually inspected: Rig remained intact with `Map Workspace`, and Map rendered normally with capsule selected and Resize correctly unavailable by default. The later `d1cc32c...` review fix only removed an unintended HTML minimum from exact numeric authoring so the gizmo anti-degeneracy floor cannot silently become an authored data restriction; that code-bearing head then passed the full workflow again.
+The 47 tests include explicit falsifiers for signed face identity, fixed opposite face, contraction, rotated-box world-space invariance, degeneracy, atomic pose+geometry preview/history, pointer-ray-to-axis distance, near-parallel fail-closed behavior and `anchored -> Alt center -> anchored` switching from one frozen baseline without compounding.
 
-A deeper local Playwright interaction pass was attempted from the exact generated `dist`, but the available system Chromium is administratively blocked from navigating to both localhost and an intercepted synthetic test origin (`ERR_BLOCKED_BY_ADMINISTRATOR`). This is recorded as a tooling limitation, not product evidence. No product code was changed to work around it.
+The browser smoke is render evidence, not spatial-interaction evidence. The available local Chromium fallback remains administratively blocked for localhost/synthetic navigation in this environment, so real pointer feel remains an owner gate rather than a simulated claim.
 
-The repository still has no lockfile, so Action installs are current dependency-resolution evidence rather than hermetic dependency reproduction. The Vite large-client-chunk warning also remains known tooling/performance debt and is not introduced specifically by G2.
+Known unrelated build warning: the Vite client chunk remains above the warning threshold. The repository also still has no lockfile, so Actions are current dependency-resolution evidence rather than hermetic dependency reproduction.
 
-## Map model — current boundary
+## Map model boundary
 
-Current box/capsule entities are a primitive proof slice, **not the final Map ontology**.
-
-Grounding evidence from JURE consumers and donor projects requires the architecture to remain open to at least:
+Current box/capsule entities are a primitive proof slice, **not the final Map ontology**. Keep architecture open to at least:
 
 - primitive geometry;
 - parametric obstacle/shape recipes;
 - terrain/heightfield;
 - imported mesh/scan geometry;
-- layout/semantic constructs such as spawns, anchors, zones/routes and test stations.
+- semantic layout constructs such as spawns, anchors, zones/routes and test stations.
 
-This is a classification boundary, not a command to implement all of those systems now.
+This is a classification boundary, not a request to implement every class now.
 
 ## Donor conclusions
 
-The project may harvest proven techniques from the owner's public/private repositories, but must not import whole product ontologies without evidence.
+Useful donors remain evidence and technique libraries, not ontology authorities:
 
-Current high-value donors:
-
-- **HomeScan-Web-Builder** — transform sessions, domain `resize`, axis/pivot constraints, snapping, numeric input and validated command commit;
-- **Voxel Aeronautics Workshop** — terrain/patch dimensions, placement/snapping patterns and explicit render-only vs gameplay authority;
-- **JV-Web** — real consumer boundary, explicit primitive dimensions, render/collision source separation and current JURE-compatible coordinate basis;
-- **Native JV / Box3d_FunProject** — accepted tiled/heightfield terrain, parametric obstacle recipes, scan collision geometry and historical evidence that green data validators can miss wrong built geometry;
-- **PROJECT ANVIL** — donor doctrine: transfer the smallest proven capability and adapt it to destination contracts instead of transplanting a subsystem.
+- **HomeScan-Web-Builder** — transform sessions, domain resize, axis/pivot constraints, snapping and numeric input;
+- **Voxel Aeronautics Workshop** — authored terrain/patch dimensions and render/gameplay separation;
+- **JV-Web** — real consumer boundary, explicit primitive dimensions and current compatible coordinate basis;
+- **Native JV / Box3d_FunProject** — terrain/obstacle/scan patterns and historical evidence that green data checks can miss wrong built geometry;
+- **PROJECT ANVIL** — transfer the smallest proven capability and adapt it to destination contracts.
 
 ## BIND-00 result
 
 BIND-00 remains a transient representation-binding prototype tested on the real `OneSided_Steering_Suspension_Rig.gltf`.
 
-Exact real SOURCE evidence used for the accepted SOURCE/BIND tests:
+Exact real SOURCE evidence:
 
-- file: `OneSided_Steering_Suspension_Rig.gltf`;
-- SHA-256: `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
-- self-contained glTF (embedded buffer/texture), 15 nodes / 14 joints / 1 skinned mesh in the tested revision;
-- the asset is not stored canonically in this repo. If reproduction requires it, obtain the exact file from the owner/File Library and verify the SHA before use rather than substituting historical JV geometry.
+- SHA-256 `fc1e8bd0e298a66fa79c43324708e281073ea8fb7a7aad2728702653705c0ee1`;
+- self-contained glTF, 15 nodes / 14 joints / 1 skinned mesh in the tested revision;
+- the asset is not stored canonically in this repo. Reproduction must use the owner's exact file and verify the SHA.
 
-What it proved:
+It proved one authored RigElement can drive one exact rigid skin joint through a stable rest offset while SOURCE remains independently inspectable. It also falsified the singleton `representationBinding`: a second binding replaces the first. BIND-00 therefore remains transient and un-serialized.
 
-- one authored `RigElement` can drive one exact rigid glTF skin joint through a stable rest offset;
-- the bound visual can follow authored Move/Rotate while the read-only SOURCE reference stays fixed;
-- SOURCE Geometry and Bound visibility can be inspected independently;
-- driving a source skin joint can produce useful real hierarchy/deformation instead of only moving the whole asset rigidly.
-
-What it falsified:
-
-- the prototype stores one global `representationBinding`; creating a second binding replaces the first, so the previous driven joint returns to its unmodified pose;
-- therefore the singleton binding model is not a viable final representation/assembly model.
-
-BIND-00 is deliberately transient and not serialized. Exact pre-cleanup owner-evidence checkpoint:
+Exact pre-cleanup owner-evidence checkpoint:
 
 `checkpoint/foundation-bind00-owner-tested-2026-08-15`
 
 ## Durable conclusions
 
-- `RigElement / RigFrame / RigRelation` remain the small authored rig kernel unless a real consumer falsifies them.
-- `MapDocument` remains a separate authored map model; it must not absorb renderer, Box3D or JV runtime ontology.
-- SOURCE reference, source provenance, authored rig, representation binding, transient preview, evaluated motion, runtime/display state and authored map truth are distinct meanings.
-- Shared infrastructure is extracted only when multiple real consumers prove the overlap; the generic editor session is the first proven case.
-- The transform proxy pattern remains valid: renderer proposes, domain command interprets, preview is disposable, commit changes authored truth.
-- Box G2 strengthens the case for shape-aware Resize without adding generic scale to rigid pose, but its spatial UX is not accepted until the owner tests the real gizmo.
-- Free camera/navigation and direct spatial inspection remain product requirements.
-- Do not freeze `JvWorldData`, Native JV structures or the current small MapDocument primitives as the final JURE map schema.
-- Do not fix BIND-00 by simply replacing the singleton with an array before the next real rig representation design pass.
+- `RigElement / RigFrame / RigRelation` remain the small authored rig kernel unless real evidence falsifies them.
+- `MapDocument` remains a separate authored map model and must not absorb renderer/Box3D/JV runtime ontology.
+- authored truth, SOURCE/reference, display projection, transient preview and runtime/evaluated state remain distinct meanings.
+- shared infrastructure is extracted only when multiple real consumers prove the overlap.
+- the transform/resize authority direction remains: renderer proposes, domain command interprets, preview is disposable, commit changes authored truth.
+- Box Resize now has stronger evidence for **boundary/face authoring**, not generic pose scale.
+- World Resize semantics remain deliberately open; stock Three scale does not solve them.
+- free camera/navigation and direct spatial inspection remain product requirements.
+- do not freeze JV runtime structures or current P0 primitives as final JURE map schemas.
 
-## Grounded next sequence
+## Two-stage next sequence
 
-1. **G1 complete:** symmetric Rig <-> Map workspace routing with tests and browser evidence.
-2. **G2 implementation complete / owner gate pending:** box shape-aware Resize + exact dimensions, preserving rigid pose and authored history semantics.
-3. After owner validation of G2, design capsule Resize independently; radial and axial semantics must not be forced through the box implementation merely to claim genericity.
-4. Ground create/delete/duplicate and deterministic map save/open.
-5. Then choose one real non-primitive representation (parametric obstacle, terrain/heightfield or imported mesh/scan) to falsify the primitive-only architecture.
+### Stage 1 — interaction / authoring completion
 
-Do not jump directly to a universal scene framework, ECS/plugin system or full terrain editor.
+1. **Box Face Resize V2:** implementation + technical gates complete; **owner spatial gate pending**.
+2. After owner acceptance, add Map World/Local for Move/Rotate using the already accepted Rig interaction model. World Resize remains a separate semantic design problem, not a fake toggle.
+3. Design and falsify capsule Resize independently: axial/end-point and radial/radius meanings must be explicit.
+4. Perform only tactical Map UI polish needed to expose the grounded interactions clearly.
+
+### Stage 2 — JURE interface unification (separate stage)
+
+After Stage 1 interaction semantics are stable:
+
+1. audit the accepted Rig `WorkspaceShell`, `ViewportChrome`, design tokens and panel primitives as the reference implementation;
+2. separate genuinely shared shell mechanics from Rig-specific slots/names;
+3. neutralize the smallest shared shell contract without changing accepted Rig behavior;
+4. migrate Map onto that common JURE UI system;
+5. use visual and owner gates to prove that Rig and Map read as workspaces of one application rather than two applications attached by routing.
+
+Do not mix Stage 2 refactoring into the current Box Face Resize owner gate.
+
+## Broader grounding sequence after those stages
+
+- create/delete/duplicate and deterministic map save/open;
+- then one real non-primitive representation (parametric obstacle, terrain/heightfield or imported mesh/scan) to falsify the primitive-only architecture;
+- only then consider larger scene/plugin abstractions if actual repeated requirements justify them.
 
 ## Known tooling debt
 
 - no `package-lock.json`; transitive installs are not fully reproducible;
 - current Vite output has a large client chunk warning;
-- current Map preview rebuilds the full primitive display projection on each preview document change; harmless for the tiny P0 fixture but not yet proven on E2R-class maps;
+- Map preview still rebuilds the full primitive display projection on each preview document update; acceptable for the tiny fixture, unproved at E2R scale;
 - PR browser screenshots and Windows owner-preview packaging are evidence scaffolding, not yet permanent product infrastructure;
-- Browser plugin is unavailable in the current session, and local fallback Chromium is blocked by administrator navigation policy, so G2 spatial interaction still requires the generated owner preview gate.
+- Browser plugin is unavailable in the current session and local fallback Chromium navigation is administratively blocked, so spatial interaction remains an explicit owner gate.
