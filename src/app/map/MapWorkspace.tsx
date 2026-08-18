@@ -20,9 +20,13 @@ import {
 } from '../../features/map-resize/box-face-resize.js';
 import { setMapBoxHalfExtents } from '../../features/map-resize/box-resize.js';
 import { setMapEntityPose } from '../../features/map-transform/command.js';
+import {
+  effectiveMapTransformSpace,
+  type MapTransformMode,
+  type MapTransformSpace,
+} from '../../features/map-transform/space.js';
 import { SYNTHETIC_MAP } from '../../fixtures/synthetic-map.js';
 import type { MapDocument, MapRigidPose, MapVec3 } from '../../map/types.js';
-import type { MapTransformMode } from '../../render/map-viewport-controller.js';
 import { workspaceSearch } from '../workspace/workspace-navigation.js';
 import { MapBoxDimensionsEditor } from './MapBoxDimensionsEditor.js';
 import { MapViewport } from './MapViewport.js';
@@ -40,6 +44,7 @@ export function MapWorkspace() {
   const [session, setSession] = useState<EditorSession<MapDocument>>(() => createEditorSession(SYNTHETIC_MAP));
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>('entity.bumper');
   const [transformMode, setTransformMode] = useState<MapTransformMode>('translate');
+  const [transformSpace, setTransformSpace] = useState<MapTransformSpace>('world');
   const [fitRequest, setFitRequest] = useState(0);
   const [status, setStatus] = useState('Synthetic map · authored primitive lab · unsaved');
 
@@ -48,6 +53,8 @@ export function MapWorkspace() {
     ? document.entities.find((entity) => entity.id === selectedEntityId) ?? null
     : null;
   const resizeAvailable = selectedEntity?.collision.kind === 'box';
+  const effectiveTransformSpace = effectiveMapTransformSpace(transformMode, transformSpace);
+  const spaceToggleDisabled = transformMode === 'resize' || Boolean(session.preview);
 
   const selectEntity = useCallback((entityId: string | null) => {
     setSelectedEntityId(entityId);
@@ -125,6 +132,15 @@ export function MapWorkspace() {
     setStatus(`Cancelled ${entityId} ${transformMode === 'resize' ? 'resize' : 'transform'}`);
   }, [transformMode]);
 
+  const toggleTransformSpace = () => {
+    if (spaceToggleDisabled) return;
+    setTransformSpace((current) => {
+      const next = current === 'world' ? 'local' : 'world';
+      setStatus(`Move/Rotate transform space · ${next.toUpperCase()}`);
+      return next;
+    });
+  };
+
   const switchToRig = () => {
     window.location.search = workspaceSearch(window.location.search, 'rig');
   };
@@ -143,10 +159,20 @@ export function MapWorkspace() {
           <button
             className={transformMode === 'resize' ? 'active' : ''}
             disabled={!resizeAvailable}
-            title={resizeAvailable ? 'Resize signed box faces; hold Alt to resize from center' : 'Resize currently supports box geometry only'}
+            title={resizeAvailable ? 'Resize signed local box faces; hold Alt to resize from center' : 'Resize currently supports box geometry only'}
             onClick={() => setTransformMode('resize')}
           >
             Resize
+          </button>
+          <span className="map-toolbar-separator" />
+          <button
+            disabled={spaceToggleDisabled}
+            title={transformMode === 'resize'
+              ? 'Resize is defined on authored local faces. World Resize remains intentionally undefined.'
+              : 'Toggle Move/Rotate transform orientation between World and Local'}
+            onClick={toggleTransformSpace}
+          >
+            {effectiveTransformSpace === 'world' ? 'World' : 'Local'}
           </button>
           <button onClick={() => setFitRequest((value) => value + 1)}>Fit Map</button>
           <span className="map-toolbar-separator" />
@@ -196,6 +222,7 @@ export function MapWorkspace() {
           document={document}
           selectedEntityId={selectedEntityId}
           transformMode={transformMode}
+          transformSpace={transformSpace}
           fitRequest={fitRequest}
           onSelect={selectEntity}
           onTransformStart={handleTransformStart}
@@ -205,7 +232,7 @@ export function MapWorkspace() {
           onTransformCancel={handleTransformCancel}
         />
         <div className="map-viewport-hint">
-          LMB select · Move/Rotate gizmo · Resize: drag colored face handles · Alt = center · background orbit · wheel zoom · Esc cancels
+          LMB select · Move/Rotate: World/Local gizmo · Resize: Local signed face handles · Alt = center · background orbit · wheel zoom · Esc cancels
         </div>
       </main>
 
@@ -261,7 +288,7 @@ export function MapWorkspace() {
             </section>
             <p className="map-inspector-note">
               {selectedEntity.collision.kind === 'box'
-                ? 'Face Resize keeps the opposite face fixed by default and moves authored center as needed. Hold Alt to resize symmetrically from center. Exact Dimensions preserve center.'
+                ? 'Face Resize keeps the opposite face fixed by default and moves authored center as needed. Hold Alt to resize symmetrically from center. Resize uses authored Local faces; World/Local applies to Move/Rotate. Exact Dimensions preserve center.'
                 : 'Capsule geometry remains read-only until its independent axial/radial resize semantics are grounded.'}
             </p>
           </div>
