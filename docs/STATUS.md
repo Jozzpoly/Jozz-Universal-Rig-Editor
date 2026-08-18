@@ -143,9 +143,9 @@ Current renderer/input closeout:
 
 The `Alt` browser-default suppression is a deliberately minimal fix for the strongest current hypothesis: Windows/browser Alt chrome/focus behavior interacted with the controller's legitimate blur-cancel safety. It is technically validated but the real event-lifecycle result remains an owner gate. If releasing Alt still cancels, do not weaken all blur/cancel safety blindly; capture the real event provenance and correct the narrower cause.
 
-## Current exact-head evidence
+## Current executed evidence
 
-Latest code-bearing checkpoint:
+Latest **product-code** checkpoint:
 
 `fe201d26dc2ca93c51b9261f555ee0b88bab7df4`
 
@@ -159,6 +159,8 @@ GitHub Actions run `32167506363`, job `95810429525`:
 - generated Windows owner-preview package + HTTP smoke PASS.
 
 The 47 tests continue to cover signed face identity, fixed opposite face, contraction, rotated-box world-space invariance, degeneracy, atomic pose+geometry preview/history, pointer-ray-to-axis distance, near-parallel fail-closed behavior and `anchored -> Alt center -> anchored` planner/session switching from one frozen baseline without compounding.
+
+After that product checkpoint, the branch only changes owner-test instructions and canonical documentation to describe the already-built closeout accurately. The final branch-head workflow must remain green before a package is handed to the owner; do not use documentation-only head movement as new product evidence.
 
 Important evidence boundary: the automated Map screenshot still starts in the normal default Map state; it proves the application renders but does **not** visually or interactively prove the new active Resize controls. The new gizmo and Windows Alt lifecycle therefore remain deliberately owner-gated rather than inferred from a green build.
 
