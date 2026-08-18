@@ -32,6 +32,10 @@ function formatNumber(value: number): string {
   return Number.isFinite(value) ? value.toFixed(3) : '—';
 }
 
+function faceLabel(axis: MapAxis, side: MapFaceSide): string {
+  return `${side > 0 ? '+' : '-'}${axis.toUpperCase()}`;
+}
+
 export function MapWorkspace() {
   const [session, setSession] = useState<EditorSession<MapDocument>>(() => createEditorSession(SYNTHETIC_MAP));
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>('entity.bumper');
@@ -97,6 +101,13 @@ export function MapWorkspace() {
       );
       return updatePreview(started, setMapBoxFaceResizeResult(entityId, result));
     });
+
+    const draggedFace = faceLabel(axis, side);
+    if (origin === 'center') {
+      setStatus(`Resize ${entityId} · ${draggedFace} · CENTER symmetric (Alt)`);
+    } else {
+      setStatus(`Resize ${entityId} · ${draggedFace} · ANCHORED · ${faceLabel(axis, side === 1 ? -1 : 1)} fixed`);
+    }
   }, []);
 
   const commitBoxHalfExtents = useCallback((entityId: string, halfExtents: MapVec3) => {
