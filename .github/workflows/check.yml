@@ -140,27 +140,26 @@ jobs:
           if errorlevel 1 pause
           EOF
           cat > owner-preview/README.txt <<EOF
-          JURE Map Lab - Face Resize V2 closeout owner preview
+          JURE Map Lab - World/Local Move/Rotate owner preview
           Source branch: agent/map-workspace-foundation
           Source head: ${HEAD_SHA}
 
-          This re-test is deliberately narrow. The previous owner test classified the underlying face-resize semantics as almost-PASS, but exposed two blockers: releasing Alt cancelled the live command on Windows/browser, and the six floating cube handles were too raw to read as a coherent gizmo.
+          Box Face Resize V2 is already owner-PASS. This gate tests the next small Stage-1 slice only: World/Local orientation for Move and Rotate. Resize remains deliberately Local because World Resize semantics are not yet defined.
 
           Windows:
           1. Double-click START_MAP_PREVIEW.cmd.
-          2. Select Ground slab and enter Resize.
-          3. Inspect the new control language before dragging: each signed face has a face plate, short axis stem and cube grip. Front controls should read strongly; controls on the far side should remain available but visibly ghosted.
-          4. Drag one face without Alt. The opposite face should stay fixed. During the drag, the status bar should explicitly report e.g. '+X · ANCHORED · -X fixed', and the opposite face should receive a fixed-face visual cue.
-          5. Without releasing the pointer, press and hold Alt. The SAME drag must switch to symmetric center-origin resize. The status should report 'CENTER symmetric (Alt)', the opposite control should read as a paired control, and a center cue should appear.
-          6. Still holding the pointer, RELEASE Alt. This is the critical regression test: the command must NOT cancel or jump. It should return smoothly to ANCHORED from the same frozen baseline, with the status/fixed-face cue switching back accordingly.
-          7. Repeat the Alt press/release cycle several times during one drag. No compounding, revision creation or cancellation should occur until pointer release.
-          8. Press Esc during a separate active drag and confirm Esc still intentionally cancels pose + dimensions exactly. Pointer release should still commit; Undo/Redo should restore the committed snapshots.
-          9. Rotate Ground slab and repeat face Resize. Controls should follow local authored faces and remain readable at ordinary camera angles.
-          10. Judge the gizmo specifically: is the action direction obvious, is the dragged face relationship clear, are rear controls understandable rather than confusing, and do the anchored/center cues make the current meaning visible?
-          11. Exact Dimensions X/Y/Z still intentionally preserve center. Bumper still has no fake Resize. Move/Rotate and Rig <-> Map navigation should remain intact.
-          12. Close the command window (or press Ctrl+C) to stop the preview server.
+          2. Select Ground slab or Bumper and enter Move. The transform-space control should start at World.
+          3. Rotate the selected entity away from the world axes, then return to Move while World is active. The gizmo axes should remain aligned to world X/Y/Z.
+          4. Toggle World -> Local. The Move gizmo axes should align to the entity's authored orientation. Move along one local axis and confirm the object follows that local direction.
+          5. Repeat with Rotate: World and Local should visibly change the rotation gizmo orientation in the same way as the accepted Rig workspace.
+          6. Toggle back and forth several times between World and Local while no drag is active. Undo/Redo and Esc cancellation for actual transforms should remain normal.
+          7. Select Ground slab, choose Local, then enter Resize. The space control must display Local and be disabled because Resize is defined on authored local signed faces.
+          8. Leave Resize for Move or Rotate. The previously selected Move/Rotate preference must return; e.g. Local -> Resize -> Move returns Local.
+          9. Repeat the preference test from World: World -> Resize displays Local -> Move/Rotate returns World. This proves Resize did not overwrite the stored Move/Rotate preference.
+          10. Quickly regression-check Face Resize V2 (opposite face fixed + Alt center), exact Dimensions, Bumper Resize non-support and Rig <-> Map navigation.
+          11. Close the command window (or press Ctrl+C) to stop the preview server.
 
-          Current scope: closing the existing Box Face Resize V2 owner gate only. World/Local expansion, capsule Resize and the larger Rig/Map interface-unification stage remain intentionally blocked until this checkpoint is accepted.
+          Acceptance boundary: World/Local applies only to Move/Rotate. Do not interpret the disabled Local state in Resize as a missing implementation bug; World Resize remains an intentionally open geometry-semantics problem. Capsule axial/radial Resize is the next independent geometry slice after this gate.
           This artifact is a local preview only. It does not modify an existing JURE checkout.
           EOF
       - name: Smoke owner preview package
