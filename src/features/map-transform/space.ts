@@ -1,5 +1,4 @@
-import type { MapTransformMode } from '../../render/map-viewport-controller.js';
-
+export type MapTransformMode = 'translate' | 'rotate' | 'resize';
 export type MapTransformSpace = 'world' | 'local';
 
 export function effectiveMapTransformSpace(
