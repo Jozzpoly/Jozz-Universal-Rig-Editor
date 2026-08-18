@@ -11,7 +11,14 @@ import {
   visibleDocument,
   type EditorSession,
 } from '../../editor/session.js';
-import { boxHalfExtentsFromScale, setMapBoxHalfExtents } from '../../features/map-resize/box-resize.js';
+import {
+  planMapBoxFaceResize,
+  setMapBoxFaceResizeResult,
+  type MapAxis,
+  type MapBoxResizeOrigin,
+  type MapFaceSide,
+} from '../../features/map-resize/box-face-resize.js';
+import { setMapBoxHalfExtents } from '../../features/map-resize/box-resize.js';
 import { setMapEntityPose } from '../../features/map-transform/command.js';
 import { SYNTHETIC_MAP } from '../../fixtures/synthetic-map.js';
 import type { MapDocument, MapRigidPose, MapVec3 } from '../../map/types.js';
@@ -44,7 +51,7 @@ export function MapWorkspace() {
     const target = document.entities.find((entity) => entity.id === entityId);
     if (transformMode === 'resize' && target?.collision.kind !== 'box') {
       setTransformMode('translate');
-      setStatus(`Selected ${entityId} · Resize is box-only in G2`);
+      setStatus(`Selected ${entityId} · Resize remains box-only until capsule semantics are grounded`);
     }
   }, [document, transformMode]);
 
@@ -53,6 +60,9 @@ export function MapWorkspace() {
       current,
       `${transformMode === 'resize' ? 'Resize' : 'Transform'} map entity ${entityId}`,
     ));
+    if (transformMode === 'resize') {
+      setStatus(`Resizing ${entityId} · opposite face fixed · hold Alt for center resize`);
+    }
   }, [transformMode]);
 
   const handleTransformPreview = useCallback((entityId: string, pose: MapRigidPose) => {
@@ -62,23 +72,36 @@ export function MapWorkspace() {
     });
   }, []);
 
-  const handleResizePreview = useCallback((entityId: string, scale: MapVec3) => {
+  const handleBoxFaceResizePreview = useCallback((
+    entityId: string,
+    axis: MapAxis,
+    side: MapFaceSide,
+    outwardDelta: number,
+    origin: MapBoxResizeOrigin,
+  ) => {
     setSession((current) => {
-      const started = current.preview ? current : beginPreview(current, `Resize map entity ${entityId}`);
+      const started = current.preview ? current : beginPreview(current, `Resize map box face ${entityId}`);
       const baseline = started.preview?.baseline ?? started.committed;
       const entity = baseline.entities.find((entry) => entry.id === entityId);
       if (!entity) throw new Error(`Map entity ${entityId} not found.`);
       if (entity.collision.kind !== 'box') {
         throw new Error(`Map entity ${entityId} is ${entity.collision.kind}, not box geometry.`);
       }
-      const halfExtents = boxHalfExtentsFromScale(entity.collision.halfExtents, scale);
-      return updatePreview(started, setMapBoxHalfExtents(entityId, halfExtents));
+      const result = planMapBoxFaceResize(
+        entity.pose,
+        entity.collision.halfExtents,
+        axis,
+        side,
+        outwardDelta,
+        origin,
+      );
+      return updatePreview(started, setMapBoxFaceResizeResult(entityId, result));
     });
   }, []);
 
   const commitBoxHalfExtents = useCallback((entityId: string, halfExtents: MapVec3) => {
     setSession((current) => applyCommand(current, setMapBoxHalfExtents(entityId, halfExtents)));
-    setStatus(`Authored dimensions committed for ${entityId} · unsaved`);
+    setStatus(`Authored dimensions committed for ${entityId} · center preserved · unsaved`);
   }, []);
 
   const handleTransformCommit = useCallback((entityId: string) => {
@@ -109,7 +132,7 @@ export function MapWorkspace() {
           <button
             className={transformMode === 'resize' ? 'active' : ''}
             disabled={!resizeAvailable}
-            title={resizeAvailable ? 'Resize box dimensions' : 'G2 Resize currently supports box geometry only'}
+            title={resizeAvailable ? 'Resize signed box faces; hold Alt to resize from center' : 'Resize currently supports box geometry only'}
             onClick={() => setTransformMode('resize')}
           >
             Resize
@@ -166,11 +189,13 @@ export function MapWorkspace() {
           onSelect={selectEntity}
           onTransformStart={handleTransformStart}
           onTransformPreview={handleTransformPreview}
-          onResizePreview={handleResizePreview}
+          onBoxFaceResizePreview={handleBoxFaceResizePreview}
           onTransformCommit={handleTransformCommit}
           onTransformCancel={handleTransformCancel}
         />
-        <div className="map-viewport-hint">LMB select · gizmo Move/Rotate · Resize box · drag background orbit · wheel zoom · Esc cancels active transform</div>
+        <div className="map-viewport-hint">
+          LMB select · Move/Rotate gizmo · Resize: drag colored face handles · Alt = center · background orbit · wheel zoom · Esc cancels
+        </div>
       </main>
 
       <aside className="map-inspector">
@@ -225,8 +250,8 @@ export function MapWorkspace() {
             </section>
             <p className="map-inspector-note">
               {selectedEntity.collision.kind === 'box'
-                ? 'Resize gizmo and exact dimensions author the same box halfExtents while preserving rigid pose.'
-                : 'Capsule geometry remains read-only until its independent resize semantics are grounded.'}
+                ? 'Face Resize keeps the opposite face fixed by default and moves authored center as needed. Hold Alt to resize symmetrically from center. Exact Dimensions preserve center.'
+                : 'Capsule geometry remains read-only until its independent axial/radial resize semantics are grounded.'}
             </p>
           </div>
         ) : (
