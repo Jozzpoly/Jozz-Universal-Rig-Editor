@@ -140,24 +140,27 @@ jobs:
           if errorlevel 1 pause
           EOF
           cat > owner-preview/README.txt <<EOF
-          JURE Map Lab - owner preview
+          JURE Map Lab - Face Resize V2 closeout owner preview
           Source branch: agent/map-workspace-foundation
           Source head: ${HEAD_SHA}
 
-          Windows:
-          1. Double-click START_MAP_PREVIEW.cmd
-          2. The browser opens directly in the experimental Map workspace.
-          3. Select Ground slab, then Resize. Six colored signed face handles should replace the old Three scale gizmo.
-          4. Drag several faces separately. By default the opposite face should remain fixed while the box center moves as required.
-          5. During the same kind of drag hold Alt: Resize should switch to symmetric center-origin behavior. Release Alt and it should return to anchored behavior from the same frozen baseline.
-          6. During active Resize press Esc and confirm pose + dimensions return exactly to their pre-drag state. Also test pointer release, Undo and Redo after a committed face Resize.
-          7. Rotate the Ground slab, then Resize again. Handles should follow local box faces and the opposite local face should remain spatially fixed.
-          8. Edit exact Dimensions X/Y/Z in the Inspector. Numeric dimensions intentionally preserve the box center and use the same authored history.
-          9. Select Bumper and confirm Resize is intentionally unavailable until capsule axial/radial semantics are grounded; Move/Rotate must still work.
-          10. Click Rig Workspace, then Map Workspace, to verify symmetric navigation and the accepted Rig entry.
-          11. Close the command window (or press Ctrl+C) to stop the local preview server.
+          This re-test is deliberately narrow. The previous owner test classified the underlying face-resize semantics as almost-PASS, but exposed two blockers: releasing Alt cancelled the live command on Windows/browser, and the six floating cube handles were too raw to read as a coherent gizmo.
 
-          Current scope: Box Face Resize V2 owner gate. World Resize and capsule Resize are intentionally not implemented in this checkpoint.
+          Windows:
+          1. Double-click START_MAP_PREVIEW.cmd.
+          2. Select Ground slab and enter Resize.
+          3. Inspect the new control language before dragging: each signed face has a face plate, short axis stem and cube grip. Front controls should read strongly; controls on the far side should remain available but visibly ghosted.
+          4. Drag one face without Alt. The opposite face should stay fixed. During the drag, the status bar should explicitly report e.g. '+X · ANCHORED · -X fixed', and the opposite face should receive a fixed-face visual cue.
+          5. Without releasing the pointer, press and hold Alt. The SAME drag must switch to symmetric center-origin resize. The status should report 'CENTER symmetric (Alt)', the opposite control should read as a paired control, and a center cue should appear.
+          6. Still holding the pointer, RELEASE Alt. This is the critical regression test: the command must NOT cancel or jump. It should return smoothly to ANCHORED from the same frozen baseline, with the status/fixed-face cue switching back accordingly.
+          7. Repeat the Alt press/release cycle several times during one drag. No compounding, revision creation or cancellation should occur until pointer release.
+          8. Press Esc during a separate active drag and confirm Esc still intentionally cancels pose + dimensions exactly. Pointer release should still commit; Undo/Redo should restore the committed snapshots.
+          9. Rotate Ground slab and repeat face Resize. Controls should follow local authored faces and remain readable at ordinary camera angles.
+          10. Judge the gizmo specifically: is the action direction obvious, is the dragged face relationship clear, are rear controls understandable rather than confusing, and do the anchored/center cues make the current meaning visible?
+          11. Exact Dimensions X/Y/Z still intentionally preserve center. Bumper still has no fake Resize. Move/Rotate and Rig <-> Map navigation should remain intact.
+          12. Close the command window (or press Ctrl+C) to stop the preview server.
+
+          Current scope: closing the existing Box Face Resize V2 owner gate only. World/Local expansion, capsule Resize and the larger Rig/Map interface-unification stage remain intentionally blocked until this checkpoint is accepted.
           This artifact is a local preview only. It does not modify an existing JURE checkout.
           EOF
       - name: Smoke owner preview package
