@@ -37,7 +37,12 @@ function cloneMapEntity(entity: MapEntity, id: string, name: string): MapEntity 
       ? { kind: 'none' }
       : {
           kind: 'collision-proxy',
-          color: [...entity.visual.color],
+          color: [
+            entity.visual.color[0],
+            entity.visual.color[1],
+            entity.visual.color[2],
+            entity.visual.color[3],
+          ],
         },
     surface: { ...entity.surface },
   };
