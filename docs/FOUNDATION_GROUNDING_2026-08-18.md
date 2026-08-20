@@ -2,7 +2,7 @@
 
 Status: **active grounding contract for draft PR #5; not a final architecture specification**.
 
-Last epistemic closeout: **2026-08-20**.
+Last epistemic closeout: **2026-08-20 — MAP-ENTITY-01 OWNER PASS**.
 
 `docs/STATUS.md` carries the exact current evidence state. This document carries durable rules, owner-tested corrections and stop conditions so short-lived experiments do not silently become permanent JURE ontology.
 
@@ -63,7 +63,7 @@ The robust direction is:
 4. commit changes authored truth;
 5. cancel restores committed truth.
 
-This direction is demonstrated for rigid Move/Rotate and owner-accepted Box Face Resize.
+This direction is demonstrated for rigid Move/Rotate, owner-accepted Box Face Resize and structural Map entity commands through the same revision/history discipline.
 
 ## 5. Owner-tested corrections
 
@@ -128,7 +128,7 @@ World Resize remains intentionally undefined. Do not fake it through Three scale
 
 Owner acceptance is explicit but later raw World/Local recording evidence is not preserved in GitHub. Do not fabricate unrecorded checklist observations.
 
-## 6. MAP-ENTITY-01 — corrected structural falsifier
+## 6. MAP-ENTITY-01 — OWNER PASS
 
 The earlier plan selected MAP-PERSIST-01 immediately after World/Local. That ordering was challenged before persistence implementation.
 
@@ -140,9 +140,7 @@ The strongest counter-evidence was:
 
 Therefore persistence was not wrong, but it was premature as the next highest-information falsifier.
 
-**Corrected order: prove structural authored entity lifecycle first, then test persistence on user-shaped state.**
-
-### Frozen MAP-ENTITY-01 contract
+### Frozen contract that was tested
 
 - Duplicate copies an existing `MapEntity` exactly except for new authored ID/name.
 - Do not invent a broad Create workflow, entity taxonomy or geometry defaults in this slice.
@@ -150,23 +148,42 @@ Therefore persistence was not wrong, but it was premature as the next highest-in
 - Current `.copy.N` allocation is provisional experiment infrastructure, not final identity policy.
 - Duplicate/Delete are ordinary domain commands through `EditorSession`.
 - Delete of selected entity clears non-authored selection safely.
-- Undo after Delete restores the exact same authored entity and ID.
+- Undo after Delete restores the same authored entity and ID.
 - Undo that removes a currently selected duplicate must not leave stale selection or gizmo state.
 - Existing Move/Rotate/Resize must operate on the duplicate without changing its source.
 - structural commands are blocked during active preview.
 - malformed/stale identity assumptions fail closed instead of mutating document partially.
 
-Product/evidence checkpoint before documentation closeout:
+Product/evidence checkpoint used for the real owner gate:
 
-`caa5f94c677d236e46a7de52c10b3fe5f216f6dd`
+`5740a0510a74b98450d14ec2b7f2293ca042ce95`
 
-Do not classify MAP-ENTITY-01 OWNER PASS until the generated real-browser owner preview is exercised successfully.
+Machine evidence:
 
-## 7. Persistence remains the intended next falsifier after structural acceptance
+- GitHub Actions `check` run #98 / id `32415027293`: SUCCESS;
+- strict TypeScript PASS;
+- core suite 53/53 PASS;
+- production build and Rig/Map render evidence PASS;
+- generated Windows MAP-ENTITY-01 owner-preview package PASS.
+
+Owner evidence on 2026-08-20:
+
+- owner explicitly classified the behavior as matching expectations;
+- owner supplied two detailed recordings from the exact generated preview;
+- reviewed recordings show independent structural copies, Ground manipulation/Resize after duplication, capsule duplication, repeated duplication, history traversal and continued manipulation without stale editor targets;
+- no observed source/copy coupling, stale selection/Inspector/gizmo state or structural-history inconsistency contradicted the machine evidence.
+
+**Verdict: MAP-ENTITY-01 = OWNER PASS / CLOSED.**
+
+This proves the minimum structural question: `MapDocument` is not merely a fixed fixture with editable values; its authored entity structure can be changed and recovered through editor history.
+
+It does **not** freeze Create UX, final identity/naming policy, final entity taxonomy, hierarchy, generic scene semantics or persistence.
+
+## 7. Persistence remains required, but is no longer an automatic immediate scheduler
 
 MAP-PERSIST-01 is deferred, not rejected.
 
-Once MAP-ENTITY-01 is owner-accepted, Save/Open becomes a stronger test because the document can contain genuinely user-created structure rather than only transformed fixture objects.
+MAP-ENTITY-01 now makes Save/Open a stronger test because the document can contain genuinely user-created structure rather than only transformed fixture objects.
 
 Persistence contract remains:
 
@@ -181,19 +198,20 @@ Persistence contract remains:
 
 The real owner gate should include structural Duplicate/Delete edits, Move/Rotate/Resize, save, destructive later changes, reopen and exact visual/numeric restoration.
 
+The owner has selected a fundamental JURE unification investigation as the next project direction. Therefore MAP-PERSIST-01 remains a required frontier item, but its exact position relative to the first narrow unification slices must be decided by JURE-UNIFY-00 rather than inherited blindly from the old scheduler.
+
 ## 8. Open Map-foundation frontier
 
 Current `box | capsule` entities are primitive falsifiers, not final Map ontology.
 
 Still-unproved classes include:
 
-1. MAP-ENTITY-01 real owner interaction acceptance;
-2. owner-facing deterministic Map Save/Open;
-3. second primitive geometry semantics — capsule axial/radial authoring without box leakage;
-4. first non-primitive representation — recipe, terrain/heightfield or imported mesh/scan;
-5. explicit consumer/package boundary only after enough authored meaning is grounded;
-6. large-map/E2R behavior; current full display-projection rebuild is unproved at scale;
-7. final unified Rig/Map shell and visual/product language.
+1. owner-facing deterministic Map Save/Open;
+2. second primitive geometry semantics — capsule axial/radial authoring without box leakage;
+3. first non-primitive representation — recipe, terrain/heightfield or imported mesh/scan;
+4. explicit consumer/package boundary only after enough authored meaning is grounded;
+5. large-map/E2R behavior; current full display-projection rebuild is unproved at scale;
+6. final unified Rig/Map shell and visual/product language.
 
 Select falsifiers by information value, actual product need, causal blast radius and ability to challenge an architectural assumption. Numbering is not a scheduler.
 
@@ -219,22 +237,31 @@ Strong candidates, not automatically shared:
 
 The existence of similar features in Rig and Map is evidence to inspect, not permission to generalize them. Extract only when doing so measurably reduces duplication without contaminating authored domain meaning.
 
-## 10. Proposed future JURE unification stage
+## 10. JURE-UNIFY-00 — selected next design/falsification activity
 
-The owner proposes that, after the current structural problem is genuinely resolved, JURE should undergo a fundamental integration pass covering visual style, UI, shared core and the relationship between Rig and Map.
+The owner proposes a fundamental integration pass covering visual style, UI, shared core and the relationship between Rig and Map. With MAP-ENTITY-01 now owner-accepted, this becomes the selected next **design/audit/freeze** activity.
 
-This is a legitimate next-stage candidate, but it is **not yet an automatic implementation command**.
+It is **not** authorization for a broad implementation/refactor.
 
-Before that work starts, perform a dedicated unification design/falsification checkpoint that answers at minimum:
+The dedicated entry contract is:
+
+`docs/JURE_UNIFICATION_GROUNDING_2026-08-20.md`
+
+Before broad code movement, JURE-UNIFY-00 must answer at minimum:
 
 - which Rig/Map similarities are truly shared mechanics versus coincidental UI resemblance;
-- which current Rig behaviors are accepted regression gates that cannot be broken;
+- which current Rig and Map behaviors are accepted regression gates that cannot be broken;
 - which Map pieces are still provisional and therefore must not be promoted into shared core;
-- whether unification should happen before or after MAP-PERSIST-01 and the first non-primitive falsifier;
-- what shared shell/design tokens/components can be unified without merging authored schemas;
-- how one coherent JURE workspace can present multiple authored domains without becoming a generic scene/ECS framework.
+- which shell/design tokens/components can be shared without merging authored schemas;
+- how one coherent JURE product can present multiple authored domains without becoming a generic scene/ECS framework;
+- whether MAP-PERSIST-01 belongs before, within or directly after the first narrow unification slice;
+- what smallest high-information unification slice can be owner-tested before any larger refactor.
 
-The desired end state may be one coherent JURE product, but **visual/product unity does not require authored-domain unity**.
+Durable principle:
+
+**Visual/product unity does not require authored-domain unity.**
+
+The likely architecture to falsify is a shared product shell and proven editor/UI mechanics around independent Rig and Map domain adapters, not one universal authored object model.
 
 ## 11. Donor grounding
 
@@ -283,14 +310,14 @@ No category substitutes for another.
 
 ## 14. Stop condition for the broader foundation phase
 
-The JURE Map foundation is not complete because one primitive can be manipulated or because a shell looks unified.
+The JURE Map foundation is not complete because primitive entity lifecycle now passes or because a shell may later look unified.
 
 Meaningful grounding still requires:
 
 - Rig and Map coexist without authored-domain contamination;
 - shared mechanics are extracted only where repeated evidence proves overlap;
 - Map has owner-accepted geometry authoring beyond rigid pose;
-- Map structure can be changed with stable authored identity/history;
+- Map structure can be changed with stable authored identity/history — **now demonstrated by MAP-ENTITY-01**;
 - authored state survives deterministic real Save/Open;
 - at least one non-primitive representation challenges primitive-only assumptions;
 - relevant technical/render/owner gates remain explicit;
