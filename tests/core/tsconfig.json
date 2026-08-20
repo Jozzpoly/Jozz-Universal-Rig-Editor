@@ -14,6 +14,7 @@
     "../../src/features/rig-transform/**/*.ts",
     "../../src/features/map-transform/**/*.ts",
     "../../src/features/map-resize/**/*.ts",
+    "../../src/features/map-entity/**/*.ts",
     "../../src/fixtures/synthetic-rig.ts",
     "../../src/fixtures/synthetic-map.ts",
     "../../src/map/**/*.ts",
