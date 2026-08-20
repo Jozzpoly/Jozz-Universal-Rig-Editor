@@ -32,5 +32,6 @@ runNode([
   'tests/core/map-face-resize.test.mjs',
   'tests/core/map-face-resize-mode-switch.test.mjs',
   'tests/core/map-transform-space.test.mjs',
+  'tests/core/map-entity-lifecycle.test.mjs',
   'tests/core/workspace-navigation.test.mjs',
 ]);
