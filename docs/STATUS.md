@@ -2,16 +2,18 @@
 
 ## Current state
 
-The owner-tested Rig foundation remains the accepted JURE baseline. Experimental Map authoring remains isolated on draft PR #5; `main` is unchanged by this lane.
+The owner-tested Rig foundation remains the accepted JURE baseline on `main`. Experimental Map authoring remains isolated on draft PR #5.
 
 - accepted base: `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`
 - active lane: `agent/map-workspace-foundation`
-- PR #5: draft, unmerged
+- PR #5: open, draft, unmerged
+- tested MAP-ENTITY-01 owner-preview head: `5740a0510a74b98450d14ec2b7f2293ca042ce95`
 - active grounding contract: `docs/FOUNDATION_GROUNDING_2026-08-18.md`
+- next-stage entry contract: `docs/JURE_UNIFICATION_GROUNDING_2026-08-20.md`
 
-Acceptance is scoped. A passed interaction slice does not accept the whole PR, the final Map ontology, or a unified JURE shell.
+Acceptance remains scoped. Passed interaction slices do not accept the whole PR, the final Map ontology, persistence, consumer lowering or a final unified JURE architecture.
 
-## Accepted interaction evidence
+## Accepted owner interaction evidence
 
 ### Box Face Resize V2 — OWNER PASS
 
@@ -27,7 +29,7 @@ Accepted scope:
 - exact numeric Dimensions remain center-preserving;
 - no generic authored `pose.scale`.
 
-World Resize, capsule semantics, mesh/scan scale semantics and final Map ontology remain outside this PASS.
+World Resize, capsule resize semantics, mesh/scan scale semantics and final Map ontology remain outside this PASS.
 
 ### Map World/Local Move/Rotate — OWNER PASS
 
@@ -42,11 +44,57 @@ Accepted scope:
 - transform-space changes do not author `MapDocument`;
 - World Resize remains intentionally undefined.
 
-Machine evidence and owner evidence remain distinct. The latest real World/Local test is explicitly owner-classified PASS, but its later raw recording is not preserved in the repository; do not invent unrecorded checklist observations.
+### MAP-ENTITY-01 — OWNER PASS
 
-## Accepted Rig baseline
+Owner-tested exact product head:
 
-The Rig workspace remains the regression/reference baseline for:
+`5740a0510a74b98450d14ec2b7f2293ca042ce95`
+
+Machine evidence tied to that head:
+
+- GitHub Actions `check` run #98 / run id `32415027293`: **SUCCESS**;
+- strict TypeScript: PASS;
+- core suite: **53/53 PASS**;
+- production build: PASS;
+- Rig + Map browser render evidence: PASS;
+- Windows owner-preview package generation/smoke: PASS.
+
+Owner evidence on 2026-08-20:
+
+- owner explicitly reported that the expected behavior matched the test;
+- owner supplied two detailed browser recordings from the generated MAP-ENTITY-01 preview;
+- the recordings visibly exercise duplicated authored entities beyond a single happy path, including independent Ground manipulation/Resize, capsule duplication, repeated duplication, history traversal and continued manipulation after history transitions;
+- no stale selection/Inspector/gizmo behavior or source/copy coupling was observed in the reviewed recordings.
+
+Accepted MAP-ENTITY-01 scope:
+
+- Duplicate creates an independent authored `MapEntity` copy with a new authored ID/name;
+- Delete is an authored structural command;
+- Duplicate/Delete participate in normal `EditorSession` revision/history;
+- duplicate identity allocation is deterministic and collision-safe for the tested provisional `.copy.N` scheme;
+- Undo/Redo restore/remove authored structure coherently;
+- history transitions reconcile non-authored selection rather than leaving stale editor targets;
+- accepted Move/Rotate/Box Resize semantics continue to operate on duplicated entities without mutating the source;
+- capsule entities can be structurally duplicated even though capsule Resize remains intentionally unsupported;
+- structural operations remain separate from authored selection/presentation state.
+
+The `.copy.N` naming/identity policy remains **provisional experiment infrastructure**. MAP-ENTITY-01 does not accept Create UX, a final entity taxonomy, final naming policy or generic scene/ECS semantics.
+
+## Structural falsifier closeout
+
+The question behind MAP-ENTITY-01 was:
+
+> Is `MapDocument` a dynamically authored world, or only a fixed fixture whose existing values can be manipulated?
+
+Current evidence answers the minimum structural question positively: the user can change authored entity structure with stable command/history semantics and then continue normal geometry/transform work on the resulting entities.
+
+**Verdict: MAP-ENTITY-01 is CLOSED / OWNER PASS.**
+
+No further code change is justified merely to strengthen this already-passed slice.
+
+## Accepted Rig regression baseline
+
+The Rig workspace remains the reference baseline for:
 
 - rigid `RigElement` / owner-local `RigFrame` authoring;
 - Move/Rotate World/Local and exact numeric editing;
@@ -56,124 +104,68 @@ The Rig workspace remains the regression/reference baseline for:
 - read-only SOURCE inspection/provenance;
 - viewport-first navigator / viewport / inspector workbench behavior.
 
-Any future JURE unification must preserve these behaviors.
+Any JURE-wide shell/core/UI work must preserve these behaviors.
 
-## Experimental Map foundation — demonstrated before MAP-ENTITY-01
+## Next activity — JURE-UNIFY-00 design / audit / freeze
 
-- independent `MapDocument` authored truth;
-- metre/right-handed `+X` forward, `+Y` up, `+Z` right basis;
-- stable authored IDs and fail-closed validation;
-- rigid poses without generic authored scale;
-- P0 box/capsule geometry;
-- deterministic Map parse/serialize;
-- shared generic `EditorSession<Document>` with domain-owned commands;
-- Map viewport selection, OrbitControls, Move/Rotate, preview/commit/cancel, Undo/Redo and Fit Map;
-- symmetric Rig <-> Map routing;
-- exact box Dimensions;
-- owner-passed signed-face Box Resize V2;
-- owner-passed World/Local Move/Rotate.
+The owner has selected fundamental JURE integration/unification as the next direction to examine: visual language, UI, shared core and the product relationship between Rig and Map.
 
-## 2026-08-20 direction challenge
+The immediate next activity is therefore **JURE-UNIFY-00**, but it starts as architecture/product design and falsification, **not as a broad implementation/refactor**.
 
-The previously selected next falsifier was MAP-PERSIST-01 (real Map Save/Open). That ordering was challenged before implementation.
+The dedicated entry contract is `docs/JURE_UNIFICATION_GROUNDING_2026-08-20.md`.
 
-The strongest counter-evidence was:
+The stage must determine:
 
-1. Rig already proves the real browser/file lifecycle pattern, including Open, Save, Save As, committed-only persistence and stale-file protection.
-2. Map already proves deterministic canonical parse/serialize, validation and malformed-input fail-closed behavior in core tests.
-3. The Map workspace still booted from a fixed `SYNTHETIC_MAP` and had never proved that users could change document structure itself.
+1. what belongs to one coherent JURE product shell;
+2. what mechanics are genuinely shared by two proven consumers;
+3. what only looks similar but has different domain semantics;
+4. which accepted Rig and Map interactions form regression gates;
+5. which provisional Map concepts must stay out of shared core;
+6. how to unify layout, visual language and interaction affordances without merging authored domains;
+7. whether MAP-PERSIST-01 should be embedded in, adjacent to or follow the first narrow unification slices.
 
-Therefore persistence remained important but had lower immediate information value than proving that `MapDocument` is a dynamically authored world rather than only a fixed manipulation fixture.
+A likely architectural direction to test is:
 
-**Decision: correct the order, do not discard persistence.**
+`shared JURE product shell / UI primitives / proven editor mechanics`
 
-## MAP-ENTITY-01 — minimal structural lifecycle
+around independent domain workspaces:
 
-### Hypothesis
+`RigDocument + rig commands/adapters`
 
-A Map entity can be duplicated and deleted as authored `MapDocument` structure while preserving stable identity, domain-owned semantics, normal `EditorSession` history and safe non-authored selection state.
+`MapDocument + map commands/adapters`
 
-### Frozen minimum contract
+This is a hypothesis for JURE-UNIFY-00, not yet a frozen implementation architecture.
 
-- Duplicate copies an existing authored entity exactly except for a new ID and display name.
-- Duplicate does not invent new geometry defaults or a Create taxonomy.
-- The experimental ID allocator is deterministic and collision-safe across both entity and spawn IDs.
-- The current provisional form is `<source-id>.copy.N`; it is evidence infrastructure, not the final JURE identity scheme.
-- Duplicate/Delete are normal committed domain commands and increment document revision through `EditorSession`.
-- Delete of a selected entity clears presentation selection rather than serializing selection into document history.
-- Undo after Delete restores the exact same authored entity and ID.
-- Undo that removes a selected duplicate must reconcile selection safely instead of leaving a stale target/gizmo.
-- Existing Move/Rotate/Resize semantics must work on the duplicated entity without mutating its source.
-- Active preview blocks structural Duplicate/Delete.
+## Persistence remains required
 
-### Implementation checkpoint
+MAP-PERSIST-01 was deferred, not rejected. MAP-ENTITY-01 passing makes it a stronger future falsifier because Save/Open can now be exercised on genuinely user-shaped Map structure.
 
-Product/evidence checkpoint before documentation closeout:
+JURE-UNIFY-00 may change sequencing, but it must not make persistence disappear from the Map foundation stop condition.
 
-`caa5f94c677d236e46a7de52c10b3fe5f216f6dd`
+## Still-open product/model boundaries
 
-Implemented there:
+Not yet owner-grounded as final product behavior:
 
-- `src/features/map-entity/command.ts` with deterministic duplicate planning, deep authored copy and fail-closed Delete;
-- Map Workspace Duplicate/Delete controls;
-- safe selection reconciliation across Delete and history transitions;
-- dedicated lifecycle core tests;
-- owner-preview instructions retargeted from the old World/Local gate to MAP-ENTITY-01.
-
-The lifecycle test covers:
-
-`Duplicate -> Move -> Resize -> Delete -> Undo -> Redo`
-
-and additionally checks deterministic identity allocation, global collision with spawn IDs, exact restoration, source non-mutation and stale-assumption fail-closed behavior.
-
-### Acceptance state
-
-- implementation: **complete at the checkpoint above**;
-- static/code review: **complete**;
-- final exact-head CI: **must be read from live workflow evidence after this documentation closeout**;
-- real owner interaction gate: **pending until the generated MAP-ENTITY-01 owner preview is exercised**.
-
-Do not label MAP-ENTITY-01 OWNER PASS before that real interaction gate.
-
-### Owner gate
-
-At minimum verify in the real browser:
-
-1. duplicate Ground slab -> a third entity appears and the new copy is selected;
-2. ID is `entity.ground.copy.1` and starting authored data matches the source;
-3. Move/Rotate/signed-face Resize affect only the copy;
-4. Delete clears the copy and stale selection/gizmo safely;
-5. Undo restores the edited copy with the exact same ID;
-6. Redo removes it again;
-7. another duplicate avoids collision and advances deterministically;
-8. Undo of a currently selected newly-created duplicate leaves no stale selection;
-9. existing World/Local, Box Resize, Dimensions, capsule non-support and Rig <-> Map navigation regressions remain normal.
-
-## Corrected next ordering
-
-If MAP-ENTITY-01 passes its owner gate, the next evidence sequence is:
-
-1. **MAP-PERSIST-01** — real owner-facing Save/Open, now exercised on genuinely user-shaped Map structure rather than only the original fixture;
-2. **second geometry falsifier** — likely Capsule Resize, if still highest-value against the frontier;
-3. **first non-primitive representation** — challenge primitive-only Map assumptions;
-4. consumer/large-map boundaries when enough authored meaning exists.
-
-The owner has proposed that after the current structural problem is genuinely resolved, a separate stage should fundamentally examine and unify JURE's visual language, UI, shared core and Rig/Map workbench. That proposal is **not yet implementation authority**. Before starting it, re-evaluate its blast radius against the accepted Rig baseline, experimental Map state and remaining foundation falsifiers. Do not let shell/core unification silently promote provisional Map ontology or erase domain boundaries.
-
-## Open model/product boundaries
-
-Still not grounded as owner-accepted product behavior:
-
-- MAP-ENTITY-01 until its real owner gate passes;
 - owner-facing deterministic Map Save/Open;
-- capsule geometry authoring;
-- any non-primitive representation;
+- capsule geometry authoring/Resize;
+- first non-primitive Map representation;
 - World Resize semantics;
 - mesh/scan transform/scale semantics;
-- final identity/naming policy;
+- final Map identity/naming policy;
 - final JURE MapPackage / consumer lowering;
 - large-map/E2R performance;
-- final unified Rig/Map shell and visual system.
+- final unified Rig/Map shell, design system and shared-core boundary.
+
+## PR / integration boundary
+
+PR #5 remains **draft and unmerged**. Passing MAP-ENTITY-01 does not automatically accept all 35 files or authorize merge of the whole experimental Map lane.
+
+The project is ready to proceed to the next design/falsification stage while preserving:
+
+- `main` as accepted Rig truth;
+- PR #5 as isolated experimental Map evidence;
+- exact owner-tested checkpoints as regression evidence;
+- authored-domain separation as a hard invariant until contrary evidence exists.
 
 ## Known tooling debt
 
