@@ -1,0 +1,376 @@
+.map-workspace {
+  width: 100%;
+  height: 100vh;
+  min-width: 760px;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 300px;
+  grid-template-rows: 54px minmax(0, 1fr) 28px;
+  grid-template-areas:
+    "top top top"
+    "nav canvas inspector"
+    "status status status";
+  overflow: hidden;
+  background: #111418;
+  color: #d8e0e8;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.map-topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid #303943;
+  background: #181d23;
+}
+
+.map-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.map-brand strong {
+  letter-spacing: 0.08em;
+  color: #eef5fc;
+}
+
+.map-brand span {
+  color: #9eacba;
+  font-size: 13px;
+}
+
+.map-brand em {
+  padding: 2px 6px;
+  border: 1px solid #3e596a;
+  border-radius: 999px;
+  color: #7fcdec;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-toolbar button,
+.map-rig-return {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #3a444f;
+  border-radius: 5px;
+  background: #222931;
+  color: #cbd5df;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.map-toolbar button:hover:not(:disabled),
+.map-rig-return:hover {
+  border-color: #60758a;
+  background: #28333e;
+  color: #fff;
+}
+
+.map-toolbar button.active {
+  border-color: #6ba9dc;
+  background: #26425a;
+  color: #eaf6ff;
+}
+
+.map-toolbar button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.map-toolbar-separator {
+  width: 1px;
+  height: 24px;
+  margin: 0 3px;
+  background: #343d46;
+}
+
+.map-document-chip {
+  min-width: 0;
+  margin-left: auto;
+  display: grid;
+  gap: 1px;
+  padding: 5px 9px;
+  border: 1px solid #333d47;
+  border-radius: 5px;
+  background: #14191e;
+  text-align: right;
+}
+
+.map-document-chip span {
+  max-width: 230px;
+  overflow: hidden;
+  color: #c9d4de;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-document-chip small {
+  color: #7d8b98;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.map-navigator,
+.map-inspector {
+  min-width: 0;
+  min-height: 0;
+  background: #171c22;
+  overflow: auto;
+}
+
+.map-navigator {
+  grid-area: nav;
+  border-right: 1px solid #303943;
+}
+
+.map-inspector {
+  grid-area: inspector;
+  border-left: 1px solid #303943;
+}
+
+.map-panel-heading {
+  min-height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2b333c;
+  color: #9eacba;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-panel-heading small {
+  color: #687784;
+  font-size: 10px;
+}
+
+.map-entity-list {
+  padding: 6px;
+  display: grid;
+  gap: 3px;
+}
+
+.map-entity-list button {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #bdc8d3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-entity-list button:hover {
+  background: #20272e;
+}
+
+.map-entity-list button.selected {
+  border-color: #4e7797;
+  background: #203444;
+  color: #e7f4ff;
+}
+
+.map-entity-list button span {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-entity-list button small {
+  flex: 0 0 auto;
+  color: #73818e;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.map-spawn-heading {
+  margin-top: 4px;
+  border-top: 1px solid #2b333c;
+}
+
+.map-spawn-list {
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.map-spawn-list > div {
+  display: grid;
+  gap: 2px;
+}
+
+.map-spawn-list span {
+  color: #b8c5d0;
+  font-size: 11px;
+}
+
+.map-spawn-list small {
+  color: #6e7c89;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+}
+
+.map-canvas-region {
+  grid-area: canvas;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #111418;
+}
+
+.map-viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.map-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.map-viewport-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  padding: 5px 8px;
+  border: 1px solid rgba(80, 95, 110, 0.55);
+  border-radius: 4px;
+  background: rgba(15, 18, 22, 0.76);
+  color: #8997a4;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.map-inspector-content {
+  padding: 12px;
+}
+
+.map-inspector-title {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #2d353e;
+}
+
+.map-inspector-title strong {
+  color: #edf4fa;
+  font-size: 14px;
+}
+
+.map-inspector-title code {
+  color: #758493;
+  font-size: 9px;
+}
+
+.map-inspector-content section {
+  padding: 11px 0;
+  border-bottom: 1px solid #29313a;
+}
+
+.map-inspector-content h3 {
+  margin: 0 0 7px;
+  color: #8998a6;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.map-inspector-content dl {
+  margin: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.map-inspector-content dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.map-inspector-content dt {
+  color: #758493;
+  font-size: 10px;
+}
+
+.map-inspector-content dd {
+  margin: 0;
+  color: #c6d0d9;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  text-align: right;
+}
+
+.map-inspector-note,
+.map-empty-selection {
+  color: #778592;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.map-empty-selection {
+  margin: 12px;
+}
+
+.map-statusbar {
+  grid-area: status;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 10px;
+  border-top: 1px solid #303943;
+  background: #151a1f;
+  color: #788693;
+  font-size: 9px;
+}
+
+.map-status-message {
+  margin-left: auto;
+  overflow: hidden;
+  color: #9ba9b6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .map-workspace {
+    min-width: 0;
+    grid-template-columns: 190px minmax(0, 1fr) 230px;
+  }
+
+  .map-brand em,
+  .map-document-chip {
+    display: none;
+  }
+
+  .map-toolbar button,
+  .map-rig-return {
+    padding: 0 7px;
+  }
+}

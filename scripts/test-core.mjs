@@ -23,4 +23,15 @@ function runNode(args) {
 }
 
 runNode([tscCli, '-p', 'tests/core/tsconfig.json', '--pretty', 'false']);
-runNode(['--test', 'tests/core/core.test.mjs', 'tests/core/representation-binding.test.mjs']);
+runNode([
+  '--test',
+  'tests/core/core.test.mjs',
+  'tests/core/representation-binding.test.mjs',
+  'tests/core/map-document.test.mjs',
+  'tests/core/map-resize.test.mjs',
+  'tests/core/map-face-resize.test.mjs',
+  'tests/core/map-face-resize-mode-switch.test.mjs',
+  'tests/core/map-transform-space.test.mjs',
+  'tests/core/map-entity-lifecycle.test.mjs',
+  'tests/core/workspace-navigation.test.mjs',
+]);
