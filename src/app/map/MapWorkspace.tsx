@@ -12,6 +12,11 @@ import {
   type EditorSession,
 } from '../../editor/session.js';
 import {
+  deleteMapEntity,
+  duplicateMapEntity,
+  planMapEntityDuplicate,
+} from '../../features/map-entity/command.js';
+import {
   planMapBoxFaceResize,
   setMapBoxFaceResizeResult,
   type MapAxis,
@@ -132,6 +137,56 @@ export function MapWorkspace() {
     setStatus(`Cancelled ${entityId} ${transformMode === 'resize' ? 'resize' : 'transform'}`);
   }, [transformMode]);
 
+  const duplicateSelectedEntity = () => {
+    if (!selectedEntityId || session.preview) return;
+    try {
+      const plan = planMapEntityDuplicate(session.committed, selectedEntityId);
+      const next = applyCommand(session, duplicateMapEntity(plan));
+      setSession(next);
+      setSelectedEntityId(plan.targetEntityId);
+      setStatus(`Duplicated ${plan.sourceEntityId} → ${plan.targetEntityId} · stable authored identity · unsaved`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const deleteSelectedEntity = () => {
+    if (!selectedEntityId || session.preview) return;
+    try {
+      const deletedEntityId = selectedEntityId;
+      const next = applyCommand(session, deleteMapEntity(deletedEntityId));
+      setSession(next);
+      setSelectedEntityId(null);
+      if (transformMode === 'resize') setTransformMode('translate');
+      setStatus(`Deleted ${deletedEntityId} · Undo restores the same authored identity`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const reconcileSelectionAfterHistory = (nextSession: EditorSession<MapDocument>) => {
+    if (!selectedEntityId) return;
+    const selectionStillExists = nextSession.committed.entities.some((entity) => entity.id === selectedEntityId);
+    if (!selectionStillExists) {
+      setSelectedEntityId(null);
+      if (transformMode === 'resize') setTransformMode('translate');
+    }
+  };
+
+  const handleUndo = () => {
+    const next = undo(session);
+    setSession(next);
+    reconcileSelectionAfterHistory(next);
+    setStatus(`Undo · revision ${next.committed.revision}`);
+  };
+
+  const handleRedo = () => {
+    const next = redo(session);
+    setSession(next);
+    reconcileSelectionAfterHistory(next);
+    setStatus(`Redo · revision ${next.committed.revision}`);
+  };
+
   const toggleTransformSpace = () => {
     if (spaceToggleDisabled) return;
     setTransformSpace((current) => {
@@ -176,8 +231,23 @@ export function MapWorkspace() {
           </button>
           <button onClick={() => setFitRequest((value) => value + 1)}>Fit Map</button>
           <span className="map-toolbar-separator" />
-          <button disabled={session.past.length === 0 || Boolean(session.preview)} onClick={() => setSession((current) => undo(current))}>Undo</button>
-          <button disabled={session.future.length === 0 || Boolean(session.preview)} onClick={() => setSession((current) => redo(current))}>Redo</button>
+          <button
+            disabled={!selectedEntity || Boolean(session.preview)}
+            title="Duplicate the selected authored map entity with a new deterministic identity"
+            onClick={duplicateSelectedEntity}
+          >
+            Duplicate
+          </button>
+          <button
+            disabled={!selectedEntity || Boolean(session.preview)}
+            title="Delete the selected authored map entity; Undo restores the same identity"
+            onClick={deleteSelectedEntity}
+          >
+            Delete
+          </button>
+          <span className="map-toolbar-separator" />
+          <button disabled={session.past.length === 0 || Boolean(session.preview)} onClick={handleUndo}>Undo</button>
+          <button disabled={session.future.length === 0 || Boolean(session.preview)} onClick={handleRedo}>Redo</button>
         </div>
         <div className="map-document-chip">
           <span>{document.documentId}</span>
