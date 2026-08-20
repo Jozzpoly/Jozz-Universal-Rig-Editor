@@ -140,26 +140,31 @@ jobs:
           if errorlevel 1 pause
           EOF
           cat > owner-preview/README.txt <<EOF
-          JURE Map Lab - World/Local Move/Rotate owner preview
+          JURE Map Lab - MAP-ENTITY-01 owner preview
           Source branch: agent/map-workspace-foundation
           Source head: ${HEAD_SHA}
 
-          Box Face Resize V2 is already owner-PASS. This gate tests the next small Stage-1 slice only: World/Local orientation for Move and Rotate. Resize remains deliberately Local because World Resize semantics are not yet defined.
+          This gate tests one structural falsifier only: whether MapDocument behaves like a dynamically authored world rather than a fixed synthetic fixture. Duplicate/Delete must participate in the same authored identity and EditorSession history used by Move/Rotate/Resize.
 
           Windows:
           1. Double-click START_MAP_PREVIEW.cmd.
-          2. Select Ground slab or Bumper and enter Move. The transform-space control should start at World.
-          3. Rotate the selected entity away from the world axes, then return to Move while World is active. The gizmo axes should remain aligned to world X/Y/Z.
-          4. Toggle World -> Local. The Move gizmo axes should align to the entity's authored orientation. Move along one local axis and confirm the object follows that local direction.
-          5. Repeat with Rotate: World and Local should visibly change the rotation gizmo orientation in the same way as the accepted Rig workspace.
-          6. Toggle back and forth several times between World and Local while no drag is active. Undo/Redo and Esc cancellation for actual transforms should remain normal.
-          7. Select Ground slab, choose Local, then enter Resize. The space control must display Local and be disabled because Resize is defined on authored local signed faces.
-          8. Leave Resize for Move or Rotate. The previously selected Move/Rotate preference must return; e.g. Local -> Resize -> Move returns Local.
-          9. Repeat the preference test from World: World -> Resize displays Local -> Move/Rotate returns World. This proves Resize did not overwrite the stored Move/Rotate preference.
-          10. Quickly regression-check Face Resize V2 (opposite face fixed + Alt center), exact Dimensions, Bumper Resize non-support and Rig <-> Map navigation.
+          2. Select Ground slab. Confirm the navigator starts with 2 entities and Duplicate/Delete are available while no drag preview is active.
+          3. Click Duplicate. The navigator should become 3 entities and the new selected entity should be Ground slab copy 1 with authored ID entity.ground.copy.1. Its starting pose, box dimensions, visual intent and surface data should match Ground slab.
+          4. Move and rotate the duplicate, then use signed-face Resize on it. Confirm only the duplicate changes and the original Ground slab remains unchanged.
+          5. Click Delete while the duplicate is selected. The navigator should return to 2 entities, the selection/Inspector should clear safely and no stale transform or resize gizmo should remain attached.
+          6. Click Undo. The edited duplicate must return with the exact same ID entity.ground.copy.1 and with its pre-delete Move/Rotate/Resize state intact.
+          7. Click Redo. The duplicate must disappear again. Undo once more and confirm the same identity returns again.
+          8. With entity.ground.copy.1 present, select the original Ground slab and click Duplicate again. The new identity should advance deterministically to entity.ground.copy.2 rather than collide with the existing copy.
+          9. While entity.ground.copy.2 is selected, click Undo. That duplicate should disappear and selection must reconcile safely instead of pointing at a missing entity.
+          10. Quick regression: Move/Rotate World/Local, Box Face Resize V2 including Alt center mode, exact Dimensions, Bumper capsule read-only Resize state and Rig <-> Map navigation should remain normal.
           11. Close the command window (or press Ctrl+C) to stop the preview server.
 
-          Acceptance boundary: World/Local applies only to Move/Rotate. Do not interpret the disabled Local state in Resize as a missing implementation bug; World Resize remains an intentionally open geometry-semantics problem. Capsule axial/radial Resize is the next independent geometry slice after this gate.
+          Acceptance boundary:
+          - PASS means structural Duplicate/Delete, deterministic non-colliding authored identity, normal history and safe selection reconciliation work in the real browser workflow.
+          - The .copy.N allocator is intentionally provisional evidence infrastructure, not the final JURE identity/naming scheme.
+          - This gate does not define Create UX, final entity taxonomy, persistence, final MapPackage, Capsule Resize or non-primitive representation.
+          - MAP-PERSIST-01 should be reconsidered only after this structural lifecycle gate is accepted, so Save/Open is tested on a genuinely user-shaped MapDocument instead of only the original fixture.
+
           This artifact is a local preview only. It does not modify an existing JURE checkout.
           EOF
       - name: Smoke owner preview package
