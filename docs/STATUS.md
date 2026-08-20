@@ -30,8 +30,7 @@ This takeover independently re-verified the live refs, implementation path, test
 - **Map World/Local Move/Rotate: OWNER PASS**, scoped to the implemented Move/Rotate transform-space contract described below;
 - **World Resize: undefined / not accepted**;
 - **Capsule Resize: not accepted and not automatically selected as next work**;
-- **PR #5 remains draft and unmerged**;
-- **the next falsifier is intentionally re-opened for selection after this closeout rather than inherited from the stale sequence**.
+- **PR #5 remains draft and unmerged**.
 
 Machine evidence and owner evidence remain distinct. In particular, the repository does not contain a separate raw recording or later PR conversation comment for the newest World/Local owner test. The owner explicitly classified that latest real test as accepted during the 2026-08-20 takeover. Repository verification independently confirms the exact implementation and technical evidence supporting that tested slice; it does not invent unrecorded manual observations.
 
@@ -168,13 +167,56 @@ Still not grounded as owner-accepted product behavior:
 - large-map/E2R performance;
 - final unified Rig/Map shell.
 
-## Next falsifier status
+## Selected next falsifier — MAP-PERSIST-01
 
-**Not frozen by this closeout.**
+**Real owner-facing `MapDocument` Save/Open is the next falsifier. No implementation is part of the 2026-08-20 takeover/selection closeout.**
 
-The old sequence `World/Local PASS -> Capsule Resize` is no longer treated as a scheduler. Capsule remains a legitimate candidate, but it must compete against other currently unproved foundation assumptions such as authored entity lifecycle, real save/open and the first non-primitive representation.
+### Why this beats Capsule Resize now
 
-The next falsifier must be selected explicitly after this epistemic correction by information value, product need, causal blast radius and falsification power. No implementation belongs in this closeout commit.
+The current Map workspace still boots from hard-coded `SYNTHETIC_MAP` and presents itself as `unsaved`. Core code already proves deterministic canonical `serializeMapDocument()` / `parseMapDocument()`, but that is not evidence that a real authored map survives an actual browser/file lifecycle.
+
+A second primitive Resize would deepen geometry interaction while leaving the more fundamental claim — that `MapDocument` is durable authored authority rather than a disposable manipulation fixture — untested.
+
+MAP-PERSIST-01 also increases the value of every later falsifier: capsule, entity lifecycle and non-primitive experiments can produce owner-created states that are actually saved, closed and reopened.
+
+### Hypothesis
+
+The current `MapDocument` + `EditorSession` boundary can survive a real file lifecycle without renderer state, preview state, selection state or stale history leaking into authored persistence.
+
+### Minimum experiment contract
+
+- reuse existing deterministic Map parse/serialize and validation; do not change schema merely to add file UI;
+- save only committed authored truth, never transient preview/proxy state;
+- opening a valid map creates a fresh editor session from the parsed document rather than inheriting old preview/Undo/Redo state;
+- invalid/malformed open fails closed and leaves the currently authored map untouched;
+- selection/camera/transform-space are presentation state and are not serialized into `MapDocument`;
+- no generic cross-workspace document-I/O framework is extracted solely for this slice;
+- accepted Rig Save/Open remains the regression baseline.
+
+### Required falsifiers
+
+At minimum verify:
+
+1. Move/Rotate/World/Local and Box Face Resize edits can be saved and reopened exactly as authored;
+2. canonical save -> parse -> canonical save is byte-stable for the real edited file;
+3. active preview cannot silently enter the saved file;
+4. malformed/invalid file cannot replace or partially mutate the current session;
+5. opening a valid file does not retain stale undo/redo history from the previous map;
+6. renderer/proxy/UI state is absent from the serialized document;
+7. Rig workspace behavior remains unchanged.
+
+Owner gate should include a real browser save, further destructive edits, reopen of the saved map and visual/numeric confirmation that the earlier authored state returns exactly.
+
+### Explicit non-goals
+
+- Capsule Resize;
+- create/delete/duplicate;
+- autosave/recent-files/project manager;
+- final Map package/extension decision beyond the current schema evidence;
+- shared universal file framework;
+- Stage-2 shell redesign;
+- terrain/mesh/scan authoring;
+- consumer lowering.
 
 ## Known tooling debt
 
