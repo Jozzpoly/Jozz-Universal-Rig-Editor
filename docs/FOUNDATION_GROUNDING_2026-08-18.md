@@ -229,7 +229,7 @@ Current `box | capsule` entities are P0 primitive geometry, not final Map ontolo
 5. **consumer boundary** — explicit JURE package/adapter only after enough authored meaning is grounded;
 6. **large-map behavior** — current full display-projection rebuild is unproved at E2R-class scale.
 
-Select the next falsifier by information value, actual product need, causal blast radius and ability to falsify an architectural assumption. Do not use numbering alone as a scheduler.
+Select falsifiers by information value, actual product need, causal blast radius and ability to challenge an architectural assumption. Do not use numbering alone as a scheduler.
 
 ## 9. Donor grounding
 
@@ -307,17 +307,57 @@ No one category substitutes for another.
 
 Face Resize is the canonical warning: planner/history tests stayed green while the first real Windows/browser Alt lifecycle failed. World/Local is the complementary case: machine evidence can establish wiring and invariants, while owner acceptance is a separate classification and must not be backfilled with invented manual observations.
 
-## 14. Controlled next state after the 2026-08-20 closeout
+## 14. Selected next falsifier — MAP-PERSIST-01
 
-Accepted interaction frontier on draft PR #5 now includes:
+After the World/Local drift was closed, the open frontier was re-evaluated rather than following the historical Capsule sequence. The selected next falsifier is **real owner-facing Map Save/Open**.
 
-- Box Face Resize V2;
-- Map World/Local Move/Rotate;
-- Local-only authored face Resize boundary.
+### Why persistence first
 
-There is **no frozen next falsifier inside this closeout**. Capsule is deliberately demoted from automatic next step to one candidate among the open risks in section 8.
+The current Map workspace still initializes from hard-coded `SYNTHETIC_MAP` and remains visibly `unsaved`. Core tests already prove deterministic canonical parse/serialize, but that does not prove `MapDocument` is durable authored authority through a real browser/file lifecycle.
 
-The next experiment must be selected only after this corrected state is live and re-evaluated. This closeout contains documentation/evidence correction only, no product implementation.
+This is more fundamental at the current boundary than adding a second geometry manipulation tool. It also makes later capsule, lifecycle and non-primitive experiments produce durable artifacts instead of disposable lab state.
+
+### Hypothesis
+
+`MapDocument` and the current `EditorSession` can cross a real save/open boundary without transient renderer, preview, selection, transform-space or stale history state contaminating authored persistence.
+
+### Frozen minimum contract
+
+- reuse existing deterministic `serializeMapDocument()` / `parseMapDocument()` and validation;
+- save committed authored truth only;
+- do not serialize camera, selection, transform mode/space, Three proxies or preview state;
+- opening a valid map creates a fresh session from the parsed authored document;
+- invalid/malformed open fails closed and leaves the current authored map untouched;
+- stale Undo/Redo history from the previous map must not survive open;
+- do not extract a universal document-I/O framework solely for this slice;
+- preserve accepted Rig Save/Open as regression baseline.
+
+### Required evidence
+
+At minimum falsify:
+
+1. edited Move/Rotate/World/Local and Box Face Resize state survives save/open exactly;
+2. canonical saved text is stable across save -> parse -> save;
+3. active preview cannot silently enter the persisted document;
+4. invalid input cannot partially replace current authored state;
+5. opening a valid map does not retain old history;
+6. presentation/renderer state is absent from the file;
+7. Rig remains unchanged.
+
+The owner gate must include a real browser save, further destructive edits, reopen of the saved file and visual/numeric confirmation that the earlier authored state returns.
+
+### Non-goals
+
+- Capsule Resize;
+- create/delete/duplicate;
+- autosave/recent files/project manager;
+- final Map package/extension decision beyond current schema evidence;
+- generic shared file framework;
+- Stage-2 shell redesign;
+- non-primitive geometry;
+- consumer lowering.
+
+**No MAP-PERSIST-01 implementation is part of the 2026-08-20 takeover/selection closeout.**
 
 ## 15. Stop condition for the broader foundation phase
 
