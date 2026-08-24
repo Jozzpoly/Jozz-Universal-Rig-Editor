@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'checkpoint/**'
+  pull_request:
+    branches:
+      - 'validation/donor-02f-base-2026-08-24'
   workflow_dispatch:
 
 permissions:
