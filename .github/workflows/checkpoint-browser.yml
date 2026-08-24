@@ -227,6 +227,7 @@ jobs:
             STATE="failure"
             DESCRIPTION="Checkpoint gate failed: linux=$LINUX_RESULT windows=$WINDOWS_RESULT"
           fi
+          export STATE DESCRIPTION
 
           python - <<'PY' > /tmp/checkpoint-status.json
           import json, os
@@ -246,6 +247,3 @@ jobs:
             --data-binary @/tmp/checkpoint-status.json
 
           test "$STATE" = "success"
-        env:
-          STATE: ${{ needs.linux-browser.result == 'success' && needs.windows-browser.result == 'success' && 'success' || 'failure' }}
-          DESCRIPTION: ${{ needs.linux-browser.result == 'success' && needs.windows-browser.result == 'success' && 'Linux and Windows checkpoint gates passed' || format('Checkpoint gate failed: linux={0} windows={1}', needs.linux-browser.result, needs.windows-browser.result) }}
