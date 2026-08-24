@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { TransformTarget } from '../../editor/transform-target.js';
 import { inspectRevoluteCandidate } from '../../features/rig-relations/create-revolute.js';
+import { inspectSphericalCandidate } from '../../features/rig-relations/create-spherical.js';
 import type { RigDocument } from '../../kernel/types.js';
 import type { RevoluteTestSession } from '../state/revolute-test-workflow.js';
 import { RevoluteTestPanel } from './RevoluteTestPanel.js';
@@ -24,6 +25,7 @@ interface RigNavigatorProps {
   onSelect(target: TransformTarget): void;
   onCreateElement(name: string): void;
   onCreateRevolute(frameAId: string, frameBId: string): void;
+  onCreateSpherical(frameAId: string, frameBId: string): void;
   onBeginRevoluteTest(relationId: string, movingElementId: string): void;
   onRevoluteTestAngle(angleRad: number): void;
   onResetRevoluteTest(): void;
@@ -43,7 +45,7 @@ function frameOptionLabel(document: RigDocument, frameId: string): string {
   return `${frame.name} · ${owner} · ${frame.id}`;
 }
 
-export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, testStartDisabled, testSession, onVisibleChange, onLayerChange, onSelect, onCreateElement, onCreateRevolute, onBeginRevoluteTest, onRevoluteTestAngle, onResetRevoluteTest, onEndRevoluteTest }: RigNavigatorProps) {
+export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, testStartDisabled, testSession, onVisibleChange, onLayerChange, onSelect, onCreateElement, onCreateRevolute, onCreateSpherical, onBeginRevoluteTest, onRevoluteTestAngle, onResetRevoluteTest, onEndRevoluteTest }: RigNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [collapsedElements, setCollapsedElements] = useState<Set<string>>(() => new Set());
   const [creatingElement, setCreatingElement] = useState(false);
@@ -51,6 +53,9 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
   const [creatingRevolute, setCreatingRevolute] = useState(false);
   const [revoluteFrameA, setRevoluteFrameA] = useState('');
   const [revoluteFrameB, setRevoluteFrameB] = useState('');
+  const [creatingSpherical, setCreatingSpherical] = useState(false);
+  const [sphericalFrameA, setSphericalFrameA] = useState('');
+  const [sphericalFrameB, setSphericalFrameB] = useState('');
   const normalizedFilter = filter.trim();
 
   const framesByOwner = useMemo(() => {
@@ -72,6 +77,15 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
     }
   }, [document, revoluteFrameA, revoluteFrameB]);
 
+  const sphericalInspection = useMemo(() => {
+    if (!sphericalFrameA || !sphericalFrameB || sphericalFrameA === sphericalFrameB) return null;
+    try {
+      return inspectSphericalCandidate(document, sphericalFrameA, sphericalFrameB);
+    } catch {
+      return null;
+    }
+  }, [document, sphericalFrameA, sphericalFrameB]);
+
   const toggleElement = (elementId: string) => {
     setCollapsedElements((current) => {
       const next = new Set(current);
@@ -89,23 +103,46 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
     setCreatingElement(false);
   };
 
-  const toggleRevoluteBuilder = () => {
-    setCreatingElement(false);
-    setNewElementName('');
-    const next = !creatingRevolute;
-    setCreatingRevolute(next);
-    if (!next) return;
+  const preferredFramePair = () => {
     const preferred = selectedTarget?.kind === 'frame' && document.frames.some((frame) => frame.id === selectedTarget.id)
       ? selectedTarget.id
       : document.frames[0]?.id ?? '';
     const other = document.frames.find((frame) => frame.id !== preferred)?.id ?? '';
+    return [preferred, other] as const;
+  };
+
+  const toggleRevoluteBuilder = () => {
+    setCreatingElement(false);
+    setCreatingSpherical(false);
+    setNewElementName('');
+    const next = !creatingRevolute;
+    setCreatingRevolute(next);
+    if (!next) return;
+    const [preferred, other] = preferredFramePair();
     setRevoluteFrameA(preferred);
     setRevoluteFrameB(other);
+  };
+
+  const toggleSphericalBuilder = () => {
+    setCreatingElement(false);
+    setCreatingRevolute(false);
+    setNewElementName('');
+    const next = !creatingSpherical;
+    setCreatingSpherical(next);
+    if (!next) return;
+    const [preferred, other] = preferredFramePair();
+    setSphericalFrameA(preferred);
+    setSphericalFrameB(other);
   };
 
   const submitRevolute = () => {
     if (createDisabled || !revoluteInspection || revoluteInspection.existingRelationId) return;
     onCreateRevolute(revoluteFrameA, revoluteFrameB);
+  };
+
+  const submitSpherical = () => {
+    if (createDisabled || !sphericalInspection || sphericalInspection.existingRelationId) return;
+    onCreateSpherical(sphericalFrameA, sphericalFrameB);
   };
 
   const visibleElements = document.elements.filter((element) => {
@@ -149,6 +186,7 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           onClick={() => {
             setCreatingElement((current) => !current);
             setCreatingRevolute(false);
+            setCreatingSpherical(false);
             setNewElementName('');
           }}
         >
@@ -163,6 +201,16 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           onClick={toggleRevoluteBuilder}
         >
           + Revolute
+        </button>
+        <button
+          type="button"
+          className={`layer-toggle auth ${creatingSpherical ? 'active' : ''}`}
+          aria-expanded={creatingSpherical}
+          disabled={createDisabled || document.frames.length < 2}
+          title={document.frames.length < 2 ? 'Author at least two frames before creating a spherical relation' : createDisabled ? 'Finish TEST or the active authoring/SOURCE placement operation first' : 'Create a neutral spherical relation between two authored frames'}
+          onClick={toggleSphericalBuilder}
+        >
+          + Spherical
         </button>
       </div>
       {creatingElement ? (
@@ -213,6 +261,40 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           <div className="topbar-actions">
             <button type="button" className="binding-preview-button active" disabled={createDisabled || !revoluteInspection || Boolean(revoluteInspection.existingRelationId)} onClick={submitRevolute}>Create revolute</button>
             <button type="button" className="binding-preview-button" onClick={() => setCreatingRevolute(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
+      {creatingSpherical ? (
+        <div className="binding-preview-card" data-spherical-builder>
+          <div className="binding-preview-head"><strong>Neutral spherical</strong><span>authored relation</span></div>
+          <label className="inspector-group-title" htmlFor="spherical-frame-a">Frame A</label>
+          <select id="spherical-frame-a" className="navigator-filter" aria-label="Spherical frame A" value={sphericalFrameA} onChange={(event) => setSphericalFrameA(event.target.value)}>
+            <option value="">Choose authored frame…</option>
+            {document.frames.map((frame) => <option key={frame.id} value={frame.id}>{frameOptionLabel(document, frame.id)}</option>)}
+          </select>
+          <label className="inspector-group-title" htmlFor="spherical-frame-b">Frame B</label>
+          <select id="spherical-frame-b" className="navigator-filter" aria-label="Spherical frame B" value={sphericalFrameB} onChange={(event) => setSphericalFrameB(event.target.value)}>
+            <option value="">Choose authored frame…</option>
+            {document.frames.map((frame) => <option key={frame.id} value={frame.id}>{frameOptionLabel(document, frame.id)}</option>)}
+          </select>
+          {sphericalFrameA && sphericalFrameB && sphericalFrameA === sphericalFrameB ? (
+            <div className="context-warning">Choose two distinct authored frames.</div>
+          ) : sphericalInspection ? (
+            <div
+              className={sphericalInspection.existingRelationId ? 'context-warning' : 'construction-result'}
+              data-spherical-diagnostic
+              data-origin-residual-m={sphericalInspection.originResidualM}
+            >
+              <div><strong>Neutral diagnostic</strong></div>
+              <div>Origin residual {(sphericalInspection.originResidualM * 1000).toFixed(3)} mm</div>
+              <small>{sphericalInspection.ownerA ?? 'rig root'} ↔ {sphericalInspection.ownerB ?? 'rig root'}</small>
+              <small>Only the shared origin is constrained; frame orientation remains authored and unconstrained.</small>
+              {sphericalInspection.existingRelationId ? <div>Already connected by {sphericalInspection.existingRelationId}</div> : null}
+            </div>
+          ) : null}
+          <div className="topbar-actions">
+            <button type="button" className="binding-preview-button active" disabled={createDisabled || !sphericalInspection || Boolean(sphericalInspection.existingRelationId)} onClick={submitSpherical}>Create spherical</button>
+            <button type="button" className="binding-preview-button" onClick={() => setCreatingSpherical(false)}>Cancel</button>
           </div>
         </div>
       ) : null}
