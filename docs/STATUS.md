@@ -3,65 +3,58 @@
 ## Authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
-- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / draft PR #3;
+- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest fully validated product SHA:** `f3302b434972b0a4df2dd693100fc8805891594f`;
-- **validated tree:** `d3aa165ab12bf18c7d6883790f5131e0246013f1`;
-- **latest frozen checkpoint:** `checkpoint/donor-02f-observable-validation-2026-08-24@f3302b434972b0a4df2dd693100fc8805891594f`;
-- **validation run:** `32781647237` — Linux browser PASS + Windows browser PASS + final `jure/checkpoint-browser` SUCCESS;
-- **validation review boundary:** closed evidence-only PR #6, never merge;
+- **latest fully validated product SHA:** `2af0e789d22eb4284e65ab2342ca933d21fe9315`;
+- **validated tree:** `671aa88dce3bc643eecc30519b904dadf7402b83`;
+- **latest frozen checkpoint:** `checkpoint/donor-03a-coherent-neutral-wishbone-2026-08-24@2af0e789d22eb4284e65ab2342ca933d21fe9315`;
+- **validation run:** `32782422063` — Linux browser PASS + Windows browser PASS + final checkpoint status SUCCESS;
+- **validation review boundary:** closed evidence-only PR #7, never merge;
+- **previous validated donor boundary:** `checkpoint/donor-02f-observable-validation-2026-08-24@f3302b434972b0a4df2dd693100fc8805891594f`, run `32781647237`;
 - **historical paused product boundary:** closed PR #4; it no longer describes the current product head.
 
-The PR validation merge ref `e78259a2713d2631392345cb0ded05ab53e878e8` resolved to the same tree `d3aa165ab12bf18c7d6883790f5131e0246013f1` as the validated work head, so the PR-triggered run tested the current product tree rather than a different merge composition.
+PR #7's validation merge ref `422e7d12d9669666eb65cd592b3540a4736b2935` and work head `2af0e789d22eb4284e65ab2342ca933d21fe9315` resolve to the same tree `671aa88dce3bc643eecc30519b904dadf7402b83`. The PR-triggered Linux/Windows run therefore validated the current work product tree rather than a different merge composition.
 
-`main` remains untouched. PR #2 retains full recovery/foundation evidence; PR #3 remains the explicit clean promotion boundary. Neither PR #3 nor any validation/recovery PR may be merged merely because CI is green.
-
-A disrupted earlier session briefly wrote PR text referring to nonexistent `a2a394dd...` / run `31955493157`. Those identifiers are not authority and must not be reused.
+`main` remains untouched. PR #2 retains recovery/foundation evidence; PR #3 remains the explicit clean promotion boundary. Validation/recovery PRs are evidence laboratories only and must never be merged. No promotion to `main` is authorized without explicit Owner approval.
 
 ## Product purpose
 
-JURE is an owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express neutral mechanical and representation intent, test mechanisms without mutating authored neutral truth, save/reopen deterministically and export a small reliable result to a consumer without agent-side coordinate guessing.
+JURE is an Owner-first spatial rigging workbench. The Owner should be able to inspect exact real assets, create/correct authored rig truth, express neutral mechanical and representation intent, test mechanisms without mutating authored neutral truth, save/reopen deterministically and export a small reliable result to a consumer without agent-side coordinate guessing.
 
-**End-to-end Owner authoring is part of the product definition, not merely a convenience.** JURE must not require an agent to act as the recurring rigging operator. For a supported mechanism, the intended end state is that the Owner can personally load/inspect SOURCE, create and adjust authored elements/frames/relations, fit mechanical geometry and representation, inspect diagnostics, TEST/Reset motion, correct the rig, Save/Open and export deterministic authored truth. Agent-side math, diagnostics and automation should make that workflow possible rather than replace it.
+End-to-end Owner authoring is part of the product definition. For a supported mechanism, the target is:
 
-JV/JV-Web is the first real consumer/falsifier and the main near-term integration partner. JURE should solve the authoring side of the JV vehicle-rig problem — exact part fit, suspension/steering relations, coherent mechanisms and moving representation such as dampers/springs — while JV remains authority for runtime physics, forces, solver state, controls and rendering integration.
+`place/inspect exact SOURCE -> author elements/frames/relations -> diagnose -> TEST/Reset -> correct -> Save/Open -> export deterministic neutral truth`
 
-JURE must remain useful for later native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs or thrusters without becoming vehicle-specific or absorbing consumer dynamics.
+JV/JV-Web is the first real consumer/falsifier. JURE owns authored neutral geometry/mechanical/representation truth; JV owns runtime physics, forces, solver state, controls and rendering integration.
 
-## Demonstrated real-use chain
+## Current machine-proven capability
 
-The validated line now demonstrates the complete small Owner-operated lower-hinge path:
+The validated line proves the complete small Owner-operated lower-hinge path:
 
-`exact SOURCE -> authored bodies -> authored hinge frames -> Owner revolute -> geometric diagnostic -> transient Owner TEST -> Reset -> exact AUTHORED -> Undo/Redo`
+`exact SOURCE -> authored bodies -> authored hinge frames -> Owner revolute -> diagnostic -> transient Owner TEST -> Reset -> exact AUTHORED -> Undo/Redo`
 
-It also demonstrates the generic Owner spherical relation workflow on exact-source-derived coincident frames, while deliberately keeping real vehicle outboard/ball-joint semantics open.
+It also proves Owner spherical relation authoring and, as of DONOR-03A, a complete coherent neutral four-relation wishbone at the model/evidence level.
 
-Specifically:
+Validated capability now includes:
 
-- Owner-facing free and exact-SOURCE-derived `RigElement` creation;
+- free and exact-SOURCE-derived `RigElement` creation;
 - exact SOURCE datum -> owner-local `RigFrame` adoption;
-- conservative geometry-derived point datums that do not invent orientation;
-- right-handed constructed frames from origin point + radial endpoint + independent up span;
-- versioned self-resolving construction-frame locators with all exact component locators;
-- exact runtime re-resolution, Save/Open and exact relink without a side recipe database;
-- Owner-facing construction recipe builder with visible origin, local axes and provenance;
-- one physical lower-wishbone hinge authored on two distinct bodies using the same recipe while preserving independent owner-local frame poses;
-- Owner-facing neutral `revolute` creation over two authored frames;
-- pre-commit revolute diagnostics measuring origin residual and signed `+Z` axis residual without projecting/mutating authored truth;
-- one `ProjectSession` action for relation creation with Undo/Redo;
-- replaceable single-revolute TEST evaluator with explicit TEST-only `movingElementId` rather than durable parent/child semantics;
-- Owner TEST control with exact `0° -> +30° -> Reset -> End TEST` behavior;
-- TEST angle/reset do not change authored rig revision or enter durable project history;
-- transient `+30°` lower-arm motion around the real hinge while hinge origin and primary `+Z` remain fixed/aligned;
-- Reset removing all evaluator influence and returning exactly to AUTHORED;
-- legal neutral frame roll around the revolute axis is preserved rather than projected away;
-- neutral `spherical` domain semantics that constrain shared origin only, not frame orientation;
-- spherical origin-residual diagnostics;
-- Owner-facing `+ Spherical` creation with pre-commit residual and one ProjectSession Undo/Redo action;
-- exact-source browser spherical control proving the UI/workflow without claiming that its control point is a real wishbone ball joint;
-- one chronological `ProjectSession` remains the only durable project history.
+- conservative geometry-derived point datums without invented orientation;
+- right-handed constructed frames from origin + radial endpoint + independent up span;
+- versioned self-resolving construction-frame locators;
+- exact re-resolution, deterministic Save/Open and exact relink;
+- Owner construction-recipe workflow with visible provenance;
+- one physical hinge authored independently on two bodies with distinct local poses but one coincident world frame;
+- Owner-facing neutral `revolute` creation with origin/+Z residual preview and one ProjectSession Undo/Redo action;
+- transient revolute TEST `0° -> +30° -> Reset -> End TEST` with authored revision/history unchanged by TEST controls;
+- neutral `spherical` semantics constraining shared origin only, not frame orientation;
+- spherical origin residual diagnostics;
+- Owner-facing `+ Spherical` creation with pre-commit residual and Undo/Redo;
+- exact-source browser spherical control proving UI/workflow without claiming its control point is a real ball joint;
+- one chronological `ProjectSession` as the only durable project history;
+- **coherent neutral wishbone:** 4 elements, 8 independently owner-local frames, 2 inboard revolutes + 2 outboard sphericals, clean diagnostics, deterministic Save/Open and exact SOURCE relink.
 
-Canonical `npm run check` passes at the validated checkpoint. Validation run `32781647237` passed on Linux and Windows, including pinned exact-JV probes, corrected outboard grounding, Owner revolute/TEST flow, spherical workflow/control and prior browser regressions. The existing >500 kB minified main-chunk warning remains non-blocking build debt.
+Validation run `32782422063` passed on Linux and Windows with canonical `npm run check`, pinned exact SOURCE identity, all real-JV probes, the coherent wishbone probe and all Owner/browser regressions.
 
 ## Exact real JV evidence
 
@@ -73,7 +66,7 @@ Pinned fixture:
 - SHA-256: `57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750`;
 - size: 64,264 bytes.
 
-Validated wishbone construction evidence:
+Validated wishbone geometry on this exact unmirrored left fixture:
 
 ```text
 Chassis_Top X min    = [-0.8125, 0.96875, 0]
@@ -88,27 +81,59 @@ local +Y              = [0, 1, 0]
 local +Z              = [0, 0, 1]
 ```
 
-For this exact unmirrored left fixture, current JV S2 evidence establishes max-X as the chassis/inboard end and min-X as the wheel/outboard end. That ordering is fixture evidence, not generic JURE semantics.
+For this fixture, current JV S2 evidence establishes max-X as chassis/inboard and min-X as wheel/outboard. That ordering is fixture evidence, not generic JURE semantics.
 
-The same physical lower-hinge locator is authored on:
-
-- exact-SOURCE-derived lower-arm body;
-- explicit Owner chassis-reference body.
-
-The two authored frames have different local poses but resolve to the same world hinge and aligned signed `+Z`. Their neutral `revolute` persists through Save/Open.
-
-### Outboard grounding boundary
-
-The exact source provides provenance-backed upper/lower wishbone wheel-end geometry candidates at the X-min ends. Those candidates are useful starting geometry but are **not accepted ball-joint truth**.
+### Owner-accepted wheel-side role split
 
 Owner-accepted JV S2 evidence distinguishes:
 
-- `Socket_ChassisMount_b` as the suspension-side / non-steering structural role;
-- `Socket_WheelCenter` as a distinct steerable structural role relative to it.
+- `Socket_ChassisMount_b` = suspension-side / non-steering structural role;
+- `Socket_WheelCenter` = distinct steerable structural role relative to it;
+- steering DOF exists between those roles;
+- wheel spin is another distinct DOF.
 
-Accordingly, the validated JURE outboard probe uses `Socket_ChassisMount_b` as the suspension-side carrier reference space and keeps `Socket_WheelCenter` separate as steerable reference evidence. Upper/lower X-min candidate frames can be authored independently on arm-side and carrier-side owners and resolve to coincident world frames, but their final mating meaning remains an explicit Owner/workbench decision.
+Accordingly, JURE uses `Socket_ChassisMount_b` as the suspension-side carrier reference and keeps `Socket_WheelCenter` as separate steerable reference evidence.
 
-Checkpoint evidence includes markers:
+### Outboard semantic boundary
+
+The X-min ends of `Chassis_Top` and `Chassis_Bottom` are provenance-backed wheel-end **mating candidates**. They are not Owner-accepted ball-joint truth.
+
+DONOR-03A proves that those candidate world frames can be independently represented in upper/lower arm local space and suspension-carrier local space, joined by neutral spherical relations, serialized deterministically and re-resolved after exact relink. It does **not** prove that their physical positions are the final intended ball-joint centers.
+
+The next Owner/workbench gate must establish or correct those mating frames.
+
+## DONOR-03A coherent neutral wishbone evidence
+
+Exact machine-proven topology:
+
+```text
+Owner chassis reference
+  <-> upper arm        : revolute at upper X-max hinge
+  <-> lower arm        : revolute at lower X-max hinge
+
+suspension-side carrier reference (Socket_ChassisMount_b space)
+  <-> upper arm        : spherical at upper X-min candidate
+  <-> lower arm        : spherical at lower X-min candidate
+```
+
+Probe invariants:
+
+- 4 authored elements;
+- 8 independently owner-local authored frames;
+- 4 relations exactly: 2 revolute + 2 spherical;
+- 11 exact SOURCE adoption receipts;
+- zero/near-zero neutral relation residuals without projection or coordinate patches;
+- every physical joint locator authored on both owning elements with different local poses but identical resolved world pose;
+- serialize -> parse -> serialize is byte-identical;
+- relation IDs/types/endpoints survive Save/Open;
+- exact SOURCE relink preserves all four physical locators and their provenance;
+- final neutral diagnostics remain clean after Save/Open/relink.
+
+Primary marker:
+
+- `REAL_JV_COHERENT_WISHBONE_NEUTRAL_PASS`.
+
+Other retained evidence markers include:
 
 - `REAL_JV_WISHBONE_RECIPE_RERESOLVE_PASS`;
 - `REAL_JV_TWO_BODY_HINGE_OWNERSHIP_PASS`;
@@ -117,73 +142,71 @@ Checkpoint evidence includes markers:
 - `REAL_JV_SINGLE_REVOLUTE_EVALUATOR_PASS`;
 - `REAL_JV_OUTBOARD_CANDIDATE_GEOMETRY_PASS`;
 - `REAL_JV_OUTBOARD_CANDIDATE_OWNERSHIP_PASS`;
-- `CONSTRUCTION_FRAME_INVALID_RECIPE_FAIL_CLOSED_PASS`;
-- `CONSTRUCTION_FRAME_RECIPE_PRESERVED_AFTER_COMMIT_PASS`;
 - `BROWSER_REAL_TWO_BODY_HINGE_AUTHORING_PASS`;
 - `BROWSER_REAL_REVOLUTE_AUTHORING_PASS`;
 - `BROWSER_REAL_REVOLUTE_TEST_UI_PASS`;
-- `BROWSER_SPHERICAL_AUTHORING_CONTROL_PASS`;
-- all earlier SOURCE placement/adoption/Undo/Redo browser regressions.
-
-A separately supplied `OneSided_Steering_Suspension_Rig(1).gltf` observed during cross-project coordination has the same size and matching visible node/marker structure but different exact SHA-256 bytes from the pinned fixture. It is **not** silently promoted to source authority. Exact-source identity remains fail-closed until a deliberate revision decision is made.
+- `BROWSER_SPHERICAL_AUTHORING_CONTROL_PASS`.
 
 ## Semantic boundaries
 
 SOURCE evidence proposes measurements; explicit adoption creates authored truth. Moving/relinking SOURCE never moves authored rig truth.
 
-A construction point is not a frame. A constructed frame exists only when independent evidence supplies an orientation and the derivation can be re-resolved from the exact `SourceRevision`.
+A construction point is not a frame. A constructed frame exists only when independent evidence supplies orientation and the derivation can be re-resolved from the exact SourceRevision.
 
-A `revolute` currently expresses only two authored frames and optional geometric limits. A `spherical` currently expresses only the shared-origin relationship between two authored frames. Neither relation contains mass, inertia, friction, damping, spring laws, motors, solver configuration or Box3D/native runtime identity.
+`revolute` and `spherical` express neutral mechanical intent only. They do not contain mass, inertia, friction, damping, spring laws, motors, solver configuration or Box3D/native runtime identity.
 
-The first TEST evaluator is deliberately not architecture for a general solver. Its TEST-only configuration explicitly selects which authored element moves. Durable `RigRelation` still does not encode parent/child hierarchy.
+Durable `RigRelation` does not encode assembly parent/child hierarchy. The coherent wishbone PASS specifically shows that a mechanical relation graph with the required four neutral constraints does not require hierarchy to exist in the relation model.
 
-`AUTHORED NEUTRAL != transient EVALUATED motion`. TEST results are revision-bound pose overlays and Reset removes them entirely.
+`AUTHORED NEUTRAL != transient EVALUATED motion`. Current TEST is a disposable single-revolute evaluator, not a general mechanism solver.
 
-For damper/spring authoring, JURE should own neutral attachments, axis/travel geometry and representation mapping that the Owner can directly inspect and adjust. Runtime spring/damping force laws and current compression/extension remain consumer/JV state.
+Future assembly hierarchy and a future multi-relation/physics evaluator remain valid JURE directions, but neither is required to represent the current neutral wishbone truth.
 
 ## Current product gaps
 
-- The coherent four-relation double-wishbone shape is the minimum current neutral mechanism target, but the complete real Owner-authored mechanism is **not yet validated**.
-- Upper/lower outboard X-min frames are provenance-backed geometry candidates, not accepted ball-joint/mating truth; the Owner/workbench must still establish or correct final mating frames.
-- Current SOURCE rendering loads a whole glTF under one `sourceRoot`; there is no per-node/per-part SOURCE Hide/Solo/Isolate yet. Do not implement it merely as a checklist item — first prove the real Owner mating gate actually needs it.
-- The Rig Navigator still has no durable multi-level assembly hierarchy; that remains a strategic full-JURE requirement, not a DONOR-02 prerequisite.
-- UI exposes one active `SourceInstance` context even though the project model supports multiple instances.
-- No arbitrary surface/vertex picker exists because current real work has not yet justified one.
-- Mechanical relation vocabulary and future limit conventions remain provisional.
-- Representation remains correctly separate, but final Owner mapping workflow is still provisional.
-- There is no multi-relation mechanism evaluator yet; do not build one before neutral double-wishbone authoring proves it is the next real blocker.
-- No deterministic JURE -> JV-Web multi-relation consumer export/adapter exists yet.
+- **Owner acceptance/correction of the real upper/lower outboard mating frames is still open.** Machine coherence is proven; final mating geometry is not.
+- Current SOURCE renderer loads a whole glTF under one `sourceRoot`; there is no per-node/per-part SOURCE Hide/Solo/Isolate. Do not implement it merely from a checklist — first run the real Owner mating gate and prove visibility is the blocker.
+- Revolute/spherical relations are visible in the navigator and diagnostics, but viewport relation presentation remains minimal. Improve only if the Owner gate proves readability inadequate.
+- The Rig Navigator has no durable multi-level assembly hierarchy. This remains a strategic full-JURE requirement, not a prerequisite for the neutral donor mechanism.
+- UI exposes one active SourceInstance context even though the project model supports multiple instances.
+- No arbitrary surface/vertex picker exists; add only if real Owner correction cannot be achieved with existing frame tools.
+- No multi-relation mechanism evaluator exists yet. Do not build one until neutral Owner authoring is complete and motion testing becomes the demonstrated next blocker.
+- Representation is separate and structurally supports rigid/aim/span/roll, but real damper/cardAN Owner mapping remains unproven.
+- No deterministic JURE -> consumer multi-relation donor fragment exists yet.
 - Current layout remains an engineering harness, not final information architecture.
 
-## Next falsifier — DONOR-03A coherent neutral wishbone
+## Next falsifier — DONOR-03B Owner candidate inspection
 
-Do **not** add another generic feature first. Require the currently validated JURE primitives to assemble one coherent neutral front-corner mechanism.
+The next stage is no longer a kernel/model test. The model has passed.
 
-1. build a disposable exact-JV probe containing four authored elements: chassis reference, upper arm, lower arm and suspension-side carrier reference;
-2. author upper/lower inboard hinge frames from the validated X-max recipes;
-3. author upper/lower outboard candidate frames from the exact X-min geometry on both arm and suspension-side carrier owners;
-4. create exactly four neutral relations: 2× inboard `revolute` + 2× outboard `spherical`;
-5. require zero/near-zero neutral relation residuals without projection or agent-side coordinate patching;
-6. require the full mechanism to survive deterministic Save/Open and exact SOURCE relink while preserving relation IDs, frame locators, owner-local poses and provenance;
-7. keep the outboard pair explicitly classified as **candidate mating geometry**, not Owner-accepted ball-joint truth;
-8. only after the machine mechanism passes, expose the candidate to the Owner in the real workbench and ask whether the mating frames can be understood/corrected without agent-side coordinate editing;
-9. if that Owner gate is blocked by visibility, selection or relation readability, implement only the smallest concrete inspection feature proven necessary (for example SOURCE per-node isolate), then repeat the gate;
-10. freeze/export a neutral multi-relation donor fragment only after the Owner-authored four-relation mechanism is accepted and Save/Open/relink is proven.
+Expose the machine-proven coherent candidate to the Owner in the actual workbench and answer one question:
 
-Do not implement generic CAD/picking, a general solver, consumer dynamics, whole-vehicle automation, Map work or public Friends integration in the same slice.
+> Can the Owner understand, inspect and correct the proposed upper/lower wishbone-to-suspension-carrier mating frames without agent-side coordinate editing?
+
+Required progression:
+
+1. prepare a deterministic, clearly labelled **CANDIDATE / NOT AUTHORITY** JURE project or equivalent reproducible Owner-openable state containing the proven four-element/eight-frame/four-relation mechanism;
+2. relink the exact pinned SOURCE and present the candidate in the normal workbench;
+3. make upper/lower outboard candidate frames and their owning arm/carrier contexts easy to identify;
+4. ask the Owner to inspect whether the mating points are physically intended and, where needed, correct them using normal JURE transforms;
+5. do not change relation semantics to make a bad candidate look correct;
+6. if the Owner is blocked by source geometry occlusion, implement the smallest real SOURCE per-node/per-part Hide/Solo/Isolate slice and repeat the gate;
+7. if selection precision is the blocker, add the smallest justified picking/construction primitive and repeat the gate;
+8. if relation readability is the blocker, improve only the necessary relation visualization;
+9. after Owner acceptance, freeze the corrected authored frames and prove Save/Open/relink again;
+10. only then design/freeze the deterministic neutral donor fragment.
+
+Do not implement Map, generic CAD, full hierarchy, a general solver, consumer dynamics, whole-vehicle automation or public Friends integration in this stage.
 
 ## Owner / promotion boundary
 
-Useful next Owner judgement is concrete product use:
+Next useful Owner judgement:
 
-- whether the proposed upper/lower outboard mating frames are spatially understandable and correctable;
-- whether revolute/spherical relation creation is understandable and trustworthy;
-- whether visibility/selection is sufficient to inspect the suspension-side carrier and wishbone mating;
-- whether the mechanism can be corrected without agent-side coordinate editing;
-- Save/Open/relink with the real authored four-relation mechanism;
-- later, whether damper/spring representation attachments, span and roll behave as intended.
+- are upper/lower outboard mating candidates physically understandable and correctable?
+- is visibility sufficient, especially around suspension carrier / steerable member / wheel region?
+- can frame transforms and relation diagnostics support correction without typed coordinate surgery?
+- after correction, does Save/Open/relink preserve the intended mechanism?
 
-Before any promotion to `main`, independently resolve PR #3 and exact `4db04eee...`, compare with `main`, retain PR #2 as recovery evidence and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
+Before any promotion to `main`, independently resolve PR #3 and exact `4db04eee...`, compare with accepted `main`, retain recovery evidence and obtain explicit Owner approval. **Do not merge without explicit Owner approval.**
 
 ## Foundation exit criterion
 
@@ -191,6 +214,6 @@ Foundation is complete when the Owner can take a real mechanism and, without age
 
 `place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> fit/map representation -> kinematically test/reset -> correct -> save/reopen -> export a small consumer-facing result`
 
-Permanent rhythm after that:
+Permanent rhythm:
 
 `real need -> smallest vertical slice -> targeted falsifier -> rendered/Owner gate when useful -> next`.
