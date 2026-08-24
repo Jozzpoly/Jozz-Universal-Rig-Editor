@@ -1,7 +1,9 @@
 import type { TransformTarget } from '../editor/transform-target.js';
-import type { RigDocument } from '../kernel/types.js';
 import type { ResolvedRigView } from '../kernel/resolve.js';
+import type { RigDocument } from '../kernel/types.js';
 import type { RigDisplayModel } from './types.js';
+
+export type RigDisplayPoseView = Pick<ResolvedRigView, 'elementWorldPoses' | 'frameWorldPoses' | 'diagnostics'>;
 
 function isSelected(target: TransformTarget | null, kind: TransformTarget['kind'], id: string): boolean {
   return target?.kind === kind && target.id === id;
@@ -9,7 +11,7 @@ function isSelected(target: TransformTarget | null, kind: TransformTarget['kind'
 
 export function buildRigDisplayModel(
   document: RigDocument,
-  resolved: ResolvedRigView,
+  resolved: RigDisplayPoseView,
   selectedTarget: TransformTarget | null,
 ): RigDisplayModel {
   const items: RigDisplayModel['items'] = [];
