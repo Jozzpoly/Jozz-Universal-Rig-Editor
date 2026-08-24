@@ -45,6 +45,7 @@ import {
 } from './state/project-source-runtime.js';
 import { createProjectRigElement, createProjectRigElementFromSource } from './state/rig-element-workflow.js';
 import { createProjectRevoluteRelation } from './state/rig-relation-workflow.js';
+import { createProjectSphericalRelation } from './state/spherical-relation-workflow.js';
 import {
   beginRevoluteTestSession,
   createRevoluteTestSession,
@@ -207,6 +208,19 @@ export function App() {
     try {
       setAuthoring(createProjectRevoluteRelation(authoring, frameAId, frameBId));
       setStatus(`Created neutral revolute ${frameAId} ↔ ${frameBId} · unsaved`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [authoring, sourcePlacementEdit, testActive]);
+
+  const handleCreateSpherical = useCallback((frameAId: string, frameBId: string) => {
+    if (testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish TEST, SOURCE placement and any active preview before creating a spherical relation.');
+      return;
+    }
+    try {
+      setAuthoring(createProjectSphericalRelation(authoring, frameAId, frameBId));
+      setStatus(`Created neutral spherical ${frameAId} ↔ ${frameBId} · unsaved`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
@@ -514,6 +528,7 @@ export function App() {
           onSelect={handleSelectTarget}
           onCreateElement={handleCreateElement}
           onCreateRevolute={handleCreateRevolute}
+          onCreateSpherical={handleCreateSpherical}
           onBeginRevoluteTest={handleBeginRevoluteTest}
           onRevoluteTestAngle={handleRevoluteTestAngle}
           onResetRevoluteTest={handleResetRevoluteTest}
