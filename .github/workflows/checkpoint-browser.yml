@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - 'checkpoint/**'
+  pull_request:
+    branches:
+      - 'validation/donor-02f-base-2026-08-24'
   workflow_dispatch:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: checkpoint-browser-${{ github.ref }}
@@ -61,6 +65,9 @@ jobs:
       - name: Linux real-source construction frame probe
         run: node scripts/real-jv-wishbone-frame-probe.mjs
 
+      - name: Linux exact-JV outboard grounding probe
+        run: node scripts/real-jv-outboard-grounding-probe.mjs
+
       - name: Linux real-source revolute diagnostic probe
         run: node scripts/real-jv-revolute-diagnostic-probe.mjs
 
@@ -97,6 +104,7 @@ jobs:
           node scripts/browser-adoption-preview-lock-smoke.mjs
           node scripts/browser-construction-point-smoke.mjs
           node scripts/browser-construction-frame-authoring-smoke.mjs
+          node scripts/browser-spherical-authoring-control-smoke.mjs
           node scripts/browser-owner-path-smoke.mjs
 
   windows-browser:
@@ -151,6 +159,12 @@ jobs:
           node scripts/real-jv-wishbone-frame-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw "Windows construction-frame probe exited with code $LASTEXITCODE" }
 
+      - name: Windows exact-JV outboard grounding probe
+        shell: pwsh
+        run: |
+          node scripts/real-jv-outboard-grounding-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Windows outboard grounding probe exited with code $LASTEXITCODE" }
+
       - name: Windows real-source revolute diagnostic probe
         shell: pwsh
         run: |
@@ -186,6 +200,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Windows construction-point probe exited with code $LASTEXITCODE" }
             node scripts/browser-construction-frame-authoring-smoke.mjs
             if ($LASTEXITCODE -ne 0) { throw "Windows construction-frame authoring probe exited with code $LASTEXITCODE" }
+            node scripts/browser-spherical-authoring-control-smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw "Windows spherical authoring control probe exited with code $LASTEXITCODE" }
             node scripts/browser-owner-path-smoke.mjs
             if ($LASTEXITCODE -ne 0) { throw "Windows owner-path probe exited with code $LASTEXITCODE" }
           } finally {
@@ -195,3 +211,45 @@ jobs:
             Write-Host '--- Windows Vite stderr ---'
             if (Test-Path $stderr) { Get-Content $stderr }
           }
+
+  checkpoint-status:
+    if: ${{ always() }}
+    needs:
+      - linux-browser
+      - windows-browser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish observable checkpoint verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.sha }}
+          LINUX_RESULT: ${{ needs.linux-browser.result }}
+          WINDOWS_RESULT: ${{ needs.windows-browser.result }}
+        run: |
+          if [ "$LINUX_RESULT" = "success" ] && [ "$WINDOWS_RESULT" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="Linux and Windows checkpoint gates passed"
+          else
+            STATE="failure"
+            DESCRIPTION="Checkpoint gate failed: linux=$LINUX_RESULT windows=$WINDOWS_RESULT"
+          fi
+          export STATE DESCRIPTION
+
+          python - <<'PY' > /tmp/checkpoint-status.json
+          import json, os
+          print(json.dumps({
+              "state": os.environ["STATE"],
+              "description": os.environ["DESCRIPTION"][:140],
+              "context": "jure/checkpoint-browser",
+          }))
+          PY
+
+          curl -fsS \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/$COMMIT_SHA" \
+            --data-binary @/tmp/checkpoint-status.json
+
+          test "$STATE" = "success"
