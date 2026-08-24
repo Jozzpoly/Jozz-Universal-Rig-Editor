@@ -4,6 +4,7 @@ import type { Diagnostic, RigidPose, RigDocument, RigId } from './types.js';
 
 const REVOLUTE_ORIGIN_DIAGNOSTIC_TOLERANCE_M = 1e-6;
 const REVOLUTE_AXIS_DIAGNOSTIC_TOLERANCE_RAD = 1e-6;
+const SPHERICAL_ORIGIN_DIAGNOSTIC_TOLERANCE_M = 1e-6;
 
 export interface ResolvedRigView {
   documentId: RigId;
@@ -54,6 +55,22 @@ export function resolveRigDocument(doc: RigDocument): ResolvedRigView {
           axisDot: residual.axisDot,
           originDiagnosticToleranceM: REVOLUTE_ORIGIN_DIAGNOSTIC_TOLERANCE_M,
           axisDiagnosticToleranceRad: REVOLUTE_AXIS_DIAGNOSTIC_TOLERANCE_RAD,
+        },
+      });
+      continue;
+    }
+
+    if (relation.type === 'spherical') {
+      const residualM = distance(a.position, b.position);
+      const withinDiagnosticTolerance = residualM <= SPHERICAL_ORIGIN_DIAGNOSTIC_TOLERANCE_M;
+      diagnostics.push({
+        code: withinDiagnosticTolerance ? 'relation.spherical.ok' : 'relation.spherical.residual',
+        severity: withinDiagnosticTolerance ? 'info' : 'warning',
+        message: `${relation.id}: ${(residualM * 1000).toFixed(3)} mm origin residual.`,
+        references: [relation.id, relation.frameA, relation.frameB],
+        metrics: {
+          residualM,
+          originDiagnosticToleranceM: SPHERICAL_ORIGIN_DIAGNOSTIC_TOLERANCE_M,
         },
       });
     }
