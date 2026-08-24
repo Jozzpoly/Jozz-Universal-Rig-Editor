@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import type { TransformTarget } from '../../editor/transform-target.js';
 import { inspectRevoluteCandidate } from '../../features/rig-relations/create-revolute.js';
 import type { RigDocument } from '../../kernel/types.js';
+import type { RevoluteTestSession } from '../state/revolute-test-workflow.js';
+import { RevoluteTestPanel } from './RevoluteTestPanel.js';
 
 export interface RigLayerVisibility {
   elements: boolean;
@@ -15,11 +17,17 @@ interface RigNavigatorProps {
   visible: boolean;
   layers: RigLayerVisibility;
   createDisabled: boolean;
+  testStartDisabled: boolean;
+  testSession: RevoluteTestSession;
   onVisibleChange(visible: boolean): void;
   onLayerChange(layer: keyof RigLayerVisibility, visible: boolean): void;
   onSelect(target: TransformTarget): void;
   onCreateElement(name: string): void;
   onCreateRevolute(frameAId: string, frameBId: string): void;
+  onBeginRevoluteTest(relationId: string, movingElementId: string): void;
+  onRevoluteTestAngle(angleRad: number): void;
+  onResetRevoluteTest(): void;
+  onEndRevoluteTest(): void;
 }
 
 function matchesFilter(value: string, filter: string): boolean {
@@ -35,7 +43,7 @@ function frameOptionLabel(document: RigDocument, frameId: string): string {
   return `${frame.name} · ${owner} · ${frame.id}`;
 }
 
-export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, onVisibleChange, onLayerChange, onSelect, onCreateElement, onCreateRevolute }: RigNavigatorProps) {
+export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, testStartDisabled, testSession, onVisibleChange, onLayerChange, onSelect, onCreateElement, onCreateRevolute, onBeginRevoluteTest, onRevoluteTestAngle, onResetRevoluteTest, onEndRevoluteTest }: RigNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [collapsedElements, setCollapsedElements] = useState<Set<string>>(() => new Set());
   const [creatingElement, setCreatingElement] = useState(false);
@@ -97,9 +105,6 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
 
   const submitRevolute = () => {
     if (createDisabled || !revoluteInspection || revoluteInspection.existingRelationId) return;
-    // Keep the builder open after submit. A successful durable update re-renders the
-    // candidate as "Already connected"; if the parent rejects the command, the Owner
-    // keeps both frame choices and diagnostics instead of losing the attempted setup.
     onCreateRevolute(revoluteFrameA, revoluteFrameB);
   };
 
@@ -140,7 +145,7 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           className={`layer-toggle auth ${creatingElement ? 'active' : ''}`}
           aria-expanded={creatingElement}
           disabled={createDisabled}
-          title={createDisabled ? 'Finish the active authoring or SOURCE placement operation first' : 'Create a new authored rigid element'}
+          title={createDisabled ? 'Finish TEST or the active authoring/SOURCE placement operation first' : 'Create a new authored rigid element'}
           onClick={() => {
             setCreatingElement((current) => !current);
             setCreatingRevolute(false);
@@ -154,7 +159,7 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           className={`layer-toggle auth ${creatingRevolute ? 'active' : ''}`}
           aria-expanded={creatingRevolute}
           disabled={createDisabled || document.frames.length < 2}
-          title={document.frames.length < 2 ? 'Author at least two frames before creating a revolute' : createDisabled ? 'Finish the active authoring or SOURCE placement operation first' : 'Create a neutral revolute between two authored frames'}
+          title={document.frames.length < 2 ? 'Author at least two frames before creating a revolute' : createDisabled ? 'Finish TEST or the active authoring/SOURCE placement operation first' : 'Create a neutral revolute between two authored frames'}
           onClick={toggleRevoluteBuilder}
         >
           + Revolute
@@ -252,6 +257,15 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           </div>
         ))}
       </div>
+      <RevoluteTestPanel
+        document={document}
+        session={testSession}
+        startDisabled={testStartDisabled}
+        onBegin={onBeginRevoluteTest}
+        onAngle={onRevoluteTestAngle}
+        onReset={onResetRevoluteTest}
+        onEnd={onEndRevoluteTest}
+      />
     </div>
   );
 }

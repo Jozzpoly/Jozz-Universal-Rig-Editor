@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildRigDisplayModel } from '../display/build-display-model.js';
 import type { TransformTarget } from '../editor/transform-target.js';
+import { resolveRigPoseView } from '../evaluation/view.js';
 import { SYNTHETIC_RIG } from '../fixtures/synthetic-rig.js';
 import { composePose } from '../kernel/math.js';
 import { resolveRigDocument } from '../kernel/resolve.js';
@@ -44,6 +45,13 @@ import {
 } from './state/project-source-runtime.js';
 import { createProjectRigElement, createProjectRigElementFromSource } from './state/rig-element-workflow.js';
 import { createProjectRevoluteRelation } from './state/rig-relation-workflow.js';
+import {
+  beginRevoluteTestSession,
+  createRevoluteTestSession,
+  endRevoluteTestSession,
+  resetRevoluteTestSession,
+  setRevoluteTestAngle,
+} from './state/revolute-test-workflow.js';
 import { allocateFrameAdoptionIds, planSourceOpen } from './state/source-workflow.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
@@ -84,6 +92,7 @@ export function App() {
   const [sourceLayers, setSourceLayers] = useState<SourceLayerVisibility>(DEFAULT_SOURCE_LAYERS);
   const [viewRequest, setViewRequest] = useState<{ id: number; target: ViewFitTarget } | null>(null);
   const [status, setStatus] = useState('Synthetic project fixture · unsaved');
+  const [revoluteTest, setRevoluteTest] = useState(createRevoluteTestSession);
 
   useEffect(() => { sourceRuntimeRef.current = sourceRuntime; }, [sourceRuntime]);
   useEffect(() => () => revokeRuntimeAssets(sourceRuntimeRef.current), []);
@@ -91,6 +100,11 @@ export function App() {
   const project = visibleProjectAuthoringProject(authoring);
   const document = visibleProjectAuthoringRig(authoring);
   const selectedTarget = authoring.selectedRigTarget;
+  const testActive = revoluteTest.state.active;
+
+  useEffect(() => {
+    setRevoluteTest((current) => current.state.active ? endRevoluteTestSession() : current);
+  }, [document.documentId, document.revision]);
 
   useEffect(() => {
     setSourceRuntime((current) => {
@@ -103,7 +117,13 @@ export function App() {
   }, [project]);
 
   const resolved = useMemo(() => resolveRigDocument(document), [document]);
-  const displayModel = useMemo(() => buildRigDisplayModel(document, resolved, selectedTarget), [document, resolved, selectedTarget]);
+  const poseView = useMemo(() => resolveRigPoseView(document, revoluteTest.state.result), [document, revoluteTest.state.result]);
+  const displayPoseView = useMemo(() => ({
+    elementWorldPoses: poseView.elementWorldPoses,
+    frameWorldPoses: poseView.frameWorldPoses,
+    diagnostics: resolved.diagnostics,
+  }), [poseView.elementWorldPoses, poseView.frameWorldPoses, resolved.diagnostics]);
+  const displayModel = useMemo(() => buildRigDisplayModel(document, displayPoseView, selectedTarget), [document, displayPoseView, selectedTarget]);
   const visibleDisplayModel = useMemo(() => ({
     items: displayModel.items.filter((item) => {
       if (item.kind === 'element') return rigLayers.elements;
@@ -167,8 +187,8 @@ export function App() {
   }, []);
 
   const handleCreateElement = useCallback((name: string) => {
-    if (sourcePlacementEdit || authoring.activeOperation) {
-      setStatus('Finish SOURCE placement and commit/cancel any active preview before creating an authored element.');
+    if (testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish TEST, SOURCE placement and any active preview before creating an authored element.');
       return;
     }
     try {
@@ -177,11 +197,11 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
-  }, [authoring, sourcePlacementEdit]);
+  }, [authoring, sourcePlacementEdit, testActive]);
 
   const handleCreateRevolute = useCallback((frameAId: string, frameBId: string) => {
-    if (sourcePlacementEdit || authoring.activeOperation) {
-      setStatus('Finish SOURCE placement and commit/cancel any active preview before creating a revolute.');
+    if (testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish TEST, SOURCE placement and any active preview before creating a revolute.');
       return;
     }
     try {
@@ -190,11 +210,44 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
-  }, [authoring, sourcePlacementEdit]);
+  }, [authoring, sourcePlacementEdit, testActive]);
+
+  const handleBeginRevoluteTest = useCallback((relationId: string, movingElementId: string) => {
+    if (sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish SOURCE placement and any active preview before starting TEST.');
+      return;
+    }
+    try {
+      setRevoluteTest(beginRevoluteTestSession(document, relationId, movingElementId));
+      setStatus(`TEST started · ${relationId} · moving ${movingElementId} · 0°`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [authoring.activeOperation, document, sourcePlacementEdit]);
+
+  const handleRevoluteTestAngle = useCallback((angleRad: number) => {
+    try {
+      const next = setRevoluteTestAngle(document, revoluteTest, angleRad);
+      setRevoluteTest(next);
+      setStatus(`TEST ${next.relationId} · ${(angleRad * 180 / Math.PI).toFixed(3)}°`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [document, revoluteTest]);
+
+  const handleResetRevoluteTest = useCallback(() => {
+    setRevoluteTest((current) => resetRevoluteTestSession(current));
+    setStatus('TEST Reset · exact AUTHORED neutral restored');
+  }, []);
+
+  const handleEndRevoluteTest = useCallback(() => {
+    setRevoluteTest(endRevoluteTestSession());
+    setStatus('TEST ended · AUTHORED neutral');
+  }, []);
 
   const handleCreateElementFromSource = useCallback((name: string) => {
-    if (sourcePlacementEdit || authoring.activeOperation) {
-      setStatus('Finish SOURCE placement and commit/cancel any active preview before adopting SOURCE as an authored element.');
+    if (testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish TEST, SOURCE placement and any active preview before adopting SOURCE as an authored element.');
       return;
     }
     if (!activeSourceInstance || !selectedSourceLocator || !selectedSourceNode?.worldRigidPose || selectedSourceNode.rigidCompatibility !== 'rigid') {
@@ -208,7 +261,7 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
-  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, sourcePlacementEdit, authoring, sourceRuntime, project]);
+  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, sourcePlacementEdit, authoring, sourceRuntime, project, testActive]);
 
   const handleSelectSourceLocator = useCallback((locator: string) => {
     if (!activeSourceInstance) return;
@@ -260,26 +313,26 @@ export function App() {
   }, []);
 
   const commitPose = useCallback((target: TransformTarget, pose: RigidPose) => {
-    if (sourcePlacementEdit || authoring.activeOperation) {
-      setStatus('Finish SOURCE placement and commit/cancel any active preview before numeric authored editing.');
+    if (testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish TEST, SOURCE placement and any active preview before numeric authored editing.');
       return;
     }
     setAuthoring((current) => commitProjectRigPose(current, target, pose));
     setStatus(`Authored ${target.kind} committed · unsaved`);
-  }, [authoring.activeOperation, sourcePlacementEdit]);
+  }, [authoring.activeOperation, sourcePlacementEdit, testActive]);
 
   const handleToggleSourcePlacement = useCallback(() => {
     if (!activeSourceInstance || !sourceAsset) return;
-    if (authoring.activeOperation) {
-      setStatus('Commit or cancel the active project operation before changing placement edit mode.');
+    if (testActive || authoring.activeOperation) {
+      setStatus('Finish TEST and any active project operation before changing SOURCE placement.');
       return;
     }
     setSourcePlacementEdit((current) => !current);
     setStatus(sourcePlacementEdit ? 'SOURCE placement editing finished' : `SOURCE placement editing: ${activeSourceInstance.name}`);
-  }, [activeSourceInstance, sourceAsset, authoring.activeOperation, sourcePlacementEdit]);
+  }, [activeSourceInstance, sourceAsset, authoring.activeOperation, sourcePlacementEdit, testActive]);
 
   const handlePreviewAdoption = useCallback(() => {
-    if (!activeSourceInstance || !selectedSourceLocator || !selectedSourceNode || !selectedElement || sourcePlacementEdit || authoring.activeOperation) return;
+    if (!activeSourceInstance || !selectedSourceLocator || !selectedSourceNode || !selectedElement || testActive || sourcePlacementEdit || authoring.activeOperation) return;
     try {
       const sourceDatum = resolveExactPlacedSourceDatum(sourceRuntime, project, activeSourceInstance.id, selectedSourceLocator);
       const frameName = selectedSourceNode.name ?? `Source node ${selectedSourceNode.index}`;
@@ -296,11 +349,11 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
-  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, selectedElement, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
+  }, [activeSourceInstance, selectedSourceLocator, selectedSourceNode, selectedElement, testActive, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
 
   const handlePreviewConstructedFrame = useCallback((locator: string, frameName: string) => {
-    if (!activeSourceInstance || !selectedElement || sourcePlacementEdit || authoring.activeOperation) {
-      setStatus('Select one authored RigElement and finish any active placement/preview before constructing a frame.');
+    if (!activeSourceInstance || !selectedElement || testActive || sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Select one authored RigElement and finish TEST/placement/preview before constructing a frame.');
       return;
     }
     try {
@@ -318,7 +371,7 @@ export function App() {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
-  }, [activeSourceInstance, selectedElement, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
+  }, [activeSourceInstance, selectedElement, testActive, sourcePlacementEdit, authoring.activeOperation, sourceRuntime, project, document.documentId]);
 
   const handleCommitAdoption = useCallback(() => {
     const operation = authoring.activeOperation;
@@ -345,6 +398,7 @@ export function App() {
   }, []);
 
   const handleOpenProject = async () => {
+    if (testActive) { setStatus('End TEST before opening another project.'); return; }
     if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before opening another project.'); return; }
     try {
       const opened = await openJureProjectFile();
@@ -359,6 +413,7 @@ export function App() {
   };
 
   const handleImportRig = async () => {
+    if (testActive) { setStatus('End TEST before importing another rig.'); return; }
     if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before importing another rig.'); return; }
     try {
       const opened = await openRigFile();
@@ -390,6 +445,7 @@ export function App() {
   };
 
   const handleOpenSource = async () => {
+    if (testActive) { setStatus('End TEST before opening or relinking SOURCE.'); return; }
     if (authoring.activeOperation) { setStatus('Commit or cancel the active preview before opening or relinking SOURCE.'); return; }
     let opened: Awaited<ReturnType<typeof openSourceAsset>> | null = null;
     try {
@@ -422,7 +478,7 @@ export function App() {
 
   const warningCount = resolved.diagnostics.filter((item) => item.severity === 'warning').length;
   const selectedPose = selectedElement?.pose ?? selectedFrame?.pose ?? null;
-  const adoptionTargetName = !authoring.activeOperation && !sourcePlacementEdit && selectedElement
+  const adoptionTargetName = !testActive && !authoring.activeOperation && !sourcePlacementEdit && selectedElement
     ? selectedElement.name
     : null;
 
@@ -433,8 +489,8 @@ export function App() {
           projectId={project.projectId}
           documentId={document.documentId}
           revision={document.revision}
-          canUndo={canUndoProjectAuthoring(authoring)}
-          canRedo={canRedoProjectAuthoring(authoring)}
+          canUndo={!testActive && canUndoProjectAuthoring(authoring)}
+          canRedo={!testActive && canRedoProjectAuthoring(authoring)}
           onOpenProject={() => void handleOpenProject()}
           onImportRig={() => void handleImportRig()}
           onSave={() => void handleSave()}
@@ -450,12 +506,18 @@ export function App() {
           selectedTarget={selectedTarget}
           visible={rigVisible}
           layers={rigLayers}
-          createDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          createDisabled={testActive || sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          testStartDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          testSession={revoluteTest}
           onVisibleChange={setRigVisible}
           onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
           onSelect={handleSelectTarget}
           onCreateElement={handleCreateElement}
           onCreateRevolute={handleCreateRevolute}
+          onBeginRevoluteTest={handleBeginRevoluteTest}
+          onRevoluteTestAngle={handleRevoluteTestAngle}
+          onResetRevoluteTest={handleResetRevoluteTest}
+          onEndRevoluteTest={handleEndRevoluteTest}
         />
       )}
       sourcePane={(
@@ -464,9 +526,9 @@ export function App() {
           sourceInstance={activeSourceInstance}
           selectedSourceLocator={selectedSourceLocator}
           placementEditActive={sourcePlacementEdit}
-          placementEditDisabled={Boolean(authoring.activeOperation)}
-          elementCreationDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
-          constructionDisabled={sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          placementEditDisabled={testActive || Boolean(authoring.activeOperation)}
+          elementCreationDisabled={testActive || sourcePlacementEdit || Boolean(authoring.activeOperation)}
+          constructionDisabled={testActive || sourcePlacementEdit || Boolean(authoring.activeOperation)}
           adoptionTargetName={adoptionTargetName}
           adoptionPreview={adoptionPreview}
           visible={sourceVisible}
@@ -487,7 +549,7 @@ export function App() {
           <RigViewport
             model={visibleDisplayModel}
             rigVisible={rigVisible}
-            selectedTarget={selectedTarget}
+            selectedTarget={testActive ? null : selectedTarget}
             cameraPreset={cameraPreset}
             transformMode={transformMode}
             transformSpace={transformSpace}
@@ -538,6 +600,7 @@ export function App() {
           <span>project <strong>{project.projectId}</strong></span>
           <span>rig <strong>{document.documentId}</strong> · rev <strong>{document.revision}</strong>{authoring.session.preview ? ' · PREVIEW' : ''}</span>
           <span className={warningCount ? 'warn' : 'ok'}>{warningCount} relation warning{warningCount === 1 ? '' : 's'}</span>
+          {testActive ? <span className="binding-status">TEST · {poseView.mode === 'evaluated' ? 'EVALUATED' : 'AUTHORED RESET'}</span> : null}
           {sourcePlacementEdit && activeSourceInstance ? <span className="binding-status">SOURCE placement · {activeSourceInstance.name}</span> : null}
           {authoring.activeOperation?.kind === 'source-frame-adoption' ? <span className="binding-status">ADOPTION preview · transient</span> : null}
           <span className="status-message">{status}</span>
