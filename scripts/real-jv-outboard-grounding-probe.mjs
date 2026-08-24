@@ -87,7 +87,7 @@ function outboardCandidateLocator(sourceNodeLocator, upStartNodeLocator, upEndNo
   // Current exact-JV evidence establishes max-X as chassis/inboard and min-X as
   // wheel/outboard for this pinned unmirrored left SOURCE. This locator records
   // only the geometric candidate. It does NOT promote the point to ball-joint
-  // semantics; that is a later Owner/mechanism decision.
+  // semantics; that remains an explicit Owner/workbench mating decision.
   return createOrthogonalCrossAxisFrameLocator({
     originPointLocator: pointLocator(sourceNodeLocator, 'min'),
     radialEndpointPointLocator: pointLocator(sourceNodeLocator, 'max'),
@@ -116,17 +116,20 @@ function closePose(actual, expected, label, tolerance = 1e-10) {
 
 const upperNode = exactNode('Chassis_Top');
 const lowerNode = exactNode('Chassis_Bottom');
+const carrierReferenceNode = exactNode('Socket_ChassisMount_b');
 const wheelCenterNode = exactNode('Socket_WheelCenter');
 const upStartNode = exactNode('Axis_SuspensionTravel_Bottom');
 const upEndNode = exactNode('Axis_SuspensionTravel_Top');
+if (carrierReferenceNode.locator === wheelCenterNode.locator) throw new Error('Suspension-side and steerable SOURCE roles collapsed to one locator.');
 
 const upperLocator = outboardCandidateLocator(upperNode.locator, upStartNode.locator, upEndNode.locator);
 const lowerLocator = outboardCandidateLocator(lowerNode.locator, upStartNode.locator, upEndNode.locator);
 const upperCandidate = resolveOrthogonalCrossAxisFrameLocator(inspection, upperLocator, 'Upper outboard geometry candidate');
 const lowerCandidate = resolveOrthogonalCrossAxisFrameLocator(inspection, lowerLocator, 'Lower outboard geometry candidate');
 
-// Independent exact-SOURCE shape checks. These establish a coherent upright-like
-// geometry around Socket_WheelCenter without claiming spherical/ball-joint truth.
+// Independent exact-SOURCE shape checks. These establish a coherent pair of
+// wishbone wheel-end candidates around the separately authored steerable
+// WheelCenter reference without claiming spherical/ball-joint truth.
 close(upperCandidate.sourceRevisionWorldPose.position.x, lowerCandidate.sourceRevisionWorldPose.position.x, 'candidate shared X');
 close(upperCandidate.sourceRevisionWorldPose.position.z, lowerCandidate.sourceRevisionWorldPose.position.z, 'candidate shared Z');
 close(wheelCenterNode.worldRigidPose.position.y,
@@ -147,7 +150,8 @@ if (upperCandidate.derivation.orthogonalityError > 1e-10 || lowerCandidate.deriv
 console.log('REAL_JV_OUTBOARD_CANDIDATE_GEOMETRY_PASS', JSON.stringify({
   upper: { locator: upperLocator, pose: upperCandidate.sourceRevisionWorldPose, basis: upperCandidate.basis },
   lower: { locator: lowerLocator, pose: lowerCandidate.sourceRevisionWorldPose, basis: lowerCandidate.basis },
-  wheelCenter: { locator: wheelCenterNode.locator, pose: wheelCenterNode.worldRigidPose },
+  suspensionSideReference: { locator: carrierReferenceNode.locator, pose: carrierReferenceNode.worldRigidPose },
+  steerableWheelCenterReference: { locator: wheelCenterNode.locator, pose: wheelCenterNode.worldRigidPose },
   semanticStatus: 'geometry-candidate-not-spherical-authority',
 }));
 
@@ -175,11 +179,16 @@ project = adoptSourceDatumAsElement({
   adoptionId: 'adopt.lower-arm',
   sourceDatum: lowerElementDatum,
 }).apply(project);
-const carrierElementDatum = resolveExactPlacedSourceDatum(runtime, project, 'source-instance.real-jv.fl', wheelCenterNode.locator);
+
+// Owner-accepted S2 evidence classifies Socket_ChassisMount_b as the distinct
+// suspension-side / non-steering role. Use it as the coordinate reference for
+// the future wishbone carrier side. Socket_WheelCenter remains a separate
+// steerable-member reference and is intentionally NOT used as this owner.
+const carrierElementDatum = resolveExactPlacedSourceDatum(runtime, project, 'source-instance.real-jv.fl', carrierReferenceNode.locator);
 project = adoptSourceDatumAsElement({
   rigDocumentId: 'rig.real-jv-outboard-grounding',
   elementId: 'element.carrier-reference',
-  elementName: 'Carrier reference from Socket_WheelCenter',
+  elementName: 'Suspension-side carrier reference',
   adoptionId: 'adopt.carrier-reference',
   sourceDatum: carrierElementDatum,
 }).apply(project);
@@ -251,9 +260,10 @@ closePose(relinkedLower.sourceRevisionWorldPose, lowerCandidate.sourceRevisionWo
 console.log('REAL_JV_OUTBOARD_CANDIDATE_OWNERSHIP_PASS', JSON.stringify({
   upperLocator,
   lowerLocator,
-  carrierLocator: wheelCenterNode.locator,
+  carrierReferenceLocator: carrierReferenceNode.locator,
+  steerableWheelCenterLocator: wheelCenterNode.locator,
   authoredElements: document.elements.map((element) => element.id),
   authoredFrames: document.frames.map((frame) => frame.id),
   sourceAdoptions: reopened.sourceAdoptions.length,
-  semanticStatus: 'ready-for-spherical-semantic-review-not-yet-a-relation',
+  semanticStatus: 'owner-grounded-carrier-role-plus-adjustable-outboard-candidates-not-yet-spherical-truth',
 }));
