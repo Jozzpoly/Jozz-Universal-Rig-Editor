@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - 'validation/donor-02f-base-2026-08-24'
+      - 'validation/donor-03a-base-2026-08-24'
   workflow_dispatch:
 
 permissions:
@@ -67,6 +68,9 @@ jobs:
 
       - name: Linux exact-JV outboard grounding probe
         run: node scripts/real-jv-outboard-grounding-probe.mjs
+
+      - name: Linux coherent neutral wishbone probe
+        run: node scripts/real-jv-coherent-wishbone-probe.mjs
 
       - name: Linux real-source revolute diagnostic probe
         run: node scripts/real-jv-revolute-diagnostic-probe.mjs
@@ -164,6 +168,12 @@ jobs:
         run: |
           node scripts/real-jv-outboard-grounding-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw "Windows outboard grounding probe exited with code $LASTEXITCODE" }
+
+      - name: Windows coherent neutral wishbone probe
+        shell: pwsh
+        run: |
+          node scripts/real-jv-coherent-wishbone-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Windows coherent wishbone probe exited with code $LASTEXITCODE" }
 
       - name: Windows real-source revolute diagnostic probe
         shell: pwsh
