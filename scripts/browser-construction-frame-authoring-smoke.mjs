@@ -179,6 +179,9 @@ try {
   await revoluteBuilder.getByRole('button', { name: 'Create revolute', exact: true }).click();
   await page.waitForTimeout(100);
   if (await revoluteRows.count() !== revoluteCountBefore + 1) throw new Error('Owner revolute Commit did not add exactly one authored relation.');
+  const createdRevoluteRow = revoluteRows.nth(revoluteCountBefore);
+  const createdRevoluteId = ((await createdRevoluteRow.locator('.row-name').textContent()) ?? '').trim();
+  if (!createdRevoluteId) throw new Error('Owner revolute row did not expose a relation ID.');
   await assertHealthy('Owner revolute create');
 
   await page.getByRole('button', { name: 'Undo' }).click();
@@ -192,7 +195,60 @@ try {
   if (await revoluteRows.count() !== revoluteCountBefore + 1) throw new Error('Owner revolute Redo did not restore exactly the new relation.');
   await assertHealthy('Owner revolute Undo/Redo');
 
-  console.log('BROWSER_REAL_REVOLUTE_AUTHORING_PASS', JSON.stringify({ originResidualM, axisAngleRad }));
+  console.log('BROWSER_REAL_REVOLUTE_AUTHORING_PASS', JSON.stringify({ originResidualM, axisAngleRad, createdRevoluteId }));
+
+  const testPanel = page.locator('[data-revolute-test-panel]');
+  await testPanel.waitFor();
+  const testRelation = testPanel.getByLabel('TEST revolute relation');
+  const testMovingElement = testPanel.getByLabel('TEST moving element');
+  await selectOptionContaining(testRelation, [createdRevoluteId]);
+  await selectOptionContaining(testMovingElement, [lowerArmName]);
+  const rigRevisionBeforeTest = ((await page.locator('.statusbar span').filter({ hasText: 'rig ' }).first().textContent()) ?? '').trim();
+
+  await testPanel.getByRole('button', { name: 'Start TEST', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[data-revolute-test-panel]')?.getAttribute('data-test-mode') === 'evaluated');
+  const angleReadout = testPanel.locator('[data-test-angle-deg]');
+  const zeroAngle = Number(await angleReadout.getAttribute('data-test-angle-deg'));
+  if (!Number.isFinite(zeroAngle) || Math.abs(zeroAngle) > 1e-9) throw new Error(`TEST did not start at exact 0°: ${zeroAngle}`);
+  if (await page.getByText('TEST · EVALUATED', { exact: true }).count() !== 1) throw new Error('TEST start did not expose EVALUATED status.');
+
+  const angleInput = testPanel.getByLabel('TEST revolute angle degrees');
+  await angleInput.fill('30');
+  await page.waitForFunction(() => {
+    const value = Number(document.querySelector('[data-test-angle-deg]')?.getAttribute('data-test-angle-deg'));
+    return Number.isFinite(value) && Math.abs(value - 30) < 1e-6;
+  });
+  const evaluatedText = (await angleReadout.textContent()) ?? '';
+  if (!evaluatedText.includes('Angle 30.000°') || !evaluatedText.includes('TEST angle 30.000° applied')) {
+    throw new Error(`Rendered TEST readout did not prove +30° evaluation: ${evaluatedText}`);
+  }
+  const rigRevisionAt30 = ((await page.locator('.statusbar span').filter({ hasText: 'rig ' }).first().textContent()) ?? '').trim();
+  if (rigRevisionAt30 !== rigRevisionBeforeTest) throw new Error(`TEST angle changed authored revision: ${rigRevisionBeforeTest} -> ${rigRevisionAt30}`);
+  await assertHealthy('Owner revolute TEST +30 degrees');
+
+  await testPanel.getByRole('button', { name: 'Reset', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[data-revolute-test-panel]')?.getAttribute('data-test-mode') === 'authored-reset');
+  const resetAngle = Number(await angleReadout.getAttribute('data-test-angle-deg'));
+  if (!Number.isFinite(resetAngle) || Math.abs(resetAngle) > 1e-9) throw new Error(`TEST Reset did not clear angle to 0°: ${resetAngle}`);
+  if (await page.getByText('TEST · AUTHORED RESET', { exact: true }).count() !== 1) throw new Error('TEST Reset did not expose AUTHORED RESET status.');
+  const rigRevisionAfterReset = ((await page.locator('.statusbar span').filter({ hasText: 'rig ' }).first().textContent()) ?? '').trim();
+  if (rigRevisionAfterReset !== rigRevisionBeforeTest) throw new Error(`TEST Reset changed authored revision: ${rigRevisionBeforeTest} -> ${rigRevisionAfterReset}`);
+
+  await testPanel.getByRole('button', { name: 'End TEST', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[data-revolute-test-panel]')?.getAttribute('data-test-active') === 'false');
+  if (await page.getByText('TEST · EVALUATED', { exact: true }).count() !== 0 || await page.getByText('TEST · AUTHORED RESET', { exact: true }).count() !== 0) {
+    throw new Error('TEST status remained active after End TEST.');
+  }
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForTimeout(100);
+  if (await revoluteRows.count() !== revoluteCountBefore) throw new Error('First Undo after TEST did not remove revolute; TEST leaked into ProjectSession history.');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await page.waitForTimeout(100);
+  if (await revoluteRows.count() !== revoluteCountBefore + 1) throw new Error('Redo after TEST did not restore revolute relation.');
+  await assertHealthy('Owner revolute TEST Reset/history boundary');
+
+  console.log('BROWSER_REAL_REVOLUTE_TEST_UI_PASS', JSON.stringify({ createdRevoluteId, zeroAngle, angleDeg: 30, resetAngle }));
 } finally {
   await browser.close();
 }
