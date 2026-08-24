@@ -63,7 +63,6 @@ try {
   await page.getByText('PROJECT INSTANCE · PLACEMENT EDITABLE', { exact: true }).waitFor();
   await assertHealthy('real SOURCE open');
 
-  // Ground the moving wishbone body directly from the exact rigid Chassis_Bottom datum.
   const chassisBottomRow = page.locator('.source-row').filter({ hasText: 'Chassis_Bottom' }).first();
   await chassisBottomRow.click();
   await page.getByRole('button', { name: 'Create element at datum', exact: true }).click();
@@ -112,7 +111,6 @@ try {
   if (await previewButton.isDisabled()) throw new Error('Valid recipe did not enable Preview.');
   console.log('CONSTRUCTION_FRAME_RECIPE_PREVIEW_READOUT_PASS', locator);
 
-  // First authored side: exact SOURCE-derived lower arm.
   await previewButton.click();
   await page.getByText('Frame adoption preview', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Commit frame', exact: true }).click();
@@ -126,13 +124,10 @@ try {
   }
   await assertHealthy('lower-arm hinge commit');
 
-  // The builder must remain mounted/open with the same disposable recipe after Commit.
   if (await builder.getAttribute('open') === null) throw new Error('Construction recipe collapsed/unmounted after first Commit.');
   if ((await result.getAttribute('data-construction-locator')) !== locator) throw new Error('Construction recipe locator changed after first Commit.');
   console.log('CONSTRUCTION_FRAME_RECIPE_PRESERVED_AFTER_COMMIT_PASS');
 
-  // Second authored side: explicit Owner chassis reference. Same physical hinge evidence,
-  // different owner-local frame. Selecting the second body must not require re-entering recipe data.
   await chassisBranch.locator('.element-row').click();
   await chassisBranch.locator('.element-row.selected-auth').waitFor();
   previewButton = builder.getByRole('button', { name: new RegExp(`^Preview on ${chassisName}$`) });
@@ -152,7 +147,6 @@ try {
   if (!chassisInspectorMeta.includes(locator)) throw new Error('Second authored hinge side did not preserve the same physical construction locator.');
   await assertHealthy('chassis hinge commit');
 
-  // Undo/Redo only the second side; the lower-arm side must remain authored.
   await page.getByRole('button', { name: 'Undo' }).click();
   await page.waitForTimeout(100);
   if (await chassisBranch.locator('.nav-row').filter({ hasText: 'Lower Wishbone Hinge' }).count() !== 0) throw new Error('Undo did not remove the second authored hinge side.');
@@ -162,6 +156,43 @@ try {
   await assertHealthy('two-body hinge Undo/Redo');
 
   console.log('BROWSER_REAL_TWO_BODY_HINGE_AUTHORING_PASS', JSON.stringify({ locator, lowerArmName, chassisName }));
+
+  const revoluteRows = page.locator('.nav-row.readonly').filter({ hasText: 'revolute' });
+  const revoluteCountBefore = await revoluteRows.count();
+  await page.getByRole('button', { name: '+ Revolute', exact: true }).click();
+  const revoluteBuilder = page.locator('[data-revolute-builder]');
+  await revoluteBuilder.waitFor();
+  const frameASelect = revoluteBuilder.getByLabel('Revolute frame A');
+  const frameBSelect = revoluteBuilder.getByLabel('Revolute frame B');
+  await selectOptionContaining(frameASelect, ['Lower Wishbone Hinge', lowerArmName]);
+  await selectOptionContaining(frameBSelect, ['Lower Wishbone Hinge', chassisName]);
+
+  const diagnostic = revoluteBuilder.locator('[data-revolute-diagnostic]');
+  await diagnostic.waitFor();
+  const originResidualM = Number(await diagnostic.getAttribute('data-origin-residual-m'));
+  const axisAngleRad = Number(await diagnostic.getAttribute('data-axis-angle-rad'));
+  if (!Number.isFinite(originResidualM) || originResidualM > 1e-9) throw new Error(`Unexpected Owner revolute origin residual: ${originResidualM}`);
+  if (!Number.isFinite(axisAngleRad) || axisAngleRad > 1e-9) throw new Error(`Unexpected Owner revolute axis residual: ${axisAngleRad}`);
+  const diagnosticText = (await diagnostic.textContent()) ?? '';
+  if (!diagnosticText.includes('Origin residual') || !diagnosticText.includes('Signed +Z axis angle')) throw new Error(`Owner revolute diagnostic is incomplete: ${diagnosticText}`);
+
+  await revoluteBuilder.getByRole('button', { name: 'Create revolute', exact: true }).click();
+  await page.waitForTimeout(100);
+  if (await revoluteRows.count() !== revoluteCountBefore + 1) throw new Error('Owner revolute Commit did not add exactly one authored relation.');
+  await assertHealthy('Owner revolute create');
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await page.waitForTimeout(100);
+  if (await revoluteRows.count() !== revoluteCountBefore) throw new Error('Owner revolute Undo did not remove exactly the new relation.');
+  if (await lowerArmBranch.locator('.nav-row').filter({ hasText: 'Lower Wishbone Hinge' }).count() !== 1) throw new Error('Owner revolute Undo damaged lower-arm frame authoring.');
+  if (await chassisBranch.locator('.nav-row').filter({ hasText: 'Lower Wishbone Hinge' }).count() !== 1) throw new Error('Owner revolute Undo damaged chassis frame authoring.');
+
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await page.waitForTimeout(100);
+  if (await revoluteRows.count() !== revoluteCountBefore + 1) throw new Error('Owner revolute Redo did not restore exactly the new relation.');
+  await assertHealthy('Owner revolute Undo/Redo');
+
+  console.log('BROWSER_REAL_REVOLUTE_AUTHORING_PASS', JSON.stringify({ originResidualM, axisAngleRad }));
 } finally {
   await browser.close();
 }

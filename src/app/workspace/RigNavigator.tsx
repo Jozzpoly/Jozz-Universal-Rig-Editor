@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TransformTarget } from '../../editor/transform-target.js';
+import { inspectRevoluteCandidate } from '../../features/rig-relations/create-revolute.js';
 import type { RigDocument } from '../../kernel/types.js';
 
 export interface RigLayerVisibility {
@@ -18,17 +19,30 @@ interface RigNavigatorProps {
   onLayerChange(layer: keyof RigLayerVisibility, visible: boolean): void;
   onSelect(target: TransformTarget): void;
   onCreateElement(name: string): void;
+  onCreateRevolute(frameAId: string, frameBId: string): void;
 }
 
 function matchesFilter(value: string, filter: string): boolean {
   return value.toLocaleLowerCase().includes(filter.toLocaleLowerCase());
 }
 
-export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, onVisibleChange, onLayerChange, onSelect, onCreateElement }: RigNavigatorProps) {
+function frameOptionLabel(document: RigDocument, frameId: string): string {
+  const frame = document.frames.find((candidate) => candidate.id === frameId);
+  if (!frame) return frameId;
+  const owner = frame.ownerElementId
+    ? document.elements.find((element) => element.id === frame.ownerElementId)?.name ?? frame.ownerElementId
+    : 'rig root';
+  return `${frame.name} · ${owner} · ${frame.id}`;
+}
+
+export function RigNavigator({ document, selectedTarget, visible, layers, createDisabled, onVisibleChange, onLayerChange, onSelect, onCreateElement, onCreateRevolute }: RigNavigatorProps) {
   const [filter, setFilter] = useState('');
   const [collapsedElements, setCollapsedElements] = useState<Set<string>>(() => new Set());
   const [creatingElement, setCreatingElement] = useState(false);
   const [newElementName, setNewElementName] = useState('');
+  const [creatingRevolute, setCreatingRevolute] = useState(false);
+  const [revoluteFrameA, setRevoluteFrameA] = useState('');
+  const [revoluteFrameB, setRevoluteFrameB] = useState('');
   const normalizedFilter = filter.trim();
 
   const framesByOwner = useMemo(() => {
@@ -40,6 +54,15 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
     }
     return map;
   }, [document.frames]);
+
+  const revoluteInspection = useMemo(() => {
+    if (!revoluteFrameA || !revoluteFrameB || revoluteFrameA === revoluteFrameB) return null;
+    try {
+      return inspectRevoluteCandidate(document, revoluteFrameA, revoluteFrameB);
+    } catch {
+      return null;
+    }
+  }, [document, revoluteFrameA, revoluteFrameB]);
 
   const toggleElement = (elementId: string) => {
     setCollapsedElements((current) => {
@@ -56,6 +79,29 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
     onCreateElement(name);
     setNewElementName('');
     setCreatingElement(false);
+  };
+
+  const toggleRevoluteBuilder = () => {
+    setCreatingElement(false);
+    setNewElementName('');
+    setCreatingRevolute((current) => {
+      const next = !current;
+      if (next) {
+        const preferred = selectedTarget?.kind === 'frame' && document.frames.some((frame) => frame.id === selectedTarget.id)
+          ? selectedTarget.id
+          : document.frames[0]?.id ?? '';
+        const other = document.frames.find((frame) => frame.id !== preferred)?.id ?? '';
+        setRevoluteFrameA(preferred);
+        setRevoluteFrameB(other);
+      }
+      return next;
+    });
+  };
+
+  const submitRevolute = () => {
+    if (createDisabled || !revoluteInspection || revoluteInspection.existingRelationId) return;
+    onCreateRevolute(revoluteFrameA, revoluteFrameB);
+    setCreatingRevolute(false);
   };
 
   const visibleElements = document.elements.filter((element) => {
@@ -98,10 +144,21 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
           title={createDisabled ? 'Finish the active authoring or SOURCE placement operation first' : 'Create a new authored rigid element'}
           onClick={() => {
             setCreatingElement((current) => !current);
+            setCreatingRevolute(false);
             setNewElementName('');
           }}
         >
           + Element
+        </button>
+        <button
+          type="button"
+          className={`layer-toggle auth ${creatingRevolute ? 'active' : ''}`}
+          aria-expanded={creatingRevolute}
+          disabled={createDisabled || document.frames.length < 2}
+          title={document.frames.length < 2 ? 'Author at least two frames before creating a revolute' : createDisabled ? 'Finish the active authoring or SOURCE placement operation first' : 'Create a neutral revolute between two authored frames'}
+          onClick={toggleRevoluteBuilder}
+        >
+          + Revolute
         </button>
       </div>
       {creatingElement ? (
@@ -119,9 +176,43 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
             <button type="button" className="layer-toggle" onClick={() => { setCreatingElement(false); setNewElementName(''); }}>Cancel</button>
           </div>
         </form>
-      ) : (
-        <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter rig…" />
-      )}
+      ) : null}
+      {creatingRevolute ? (
+        <div className="binding-preview-card" data-revolute-builder>
+          <div className="binding-preview-head"><strong>Neutral revolute</strong><span>authored relation</span></div>
+          <label className="inspector-group-title" htmlFor="revolute-frame-a">Frame A</label>
+          <select id="revolute-frame-a" className="navigator-filter" aria-label="Revolute frame A" value={revoluteFrameA} onChange={(event) => setRevoluteFrameA(event.target.value)}>
+            <option value="">Choose authored frame…</option>
+            {document.frames.map((frame) => <option key={frame.id} value={frame.id}>{frameOptionLabel(document, frame.id)}</option>)}
+          </select>
+          <label className="inspector-group-title" htmlFor="revolute-frame-b">Frame B</label>
+          <select id="revolute-frame-b" className="navigator-filter" aria-label="Revolute frame B" value={revoluteFrameB} onChange={(event) => setRevoluteFrameB(event.target.value)}>
+            <option value="">Choose authored frame…</option>
+            {document.frames.map((frame) => <option key={frame.id} value={frame.id}>{frameOptionLabel(document, frame.id)}</option>)}
+          </select>
+          {revoluteFrameA && revoluteFrameB && revoluteFrameA === revoluteFrameB ? (
+            <div className="context-warning">Choose two distinct authored frames.</div>
+          ) : revoluteInspection ? (
+            <div
+              className={revoluteInspection.existingRelationId ? 'context-warning' : 'construction-result'}
+              data-revolute-diagnostic
+              data-origin-residual-m={revoluteInspection.originResidualM}
+              data-axis-angle-rad={revoluteInspection.axisAngleRad}
+            >
+              <div><strong>Neutral diagnostic</strong></div>
+              <div>Origin residual {(revoluteInspection.originResidualM * 1000).toFixed(3)} mm</div>
+              <div>Signed +Z axis angle {(revoluteInspection.axisAngleRad * 180 / Math.PI).toFixed(4)}°</div>
+              <small>{revoluteInspection.ownerA ?? 'rig root'} ↔ {revoluteInspection.ownerB ?? 'rig root'}</small>
+              {revoluteInspection.existingRelationId ? <div>Already connected by {revoluteInspection.existingRelationId}</div> : null}
+            </div>
+          ) : null}
+          <div className="topbar-actions">
+            <button type="button" className="binding-preview-button active" disabled={createDisabled || !revoluteInspection || Boolean(revoluteInspection.existingRelationId)} onClick={submitRevolute}>Create revolute</button>
+            <button type="button" className="binding-preview-button" onClick={() => setCreatingRevolute(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : null}
+      {!creatingElement ? <input className="navigator-filter" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter rig…" /> : null}
       <div className="navigator-tree">
         {rootFrames.length > 0 ? <div className="tree-section-label">Rig-root frames</div> : null}
         {rootFrames.map((frame) => (

@@ -43,6 +43,7 @@ import {
   type ProjectSourceRuntimeState,
 } from './state/project-source-runtime.js';
 import { createProjectRigElement, createProjectRigElementFromSource } from './state/rig-element-workflow.js';
+import { createProjectRevoluteRelation } from './state/rig-relation-workflow.js';
 import { allocateFrameAdoptionIds, planSourceOpen } from './state/source-workflow.js';
 import { InspectorPanel } from './workspace/InspectorPanel.js';
 import { RigNavigator, type RigLayerVisibility } from './workspace/RigNavigator.js';
@@ -173,6 +174,19 @@ export function App() {
     try {
       setAuthoring(createProjectRigElement(authoring, name));
       setStatus(`Created authored element "${name.trim()}" · unsaved`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    }
+  }, [authoring, sourcePlacementEdit]);
+
+  const handleCreateRevolute = useCallback((frameAId: string, frameBId: string) => {
+    if (sourcePlacementEdit || authoring.activeOperation) {
+      setStatus('Finish SOURCE placement and commit/cancel any active preview before creating a revolute.');
+      return;
+    }
+    try {
+      setAuthoring(createProjectRevoluteRelation(authoring, frameAId, frameBId));
+      setStatus(`Created neutral revolute ${frameAId} ↔ ${frameBId} · unsaved`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
@@ -441,6 +455,7 @@ export function App() {
           onLayerChange={(layer, visible) => setRigLayers((current) => ({ ...current, [layer]: visible }))}
           onSelect={handleSelectTarget}
           onCreateElement={handleCreateElement}
+          onCreateRevolute={handleCreateRevolute}
         />
       )}
       sourcePane={(
