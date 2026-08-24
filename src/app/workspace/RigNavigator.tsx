@@ -84,24 +84,23 @@ export function RigNavigator({ document, selectedTarget, visible, layers, create
   const toggleRevoluteBuilder = () => {
     setCreatingElement(false);
     setNewElementName('');
-    setCreatingRevolute((current) => {
-      const next = !current;
-      if (next) {
-        const preferred = selectedTarget?.kind === 'frame' && document.frames.some((frame) => frame.id === selectedTarget.id)
-          ? selectedTarget.id
-          : document.frames[0]?.id ?? '';
-        const other = document.frames.find((frame) => frame.id !== preferred)?.id ?? '';
-        setRevoluteFrameA(preferred);
-        setRevoluteFrameB(other);
-      }
-      return next;
-    });
+    const next = !creatingRevolute;
+    setCreatingRevolute(next);
+    if (!next) return;
+    const preferred = selectedTarget?.kind === 'frame' && document.frames.some((frame) => frame.id === selectedTarget.id)
+      ? selectedTarget.id
+      : document.frames[0]?.id ?? '';
+    const other = document.frames.find((frame) => frame.id !== preferred)?.id ?? '';
+    setRevoluteFrameA(preferred);
+    setRevoluteFrameB(other);
   };
 
   const submitRevolute = () => {
     if (createDisabled || !revoluteInspection || revoluteInspection.existingRelationId) return;
+    // Keep the builder open after submit. A successful durable update re-renders the
+    // candidate as "Already connected"; if the parent rejects the command, the Owner
+    // keeps both frame choices and diagnostics instead of losing the attempted setup.
     onCreateRevolute(revoluteFrameA, revoluteFrameB);
-    setCreatingRevolute(false);
   };
 
   const visibleElements = document.elements.filter((element) => {
