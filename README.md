@@ -9,36 +9,40 @@ JV/JV-Web is the first demanding consumer/falsifier and the main near-term produ
 ## Repository authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
-- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` through draft PR #3;
-- **active product work:** `work/real-jv-rig-elements` based exactly on that clean candidate;
-- **active product review boundary:** draft PR #4;
-- **latest fully validated product checkpoint:** resolve the exact SHA/run recorded in `docs/STATUS.md` before relying on product claims.
+- **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / closed unmerged PR #3;
+- **active product work:** `work/real-jv-rig-elements`;
+- **latest fully validated product:** `2af0e789d22eb4284e65ab2342ca933d21fe9315` / `checkpoint/donor-03a-coherent-neutral-wishbone-2026-08-24` / run `32782422063`;
+- **latest validation review boundary:** closed evidence-only PR #7, never merge;
+- **historical paused product boundary:** closed PR #4; it is not the current review boundary.
 
-`main` does not move because CI is green. PR #3 remains an explicit Owner promotion decision. PR #2 retains the full recovery/foundation evidence history and is not the ordinary product-work head.
+`main` does not move because CI is green. PR #3 remains an explicit Owner promotion decision. Validation/recovery PRs are evidence laboratories only. Resolve exact SHA/run and current open gaps from `docs/STATUS.md` before relying on product claims.
 
 ## What the active line now proves
 
-JURE has crossed from foundation plumbing into the first real authored mechanism cycle. Using the exact current JV one-sided suspension SOURCE, the validated line demonstrates:
+Using the pinned exact JV one-sided suspension SOURCE, the validated line demonstrates both a complete small Owner-operated hinge path and a coherent neutral four-relation wishbone at the model/evidence level.
 
-`exact SOURCE -> authored bodies -> constructed hinge frames -> neutral revolute -> diagnostic -> transient TEST motion -> Reset -> exact AUTHORED`
+Small Owner-operated hinge path:
 
-The active architecture now includes:
+`exact SOURCE -> authored bodies -> authored hinge frames -> Owner revolute -> diagnostic -> transient Owner TEST -> Reset -> exact AUTHORED -> Undo/Redo`
+
+Validated capability now includes:
 
 - free and exact-SOURCE-derived `RigElement` authoring;
 - exact SOURCE -> owner-local `RigFrame` adoption;
-- conservative geometry-derived construction points;
+- conservative geometry-derived construction points without invented orientation;
 - self-resolving constructed-frame recipes using exact component locators;
 - Owner-facing recipe authoring with visible origin/axes/provenance and Preview/Commit;
-- one physical lower-wishbone hinge represented on two independently authored bodies using the same measured recipe;
-- a neutral `revolute` relation with no consumer dynamics or solver fields;
-- non-solving revolute residual diagnostics for common origin and signed local `+Z` axis;
-- a replaceable single-revolute TEST evaluator whose moving element is explicit disposable TEST configuration rather than durable parent/child semantics;
-- transient real lower-arm rotation around the authored hinge and exact Reset to AUTHORED;
-- deterministic Save/Open/relink and one chronological durable `ProjectSession` history.
+- a neutral `revolute` relation with origin/+Z residual diagnostics and Owner Undo/Redo;
+- a replaceable single-revolute TEST evaluator whose moving element is disposable TEST configuration rather than durable parent/child semantics;
+- Owner TEST `0° -> +30° -> Reset -> End TEST` without mutating authored neutral truth or durable history;
+- neutral `spherical` semantics constraining shared origin only, with origin-residual diagnostics and Owner `+ Spherical` authoring;
+- one chronological durable `ProjectSession` history;
+- deterministic Save/Open and exact SOURCE relink;
+- **coherent neutral wishbone:** 4 authored elements, 8 independently owner-local frames, 2 inboard revolutes + 2 outboard sphericals, clean neutral diagnostics, 11 exact SOURCE adoption receipts and deterministic Save/Open/relink.
 
-These relation/evaluator semantics are currently proven below the final Owner-facing UI boundary. The workbench still lacks direct Owner relation creation and TEST controls; those are the immediate product gaps, not completed UI claims.
+DONOR-03A does **not** prove final physical ball-joint placement or closed-loop double-wishbone motion. The X-min wheel-end frames remain provenance-backed mating candidates until the Owner inspects or corrects them in the normal workbench. There is still no multi-relation mechanism solver/evaluator.
 
-Exact SHA/run evidence and the current limitations are in `docs/STATUS.md`.
+Exact SHA/run evidence, pinned SOURCE identity and detailed semantic boundaries are in `docs/STATUS.md`.
 
 Historical shadow state/history implementations and the active BIND-00 runtime/UI path remain removed. Git history preserves their evidence; they are not alternative APIs to extend.
 
@@ -46,15 +50,15 @@ The current UI is a working engineering harness, not final information architect
 
 ## Immediate product goal
 
-Close the Owner-operability gap for the mechanism already proven underneath the UI before expanding its vocabulary:
+The next stage is **DONOR-03B — Owner Candidate Inspection & Correction**. Do not expand the kernel, hierarchy, solver or visibility tooling before this gate produces evidence.
 
-1. Owner-facing `revolute` creation over two authored frames, with neutral residual/axis diagnostics visible before commit;
-2. relation creation as one existing `ProjectSession` action with Undo/Redo;
-3. rendered exact-JV proof of that relation flow;
-4. then a small TEST control for one selected revolute with explicit disposable moving-element choice;
-5. rendered `0° -> +30° -> Reset`, with TEST controls never entering project history or AUTHORED truth;
-6. then extend the same Owner-first pattern to the coherent double-wishbone, including the required spherical relations;
-7. only after that freeze/export the small multi-relation consumer fragment and let private JV-Web become the next falsifier.
+1. derive a normal JURE project candidate directly from the already-validated coherent-wishbone serialization rather than reconstructing coordinates by hand;
+2. validate the candidate file independently as canonical 4-element / 8-frame / 4-relation authored truth with exact provenance;
+3. prove the normal browser path `Open Project -> exact SOURCE relink -> inspect/edit -> diagnostic warning -> Undo` on Linux and Windows;
+4. present that machine-proven **CANDIDATE / NOT AUTHORITY** project to the Owner;
+5. let the Owner accept, correct or identify a concrete blocker in the proposed outboard mating frames;
+6. only a demonstrated blocker may justify the next minimal feature such as SOURCE isolate, better picking or clearer relation visualization;
+7. only after Owner-accepted/corrected mating is saved/reopened/relinked should JURE freeze a small deterministic neutral donor fragment for JV.
 
 The Friends public alpha remains a later controlled integration target, not the place to develop the authoring contract.
 
@@ -91,7 +95,7 @@ npm run check
 CI has two intentional speeds:
 
 - **Work check** — `npm ci` + `npm run check` on `main` / `work/**`;
-- **Checkpoint browser gate** — explicit `checkpoint/**` or manual run, including the pinned exact JV SOURCE and Linux/Windows Chrome probes.
+- **Checkpoint browser gate** — full pinned exact-JV Linux/Windows Chrome evidence on `checkpoint/**`, manual dispatch, and explicitly listed isolated `validation/**` PR bases used only as observable evidence laboratories.
 
 Rendered interaction changes require browser evidence; a passing build alone is not a UI/interaction PASS.
 
