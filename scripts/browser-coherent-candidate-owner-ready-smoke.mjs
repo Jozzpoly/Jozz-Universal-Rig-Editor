@@ -120,6 +120,19 @@ try {
   await page.locator('.authored-context .inspector-name').filter({ hasText: 'Upper outboard · carrier side' }).waitFor();
 
   const positionX = page.locator('.authored-context .transform-group').first().locator('.axis-x input');
+  if (!(await positionX.isDisabled())) throw new Error('Selecting an authored frame exposed an enabled numeric mutation control before explicit Edit pose intent.');
+  await page.getByText('Inspect only · selection cannot transform authored truth.', { exact: true }).waitFor();
+  const revisionBeforeEditIntent = await page.locator('.document-chip small').textContent();
+  if (!(await undoButton.isDisabled())) throw new Error('Inspect-only selection unexpectedly created durable Undo history.');
+
+  await page.getByRole('button', { name: 'Edit pose', exact: true }).click();
+  await page.getByText('EDIT armed · transforms can change authored truth.', { exact: true }).waitFor();
+  if (await positionX.isDisabled()) throw new Error('Explicit Edit pose intent did not enable numeric authored pose editing.');
+  const revisionAfterEditIntent = await page.locator('.document-chip small').textContent();
+  if (revisionAfterEditIntent !== revisionBeforeEditIntent) throw new Error(`Arming Edit pose changed authored revision: ${revisionBeforeEditIntent} -> ${revisionAfterEditIntent}.`);
+  if (!(await undoButton.isDisabled())) throw new Error('Arming Edit pose unexpectedly created durable Undo history.');
+  console.log('BROWSER_SAFE_INSPECT_EDIT_INTENT_PASS');
+
   const initialX = Number(await positionX.inputValue());
   if (!Number.isFinite(initialX)) throw new Error(`Candidate carrier-side upper outboard local X is not finite: ${initialX}.`);
   const disturbedX = initialX + 0.01;
