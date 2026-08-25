@@ -87,6 +87,8 @@ jobs:
         run: node scripts/real-jv-single-revolute-evaluator-probe.mjs
 
       - name: Linux browser owner interaction probes
+        env:
+          JURE_CANDIDATE_PROJECT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
         run: |
           npm run dev -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/jure-browser-vite.log 2>&1 &
           VITE_PID=$!
@@ -118,6 +120,7 @@ jobs:
           node scripts/browser-construction-frame-authoring-smoke.mjs
           node scripts/browser-spherical-authoring-control-smoke.mjs
           node scripts/browser-owner-path-smoke.mjs
+          node scripts/browser-coherent-candidate-owner-ready-smoke.mjs
 
   windows-browser:
     needs: linux-browser
@@ -206,6 +209,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Windows single-revolute TEST evaluator probe exited with code $LASTEXITCODE" }
 
       - name: Windows browser owner interaction probes
+        env:
+          JURE_CANDIDATE_PROJECT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
         shell: pwsh
         run: |
           $stdout = Join-Path $env:RUNNER_TEMP 'jure-browser-vite.stdout.log'
@@ -232,6 +237,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Windows spherical authoring control probe exited with code $LASTEXITCODE" }
             node scripts/browser-owner-path-smoke.mjs
             if ($LASTEXITCODE -ne 0) { throw "Windows owner-path probe exited with code $LASTEXITCODE" }
+            node scripts/browser-coherent-candidate-owner-ready-smoke.mjs
+            if ($LASTEXITCODE -ne 0) { throw "Windows coherent candidate Owner-ready probe exited with code $LASTEXITCODE" }
           } finally {
             Stop-Process -Id $vite.Id -Force -ErrorAction SilentlyContinue
             Write-Host '--- Windows Vite stdout ---'
