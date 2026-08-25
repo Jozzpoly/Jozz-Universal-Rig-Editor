@@ -122,6 +122,96 @@ jobs:
           node scripts/browser-owner-path-smoke.mjs
           node scripts/browser-coherent-candidate-owner-ready-smoke.mjs
 
+      - name: Prepare frozen Owner physical mating package
+        env:
+          FROZEN_SHA: 53ce6cc31233cfe1b45d41081c7b58d4c8baa5c4
+          FROZEN_TREE: 6dce314b3ed086998f03075a2b641be8a9988aea
+          SOURCE_SHA256: 57cda983f8f728bc819460540d2ee39b1b17288ecdac1f0dc8bb1a3e6f9ab750
+          CANDIDATE_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/OWNER_MATING_GATE"
+          mkdir -p "$PACKAGE"
+
+          cp "$CANDIDATE_PATH" "$PACKAGE/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json"
+          cp "$JURE_REAL_SOURCE_PATH" "$PACKAGE/OneSided_Steering_Suspension_Rig.gltf"
+          curl -fsSL "https://github.com/Jozzpoly/Jozz-Universal-Rig-Editor/archive/${FROZEN_SHA}.zip" \
+            -o "$PACKAGE/JURE_FROZEN_${FROZEN_SHA}.zip"
+
+          CANDIDATE_SHA256="$(sha256sum "$PACKAGE/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json" | awk '{print $1}')"
+          CANDIDATE_SIZE="$(wc -c < "$PACKAGE/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json")"
+          SOURCE_ACTUAL_SHA256="$(sha256sum "$PACKAGE/OneSided_Steering_Suspension_Rig.gltf" | awk '{print $1}')"
+          SOURCE_SIZE="$(wc -c < "$PACKAGE/OneSided_Steering_Suspension_Rig.gltf")"
+          APP_ARCHIVE_SHA256="$(sha256sum "$PACKAGE/JURE_FROZEN_${FROZEN_SHA}.zip" | awk '{print $1}')"
+
+          test "$CANDIDATE_SIZE" -eq 20124
+          test "$SOURCE_ACTUAL_SHA256" = "$SOURCE_SHA256"
+          test "$SOURCE_SIZE" -eq 64264
+
+          cat > "$PACKAGE/OWNER_MATING_MANIFEST.txt" <<EOF
+          OWNER PHYSICAL MATING GATE PACKAGE
+          ==================================
+          Status: CANDIDATE / NOT PHYSICAL AUTHORITY
+          Purpose: direct Owner inspection of upper/lower outboard wishbone-to-carrier mating candidates.
+
+          Frozen JURE producer SHA: $FROZEN_SHA
+          Frozen JURE product tree: $FROZEN_TREE
+          Prior full validation run: 32846835489 (Linux + Windows + Owner-ready browser flow PASS)
+
+          Candidate filename: CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
+          Candidate SHA-256: $CANDIDATE_SHA256
+          Candidate bytes: $CANDIDATE_SIZE
+          Candidate identity: project.real-jv-coherent-wishbone / rig.real-jv-coherent-wishbone
+          Candidate topology: 4 elements / 8 frames / 4 relations / 11 exact SOURCE adoption receipts
+
+          SOURCE filename: OneSided_Steering_Suspension_Rig.gltf
+          SOURCE SHA-256: $SOURCE_ACTUAL_SHA256
+          SOURCE bytes: $SOURCE_SIZE
+          SOURCE revision: Jozzpoly/Box3d_FunProject@959aefb78587ce60cf2b8eb03ff82797a4165142
+
+          Frozen JURE snapshot: JURE_FROZEN_${FROZEN_SHA}.zip
+          Frozen JURE snapshot SHA-256: $APP_ARCHIVE_SHA256
+
+          Semantic boundary:
+          - Current X-min outboard positions are provenance-backed mating candidates only.
+          - Zero relation residual is internal coherence, not physical correctness.
+          - This package exists for Owner physical judgement; it is not a JV-Web consumer format.
+          EOF
+
+          cat > "$PACKAGE/OWNER_MATING_README.txt" <<'EOF'
+          OWNER PHYSICAL MATING GATE — FIRST OBSERVATION
+          =================================================
+          1. Extract the frozen JURE snapshot and launch JURE normally (RUN_EDITOR.cmd on Windows).
+          2. Open Project: CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
+          3. Open Source: OneSided_Steering_Suspension_Rig.gltf
+          4. Before editing anything, inspect upper and lower outboard mating spatially from several camera angles.
+          5. Do not interpret zero relation warnings as proof that the physical joint location is correct.
+          6. Record the first judgement before correction: ACCEPT / WRONG / INCONCLUSIVE or a concrete visibility/selection/readability blocker.
+          7. Only if the point looks wrong, attempt correction using normal JURE frame editing; do not edit JSON or use agent-provided coordinates.
+          EOF
+
+          (
+            cd "$PACKAGE"
+            sha256sum \
+              CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json \
+              OneSided_Steering_Suspension_Rig.gltf \
+              "JURE_FROZEN_${FROZEN_SHA}.zip" \
+              OWNER_MATING_MANIFEST.txt \
+              OWNER_MATING_README.txt \
+              > SHA256SUMS.txt
+          )
+
+          echo "OWNER_MATING_PACKAGE_PASS candidate_sha256=$CANDIDATE_SHA256 candidate_bytes=$CANDIDATE_SIZE source_sha256=$SOURCE_ACTUAL_SHA256"
+
+      - name: Upload frozen Owner physical mating package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: OWNER_MATING_GATE__53ce6cc3__${{ github.run_id }}
+          path: ${{ runner.temp }}/OWNER_MATING_GATE
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
+
   windows-browser:
     needs: linux-browser
     runs-on: windows-latest
