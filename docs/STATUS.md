@@ -9,7 +9,7 @@
 - **validated tree:** `6dce314b3ed086998f03075a2b641be8a9988aea`;
 - **latest frozen checkpoint:** `checkpoint/donor-03b-synthesis-ready-2026-08-25@53ce6cc31233cfe1b45d41081c7b58d4c8baa5c4`;
 - **validation run:** `32846835489` — Linux browser PASS + Windows browser PASS + final checkpoint status SUCCESS;
-- **validation review boundary:** PR #8, evidence-only / never merge; close after evidence is recorded;
+- **validation review boundary:** closed evidence-only PR #8, never merge;
 - **previous validated donor boundary:** `checkpoint/donor-03a-coherent-neutral-wishbone-2026-08-24@2af0e789d22eb4284e65ab2342ca933d21fe9315`, run `32782422063`;
 - **historical paused product boundary:** closed PR #4; it no longer describes the current product head.
 
