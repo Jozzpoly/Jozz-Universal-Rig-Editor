@@ -311,6 +311,10 @@ try {
   }
   if (expectedOwnerLocalPosition) console.log('REAL_SOURCE_PARENT_CHILD_LOCAL_POSE_PASS', frameBefore.toArray());
 
+  if (!(await positionX.isDisabled())) throw new Error('Adopted frame selection unexpectedly enabled authored pose editing before explicit Edit pose intent.');
+  await page.getByRole('button', { name: 'Edit pose', exact: true }).click();
+  if (await positionX.isDisabled()) throw new Error('Explicit Edit pose intent did not enable adopted frame pose editing.');
+
   let frameAfter = frameBefore;
   await dragAnyTranslateHandleAt(adoptedWorldBefore, selectAdoptedFrame, async () => {
     if (await positionX.count() === 0) return false;
