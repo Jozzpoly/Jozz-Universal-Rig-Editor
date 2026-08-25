@@ -8,6 +8,7 @@ on:
     branches:
       - 'validation/donor-02f-base-2026-08-24'
       - 'validation/donor-03a-base-2026-08-24'
+      - 'validation/donor-03b-owner-ready-base-2026-08-25'
   workflow_dispatch:
 
 permissions:
@@ -70,7 +71,14 @@ jobs:
         run: node scripts/real-jv-outboard-grounding-probe.mjs
 
       - name: Linux coherent neutral wishbone probe
+        env:
+          JURE_CANDIDATE_OUTPUT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
         run: node scripts/real-jv-coherent-wishbone-probe.mjs
+
+      - name: Linux coherent candidate file probe
+        env:
+          JURE_CANDIDATE_PROJECT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
+        run: node scripts/real-jv-coherent-wishbone-candidate-file-probe.mjs
 
       - name: Linux real-source revolute diagnostic probe
         run: node scripts/real-jv-revolute-diagnostic-probe.mjs
@@ -170,10 +178,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Windows outboard grounding probe exited with code $LASTEXITCODE" }
 
       - name: Windows coherent neutral wishbone probe
+        env:
+          JURE_CANDIDATE_OUTPUT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
         shell: pwsh
         run: |
           node scripts/real-jv-coherent-wishbone-probe.mjs
           if ($LASTEXITCODE -ne 0) { throw "Windows coherent wishbone probe exited with code $LASTEXITCODE" }
+
+      - name: Windows coherent candidate file probe
+        env:
+          JURE_CANDIDATE_PROJECT_PATH: ${{ runner.temp }}/CANDIDATE__real-jv-coherent-wishbone__NOT-AUTHORITY.json
+        shell: pwsh
+        run: |
+          node scripts/real-jv-coherent-wishbone-candidate-file-probe.mjs
+          if ($LASTEXITCODE -ne 0) { throw "Windows coherent candidate file probe exited with code $LASTEXITCODE" }
 
       - name: Windows real-source revolute diagnostic probe
         shell: pwsh
