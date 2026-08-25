@@ -3,6 +3,7 @@ import type { RigDisplayModel } from '../display/types.js';
 import type { TransformTarget } from '../editor/transform-target.js';
 import type { RigidPose } from '../kernel/types.js';
 import { RigViewportController, type CameraPreset, type SourcePlacementView, type ViewFitTarget } from '../render/rig-viewport-controller.js';
+import { useRigEditIntent } from './workspace/rig-edit-intent.js';
 
 interface RigViewportProps {
   model: RigDisplayModel;
@@ -31,6 +32,8 @@ interface RigViewportProps {
 export function RigViewport(props: RigViewportProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<RigViewportController | null>(null);
+  const { editActive } = useRigEditIntent(props.selectedTarget);
+  const transformTarget = editActive ? props.selectedTarget : null;
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -40,7 +43,7 @@ export function RigViewport(props: RigViewportProps) {
   }, []);
 
   useEffect(() => { controllerRef.current?.setCallbacks(props); }, [props.onSelect, props.onTransformStart, props.onTransformPreview, props.onTransformCommit, props.onTransformCancel, props.onSourceTransformStart, props.onSourceTransformPreview, props.onSourceTransformCommit, props.onSourceTransformCancel]);
-  useEffect(() => { controllerRef.current?.setDisplayModel(props.model, props.selectedTarget); }, [props.model, props.selectedTarget]);
+  useEffect(() => { controllerRef.current?.setDisplayModel(props.model, transformTarget); }, [props.model, transformTarget]);
   useEffect(() => { controllerRef.current?.setRigVisible(props.rigVisible); }, [props.rigVisible]);
   useEffect(() => { controllerRef.current?.setCameraPreset(props.cameraPreset); }, [props.cameraPreset]);
   useEffect(() => { controllerRef.current?.setTransformMode(props.transformMode); }, [props.transformMode]);
