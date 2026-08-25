@@ -4,69 +4,69 @@ JURE is an owner-first local web workbench for authoring rig intent directly on 
 
 JURE is not intended to be an agent-operated preprocessing utility. Its core product goal is to let the Owner personally carry a supported rig from exact SOURCE inspection through mechanical/representation authoring, direct adjustment, diagnostics, kinematic TEST/Reset, Save/Open and deterministic consumer export. The agent may build the tooling and difficult math, but should not be a required operator for ordinary rig creation or correction.
 
-JV/JV-Web is the first demanding consumer/falsifier and the main near-term product partner. JURE should make it practical to build and repair exact vehicle rigs for JV — including part fit, suspension/steering relationships and moving representation such as dampers/springs — while JV remains responsible for runtime physics, force laws, solver state, controls and rendering integration. The same authoring architecture should remain usable for future vehicle rigs and, when real use justifies it, other mechanisms.
+JV/JV-Web is the first demanding consumer/falsifier and the current program priority. JURE is an optional authoring donor: it should provide trustworthy authored neutral geometry, relations, provenance and correction workflows when they improve JV-Web, without becoming a mandatory dependency or absorbing runtime physics/dynamics authority.
 
 ## Repository authority
 
 - **accepted baseline:** `main@d971b8bef5dd7c65b78884b6b449e1f5ab0e7425`;
 - **clean foundation candidate:** `promotion/foundation-ready-squash-2026-08-16@4db04eee4da0216f6bd3df6b6b0c82aa20afab5a` / closed unmerged PR #3;
 - **active product work:** `work/real-jv-rig-elements`;
-- **latest fully validated product:** `2af0e789d22eb4284e65ab2342ca933d21fe9315` / `checkpoint/donor-03a-coherent-neutral-wishbone-2026-08-24` / run `32782422063`;
-- **latest validation review boundary:** closed evidence-only PR #7, never merge;
+- **latest fully machine-validated donor:** `53ce6cc31233cfe1b45d41081c7b58d4c8baa5c4` / `checkpoint/donor-03b-synthesis-ready-2026-08-25` / run `32846835489`;
+- **latest validation review boundary:** closed evidence-only PR #8, never merge;
+- **previous donor checkpoint:** `checkpoint/donor-03a-coherent-neutral-wishbone-2026-08-24@2af0e789d22eb4284e65ab2342ca933d21fe9315` / run `32782422063`;
 - **historical paused product boundary:** closed PR #4; it is not the current review boundary.
 
 `main` does not move because CI is green. PR #3 remains an explicit Owner promotion decision. Validation/recovery PRs are evidence laboratories only. Resolve exact SHA/run and current open gaps from `docs/STATUS.md` before relying on product claims.
 
 ## What the active line now proves
 
-Using the pinned exact JV one-sided suspension SOURCE, the validated line demonstrates both a complete small Owner-operated hinge path and a coherent neutral four-relation wishbone at the model/evidence level.
+Using the pinned exact JV one-sided suspension SOURCE, the validated line demonstrates both a coherent neutral four-relation wishbone and a normal Owner-correction path through the workbench.
 
-Small Owner-operated hinge path:
-
-`exact SOURCE -> authored bodies -> authored hinge frames -> Owner revolute -> diagnostic -> transient Owner TEST -> Reset -> exact AUTHORED -> Undo/Redo`
-
-Validated capability now includes:
+Validated capability includes:
 
 - free and exact-SOURCE-derived `RigElement` authoring;
 - exact SOURCE -> owner-local `RigFrame` adoption;
 - conservative geometry-derived construction points without invented orientation;
 - self-resolving constructed-frame recipes using exact component locators;
 - Owner-facing recipe authoring with visible origin/axes/provenance and Preview/Commit;
-- a neutral `revolute` relation with origin/+Z residual diagnostics and Owner Undo/Redo;
-- a replaceable single-revolute TEST evaluator whose moving element is disposable TEST configuration rather than durable parent/child semantics;
-- Owner TEST `0° -> +30° -> Reset -> End TEST` without mutating authored neutral truth or durable history;
-- neutral `spherical` semantics constraining shared origin only, with origin-residual diagnostics and Owner `+ Spherical` authoring;
-- one chronological durable `ProjectSession` history;
+- neutral `revolute` and `spherical` relations with diagnostics and one ProjectSession Undo/Redo history;
+- transient single-revolute TEST separated from authored neutral truth;
 - deterministic Save/Open and exact SOURCE relink;
-- **coherent neutral wishbone:** 4 authored elements, 8 independently owner-local frames, 2 inboard revolutes + 2 outboard sphericals, clean neutral diagnostics, 11 exact SOURCE adoption receipts and deterministic Save/Open/relink.
+- **DONOR-03A coherent neutral wishbone:** 4 authored elements, 8 independently owner-local frames, 2 inboard revolutes + 2 outboard sphericals, clean neutral diagnostics and 11 exact SOURCE adoption receipts;
+- **DONOR-03B deterministic candidate:** the canonical coherent project is emitted directly from the proven builder and independently reopened/verified by a fresh process;
+- **DONOR-03B Owner correction path:** normal `Open Project -> exact SOURCE relink -> frame correction -> spherical warning/residual -> Undo -> exact neutral recovery` passed on Linux and Windows.
 
-DONOR-03A does **not** prove final physical ball-joint placement or closed-loop double-wishbone motion. The X-min wheel-end frames remain provenance-backed mating candidates until the Owner inspects or corrects them in the normal workbench. There is still no multi-relation mechanism solver/evaluator.
+DONOR-03B proves **Owner-correctability**, not final physical mating truth. The X-min wheel-end frames remain provenance-backed candidates, not Owner-accepted ball-joint centers. There is still no general multi-relation mechanism solver/evaluator, and none is required for the current donor claim.
 
-Exact SHA/run evidence, pinned SOURCE identity and detailed semantic boundaries are in `docs/STATUS.md`.
+Exact SHA/run evidence, pinned SOURCE identity, candidate identity and semantic boundaries are in `docs/STATUS.md`.
 
 Historical shadow state/history implementations and the active BIND-00 runtime/UI path remain removed. Git history preserves their evidence; they are not alternative APIs to extend.
 
 The current UI is a working engineering harness, not final information architecture.
 
-## Immediate product goal
+## Current program state — synthesis-ready donor
 
-The next stage is **DONOR-03B — Owner Candidate Inspection & Correction**. Do not expand the kernel, hierarchy, solver or visibility tooling before this gate produces evidence.
+The JURE donor has reached its current stop point. JV-Web ingested the exact DONOR-03A/03B evidence into its provisional cross-project Inheritance Matrix at `Jozzpoly/JV-Box3D-Web-experiment@b6f78369b7d245f73532d58b41d23d98f52862e4`.
 
-1. derive a normal JURE project candidate directly from the already-validated coherent-wishbone serialization rather than reconstructing coordinates by hand;
-2. validate the candidate file independently as canonical 4-element / 8-frame / 4-relation authored truth with exact provenance;
-3. prove the normal browser path `Open Project -> exact SOURCE relink -> inspect/edit -> diagnostic warning -> Undo` on Linux and Windows;
-4. present that machine-proven **CANDIDATE / NOT AUTHORITY** project to the Owner;
-5. let the Owner accept, correct or identify a concrete blocker in the proposed outboard mating frames;
-6. only a demonstrated blocker may justify the next minimal feature such as SOURCE isolate, better picking or clearer relation visualization;
-7. only after Owner-accepted/corrected mating is saved/reopened/relinked should JURE freeze a small deterministic neutral donor fragment for JV.
+Recipient verdict: **JURE has earned influence, not ownership.**
 
-The Friends public alpha remains a later controlled integration target, not the place to develop the authoring contract.
+Therefore there is no automatic next JURE feature slice. Do **not** freeze a JURE -> JV-Web consumer schema/export, extend the kernel, build hierarchy/general solver, Map integration, generic picking/SOURCE isolation or new mechanical domains merely to make the donor look more complete.
 
-JURE must remain useful for native JV/VAW and non-vehicle mechanisms such as rotors, pistons, springs and thrusters. Do not hardcode current JV topology, Box3D IDs, solver configuration or vehicle-specific dynamics into the authored kernel.
+Next material JURE work is triggered only by one of:
 
-Foundation exits when the Owner can take a real mechanism and, without agent-side coordinate guessing:
+1. **Owner Physical Mating Gate** — the Owner chooses to inspect/correct the upper/lower outboard mating candidates, or cross-project synthesis needs that physical judgement;
+2. **JV_CORE G-RIG + JV-Web synthesis** — sealed evidence proves a concrete authored-rig/lowering requirement;
+3. **independent JURE priority** explicitly chosen by the Owner after the JV-Web priority program allows it.
+
+A future consumer fragment must be designed from the combination of exact JURE evidence, sealed JV_CORE G-RIG physical truth and the live JV-Web recipient contract. Do not derive it from JURE alone, and do not make JURE a required runtime/build dependency.
+
+JURE must remain useful for native JV/VAW and future non-vehicle mechanisms when real needs justify them. Do not hardcode current JV topology, Box3D IDs, solver configuration or vehicle-specific dynamics into the authored kernel.
+
+Foundation still exits only when the Owner can take a real mechanism and, without agent-side coordinate guessing:
 
 `place/inspect exact SOURCE -> create authored elements/frames/mechanical intent -> fit/map representation -> kinematically test/reset -> correct -> save/reopen -> export a small consumer-facing result`
+
+The current donor closure does not claim that full foundation exit has been reached.
 
 ## Development loop
 
