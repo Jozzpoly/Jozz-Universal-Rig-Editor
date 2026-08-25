@@ -3,6 +3,7 @@ import { Euler, MathUtils, Quaternion } from 'three';
 import type { TransformTarget } from '../../editor/transform-target.js';
 import type { RigidPose, RigElement, RigFrame } from '../../kernel/types.js';
 import type { SourceNodeInspection } from '../../source/types.js';
+import { useRigEditIntent } from './rig-edit-intent.js';
 
 interface InspectorPanelProps {
   selectedElement: RigElement | null;
@@ -22,7 +23,7 @@ function commitOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
   if (event.key === 'Enter') event.currentTarget.blur();
 }
 
-function PositionEditor({ target, pose, label, onCommit }: { target: TransformTarget; pose: RigidPose; label: string; onCommit: InspectorPanelProps['onCommitPose'] }) {
+function PositionEditor({ target, pose, label, disabled, onCommit }: { target: TransformTarget; pose: RigidPose; label: string; disabled: boolean; onCommit: InspectorPanelProps['onCommitPose'] }) {
   return (
     <div className="inspector-group transform-group">
       <div className="inspector-group-title">{label}</div>
@@ -33,6 +34,7 @@ function PositionEditor({ target, pose, label, onCommit }: { target: TransformTa
             <input
               type="number"
               step="0.001"
+              disabled={disabled}
               defaultValue={pose.position[axis]}
               key={`${target.kind}-${target.id}-${axis}-${pose.position[axis]}`}
               onKeyDown={commitOnEnter}
@@ -63,7 +65,7 @@ function poseWithEulerAxis(pose: RigidPose, axis: Axis, degrees: number): RigidP
   return { ...pose, rotation: { x: next.x, y: next.y, z: next.z, w: next.w } };
 }
 
-function RotationEditor({ target, pose, onCommit }: { target: TransformTarget; pose: RigidPose; onCommit: InspectorPanelProps['onCommitPose'] }) {
+function RotationEditor({ target, pose, disabled, onCommit }: { target: TransformTarget; pose: RigidPose; disabled: boolean; onCommit: InspectorPanelProps['onCommitPose'] }) {
   const degrees = quaternionToEulerDegrees(pose);
   const rotationKey = `${pose.rotation.x}:${pose.rotation.y}:${pose.rotation.z}:${pose.rotation.w}`;
   return (
@@ -76,6 +78,7 @@ function RotationEditor({ target, pose, onCommit }: { target: TransformTarget; p
             <input
               type="number"
               step="0.1"
+              disabled={disabled}
               defaultValue={Number(degrees[axis].toFixed(4))}
               key={`${target.kind}-${target.id}-${axis}-${rotationKey}`}
               onKeyDown={commitOnEnter}
@@ -98,7 +101,29 @@ function RotationEditor({ target, pose, onCommit }: { target: TransformTarget; p
   );
 }
 
-function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCommitPose }: Pick<InspectorPanelProps, 'selectedElement' | 'selectedFrame' | 'selectedPose' | 'onCommitPose'>) {
+interface AuthoredInspectorProps extends Pick<InspectorPanelProps, 'selectedElement' | 'selectedFrame' | 'selectedPose' | 'onCommitPose'> {
+  editActive: boolean;
+  onBeginEdit(): void;
+  onEndEdit(): void;
+}
+
+function EditIntentControl({ editActive, onBeginEdit, onEndEdit }: Pick<AuthoredInspectorProps, 'editActive' | 'onBeginEdit' | 'onEndEdit'>) {
+  return (
+    <div className="topbar-actions" aria-label="Authored pose editing intent">
+      <button
+        type="button"
+        className={editActive ? 'active' : ''}
+        aria-pressed={editActive}
+        onClick={editActive ? onEndEdit : onBeginEdit}
+      >
+        {editActive ? 'Finish editing' : 'Edit pose'}
+      </button>
+      <span className="context-footnote">{editActive ? 'EDIT armed · transforms can change authored truth.' : 'Inspect only · selection cannot transform authored truth.'}</span>
+    </div>
+  );
+}
+
+function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCommitPose, editActive, onBeginEdit, onEndEdit }: AuthoredInspectorProps) {
   if (selectedElement && selectedPose) {
     const target: TransformTarget = { kind: 'element', id: selectedElement.id };
     return (
@@ -110,8 +135,9 @@ function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCom
           <dt>Source</dt><dd>{selectedElement.source?.locator ?? '—'}</dd>
           <dt>Space</dt><dd>rig-root rigid pose</dd>
         </dl>
-        <PositionEditor target={target} pose={selectedPose} label="Position · m" onCommit={onCommitPose} />
-        <RotationEditor target={target} pose={selectedPose} onCommit={onCommitPose} />
+        <EditIntentControl editActive={editActive} onBeginEdit={onBeginEdit} onEndEdit={onEndEdit} />
+        <PositionEditor target={target} pose={selectedPose} label="Position · m" disabled={!editActive} onCommit={onCommitPose} />
+        <RotationEditor target={target} pose={selectedPose} disabled={!editActive} onCommit={onCommitPose} />
         <div className="context-footnote">Moving the element carries its owned frames without changing their local authored poses.</div>
       </section>
     );
@@ -131,8 +157,9 @@ function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCom
           <dt>Source revision</dt><dd>{selectedFrame.source?.sourceRevisionId ?? '—'}</dd>
           <dt>Measured from</dt><dd>{selectedFrame.source?.locator ?? '—'}</dd>
         </dl>
-        <PositionEditor target={target} pose={selectedPose} label="Local position · m" onCommit={onCommitPose} />
-        <RotationEditor target={target} pose={selectedPose} onCommit={onCommitPose} />
+        <EditIntentControl editActive={editActive} onBeginEdit={onBeginEdit} onEndEdit={onEndEdit} />
+        <PositionEditor target={target} pose={selectedPose} label="Local position · m" disabled={!editActive} onCommit={onCommitPose} />
+        <RotationEditor target={target} pose={selectedPose} disabled={!editActive} onCommit={onCommitPose} />
         <div className="context-footnote">This frame is authored in its owner's local rigid space. SOURCE provenance is historical measurement evidence, not writeback authority.</div>
       </section>
     );
@@ -141,7 +168,7 @@ function AuthoredInspector({ selectedElement, selectedFrame, selectedPose, onCom
   return (
     <section className="selection-context authored-context empty-context">
       <div className="context-label"><span className="context-dot" />Authored</div>
-      <div className="empty-copy">Select a RigElement or RigFrame to edit its rigid pose.</div>
+      <div className="empty-copy">Select a RigElement or RigFrame to inspect its rigid pose. Editing requires an explicit Edit pose action.</div>
     </section>
   );
 }
@@ -182,12 +209,26 @@ function SourceInspector({ selectedSourceNode, selectedSourceWorldPose, sourceIn
 }
 
 export function InspectorPanel({ selectedElement, selectedFrame, selectedPose, selectedSourceNode, selectedSourceWorldPose, sourceInstanceName, onCommitPose, onFocusSource }: InspectorPanelProps) {
+  const selectedTarget: TransformTarget | null = selectedElement
+    ? { kind: 'element', id: selectedElement.id }
+    : selectedFrame
+      ? { kind: 'frame', id: selectedFrame.id }
+      : null;
+  const { editActive, beginEdit, endEdit } = useRigEditIntent(selectedTarget);
   const hasAuthored = Boolean((selectedElement || selectedFrame) && selectedPose);
   return (
     <div className="inspector-panel">
       <div className="panel-title">Inspector</div>
       <div className="inspector-scroll">
-        <AuthoredInspector selectedElement={selectedElement} selectedFrame={selectedFrame} selectedPose={selectedPose} onCommitPose={onCommitPose} />
+        <AuthoredInspector
+          selectedElement={selectedElement}
+          selectedFrame={selectedFrame}
+          selectedPose={selectedPose}
+          onCommitPose={onCommitPose}
+          editActive={editActive}
+          onBeginEdit={beginEdit}
+          onEndEdit={endEdit}
+        />
         {hasAuthored && selectedSourceNode ? (
           <div className="selection-pair"><span className="selection-mark authored" />Authored <span className="pair-connector">+</span><span className="selection-mark source" />Source <span className="pair-note">independent selections</span></div>
         ) : null}
