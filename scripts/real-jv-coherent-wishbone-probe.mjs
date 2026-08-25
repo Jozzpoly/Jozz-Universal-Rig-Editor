@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { inspectGltfSource } from '../.core-dist/source/gltf-source-index.js';
 import {
   createOrthogonalCrossAxisFrameLocator,
@@ -285,6 +285,16 @@ for (const locator of [upperInboardLocator, lowerInboardLocator, upperOutboardLo
 const finalResolved = resolveRigDocument(document);
 if (finalResolved.diagnostics.length !== 4 || finalResolved.diagnostics.some((diagnostic) => diagnostic.severity !== 'info')) {
   throw new Error('Coherent wishbone neutral diagnostics are not clean after Save/Open/relink.');
+}
+
+const candidateOutputPath = process.env.JURE_CANDIDATE_OUTPUT_PATH;
+if (candidateOutputPath) {
+  writeFileSync(candidateOutputPath, serialized, 'utf8');
+  console.log('REAL_JV_COHERENT_WISHBONE_CANDIDATE_WRITTEN', JSON.stringify({
+    path: candidateOutputPath,
+    bytes: Buffer.byteLength(serialized, 'utf8'),
+    semanticStatus: 'candidate-not-owner-accepted-authority',
+  }));
 }
 
 console.log('REAL_JV_COHERENT_WISHBONE_NEUTRAL_PASS', JSON.stringify({
